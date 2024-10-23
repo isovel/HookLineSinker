@@ -1,4 +1,4 @@
 {
-    "version": "1.0.2",
-    "message": "This update includes very important bug fixes and performance improvements. Please update to ensure the best experience. Once updated, you will need to clear your HLS mods via the settings menu, select \"Clear HLS Mods\". This is a one-time thing as I have changed how mods are managed, this is not a requrement for future updates."
+    "version": "1.0.3",
+    "message": "This is a very minor update to fix a few bugs with the config editor. To update, just download the new EXE, delete the old one, ane run! Your mods, settings, etc will all transfer over."
 }

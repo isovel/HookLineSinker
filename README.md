@@ -2,24 +2,22 @@
 
 Hook, Line, & Sinker is a mod manager designed for WEBFISHING using GDWeave.
 
+## Features
+- Easy mod installation and management
+- Automatic updates for mods and the GDWeave mod loader
+- User-friendly interface for enabling/disabling mods
+- Mod configuration editing
+- Import custom mods from ZIP files or folders
+- Search functionality for available and installed mods
+- Detailed mod information display
+- One-click setup for game directory and required components
+
 ## Installation
 
-1. Download the latest release from the Releases page (on the right).
-2. Extract the zip file to your desired location.
-3. Run `HookLineSinker.exe` to start the application.
+Download [the latest release EXE](https://github.com/pyoidzzz/HLSRewritten/releases) and run it, simple as that! You'll need to go through the setup process once. Do not download the source code unless you know what you're doing.
 
-## Usage
-1. Follow the instructions in the Game Manager tab.
-2. Use the Mod Manager tab to browse and install mods.
-3. Enable or disable mods as needed.
-4. Enjoy your modded WEBFISHING experience!
+## Troubleshooting/tips
 
-## Support
-
-If you need help, please open an issue or contact @Pyoid on Discord.
-
-## License
-
-This project is proprietary software. You are welcome to view the source code, but redistribution or recompilation without permission is not allowed.
-
----
+- Do not download Hook, Line, & Sinker from the "Code" button at the top.
+- If you run into any issues, try running the program as administrator.
+- You may need to install [.NET 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) manually, I've tried to make it automatic but it's not perfect.

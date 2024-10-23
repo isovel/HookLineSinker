@@ -1,4 +1,4 @@
 {
-    "version": "1.0.3",
-    "message": "This is a very minor update to fix a few bugs with the config editor. To update, just download the new EXE, delete the old one, and run! Your mods, settings, etc will all transfer over."
+    "version": "1.0.4",
+    "message": "This update fixes some major issues that should help new users install GDWeave and .NET easier, bug fixes, indepth error messages, and a new 'Help' tab. To install simply download the new EXE, delete the old one, and run! Your mods, settings, etc will all transfer over."
 }

@@ -1,4 +1,4 @@
 {
-    "version": "1.0.6",
-    "message": "This fixes a fatal issue in 1.0.5. If you do not update, you will experience issues updating GDWeave."
+    "version": "1.0.7",
+    "message": "Update 1.0.7 brings a new feature to toggle GDWeave on and off. This is useful if you want to disable GDWeave for a while or want to test without it. Also fixed ANOTHER (i know i'm sorry :P) bug with GDWeave."
 }

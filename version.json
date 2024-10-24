@@ -1,4 +1,4 @@
 {
-    "version": "1.0.9",
-    "message": "Update 1.0.9 brings quality of life improvements and automatic program updating! (No more downloading yourself!)"
+    "version": "1.1.0",
+    "message": "!! IF ON v1.0.9 DO NOT PRESS YES !!\nThe update will break greatly, instead PRESS NO, click on View Website, and use the download button there.\nThis is because I have introduced an installer program to make shortcuts and hopefully fix permission issues, overall it should help fix the problems of everyone."
 }

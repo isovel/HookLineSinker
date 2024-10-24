@@ -1,4 +1,4 @@
 {
-    "version": "1.0.4",
-    "message": "This update fixes some major issues that should help new users install GDWeave and .NET easier, bug fixes, indepth error messages, and a new 'Help' tab. To install simply download the new EXE, delete the old one, and run! Your mods, settings, etc will all transfer over."
+    "version": "1.0.5",
+    "message": "Update 1.0.5 is available:\n• Improved performance\n• Enhanced error handling and reporting\n• Added \"Uninstall GDWeave\" option in settings\n• Threaded downloads to prevent UI freezing\n• Various bug fixes and UI improvements"
 }

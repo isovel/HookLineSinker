@@ -1,4 +1,4 @@
 {
     "version": "1.0.6",
-    "message": "Update 1.0.6 is not yet avaliable, this is warning not to use the Update GDWeave or Uninstall GDWeave options They will fuck up your mods. Fixing right now."
+    "message": "This fixes a fatal issue in 1.0.5. If you do not update, you will experience issues updating GDWeave."
 }

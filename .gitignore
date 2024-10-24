@@ -1,1 +1,3 @@
-webhook.json
+.env
+*.env
+.env*

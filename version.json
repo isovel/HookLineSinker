@@ -1,4 +1,4 @@
 {
-    "version": "1.0.7",
-    "message": "Update 1.0.7 brings a new feature to toggle GDWeave on and off. This is useful if you want to disable GDWeave for a while or want to test without it. Also fixed ANOTHER (i know i'm sorry :P) bug with GDWeave."
+    "version": "1.0.8",
+    "message": "Update 1.0.8 brings major improvements: better performance, third-party mod support, multi-mod selection for tasks, and UI enhancements. Also includes the GDWeave toggle feature and various bug fixes."
 }

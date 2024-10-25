@@ -1,4 +1,4 @@
 {
-    "version": "1.1.0",
-    "message": "!! IF ON v1.0.9 DO NOT PRESS YES !!\nThe update will break greatly, instead PRESS NO, click on View Website, and use the download button there.\nThis is because I have introduced an installer program to make shortcuts and hopefully fix permission issues, overall it should help fix the problems of everyone."
+    "version": "1.1.3",
+    "message": "This is a rollback to version 1.1.0 (labeled as 1.1.3) due to numerous issues. Please DO NOT install using the in-app updater. Instead, go to the website or Discord server to download the correct version manually. This will ensure you get the stable 1.1.0 release without any problems."
 }

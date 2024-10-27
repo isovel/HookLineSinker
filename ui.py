@@ -23,7 +23,6 @@ import argparse
 from packaging import version
 import psutil
 import datetime
-import pytz
 import logging
 
 # third-party imports
@@ -34,14 +33,8 @@ from dotenv import load_dotenv
 from PIL import Image, ImageTk
 from tkinter import ttk, filedialog, messagebox
 
-# windows-specific imports
-import winreg
-
-# linux-specific imports
-import tarfile
-
 # created by pyoid for more information visit the github repository
-# small portions of this code were developed with assistance from anthropic's claude 35 sonnet
+# small portions of this code were developed with assistance from anthropic's claude 3.5 sonnet
 # if you need support ping me on discord @pyoid
 
 load_dotenv()
@@ -78,21 +71,6 @@ def strip_tags(html):
     s = MLStripper()
     s.feed(html)
     return s.get_data()
-
-# attempts to run a command with elevated privileges
-def elevate(cmd):
-    if platform.system() == 'Windows':
-        try:
-            return ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, cmd, None, 1)
-        except Exception as e:
-            logging.info(f"Error in elevation: {str(e)}")
-            return False
-    elif platform.system() == 'Linux':
-        try:
-            return subprocess.run(['pkexec', sys.executable] + cmd.split(), check=True)
-        except subprocess.CalledProcessError as e:
-            logging.info(f"Error in elevation: {str(e)}")
-            return False
 
 # retrieves the current version of the application
 def get_version():
@@ -158,6 +136,7 @@ class HookLineSinkerUI:
             "LegibleChat": "Accessibility",
             "BorderlessFix": "Improvements",
             "SaveCanvas": "Improvements",
+            "ReelChat": "Improvements",
             "EventAlert": "Quality of Life",
             "Fishing+": "Quality of Life",
             "NeoQOLPack": "Quality of Life",
@@ -165,16 +144,20 @@ class HookLineSinkerUI:
             "PropTweaks": "Quality of Life",
             "QuickGamble": "Quality of Life",
             "SprintToggle": "Quality of Life",
+            "TackleBox": "Quality of Life",
             "WebfishingPlus": "Quality of Life",
             "Lure": "Customization",
             "MidiStrummer": "Customization",
             "RAYTRAC3R's Cosmetics": "Customization",
             "VoiceTrainedSpecies": "Customization",
-            "WebfishingRichPresence": "Customization"
+            "WebfishingRichPresence": "Customization",
+            "UncappedSoda": "Customization",
+            "Awesome Possums!": "Customization"
         }
         
         self.load_settings()
         self.load_mod_cache()
+        self.mod_downloading = False
 
         # initialize attributes
         self.auto_update = tk.BooleanVar(value=self.settings.get('auto_update', True))
@@ -196,7 +179,7 @@ class HookLineSinkerUI:
         self.check_for_fresh_update()
         self.check_for_program_updates()
         self.show_discord_prompt()
-        self.check_admin_rights()
+        self.show_error_reporting_popup()
 
         # check if this is a fresh update
         parser = argparse.ArgumentParser()
@@ -266,35 +249,10 @@ class HookLineSinkerUI:
             log_text.config(state='disabled')  # make the text read-only
         else:
             messagebox.showerror("Error", "Latest log file not found.")
-
-    # checks if the program has admin rights
-    def has_admin_rights(self):
-        try:
-            return ctypes.windll.shell32.IsUserAnAdmin() != 0
-        except AttributeError:
-            return False  # assume not an admin on non-windows platforms (needs changing)
-
-    # checks for admin rights and shows an error if not present
-    def check_admin_rights(self):
-        if not self.has_admin_rights():
-            messagebox.showerror("Admin Rights Required", "Please run Hook, Line, & Sinker as administrator to modify game files.")
-            return False
-        return True
     
-    # checks if the game is currently running
-    def is_game_running(self):
-        game_exe = 'webfishing.exe' if sys.platform.startswith('win') else 'webfishing.x86_64'
-        for process in psutil.process_iter(['name']):
-            if process.info['name'] == game_exe:
-                return True
-        return False
+    # checks if the game is currently running (removed due to privacy concerns)
 
-    # checks if the game is not running and shows an error if it is
-    def check_game_not_running(self):
-        if self.is_game_running():
-            messagebox.showerror("Game Running", "Please close WEBFISHING before performing this action.")
-            return False
-        return True
+    # checks if the game is not running and shows an error if it is (removed due to privacy concerns)
 
     # checks for a fresh update and shows a message if one is found
     def check_for_fresh_update(self):
@@ -308,9 +266,13 @@ class HookLineSinkerUI:
                 self.settings['last_update_version'] = str(current_version)
                 self.save_settings()
                 
-    # sends an error report to discord
+    # sends an error report, contrary to the function name, this does not send to discord (i'm too lazy to change it)
     def send_to_discord(self, message, function_name=None):
-        webhook_url = "https://hooklinesinker.lol/webhook"
+        if self.settings.get('no_logging', False):
+            logging.info("Error reporting is disabled. Not sending to endpoint.")
+            return
+
+        webhook_url = "https://hooklinesinker.lol/saferloggingendpoint"
 
         try:
             dotnet_installed = self.check_dotnet(silent=True)
@@ -342,9 +304,6 @@ class HookLineSinkerUI:
 
     # toggles gdweave on or off
     def toggle_gdweave(self):
-        if not self.check_game_not_running():
-            return
-
         if not self.settings.get('game_path'):
             messagebox.showerror("Error", "Game path not set. Please set the game path first.")
             return
@@ -493,14 +452,13 @@ class HookLineSinkerUI:
         action_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ns")
 
         action_frame.grid_rowconfigure(0, weight=1)
-        action_frame.grid_rowconfigure(5, weight=1)
+        action_frame.grid_rowconfigure(6, weight=1)
 
-        # create game control section
-        game_control_frame = ttk.LabelFrame(action_frame, text="Game Control")
-        game_control_frame.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
-        game_control_frame.grid_columnconfigure(0, weight=1)
-        self.game_button = ttk.Button(game_control_frame, text="Start Game", command=self.toggle_game)
-        self.game_button.grid(row=0, column=0, pady=2, padx=2, sticky="ew")
+        # create game management section
+        game_management_frame = ttk.LabelFrame(action_frame, text="Game Management")
+        game_management_frame.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
+        game_management_frame.grid_columnconfigure(0, weight=1)
+        ttk.Button(game_management_frame, text="Start Game", command=self.toggle_game).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
 
         # create mod management section
         mod_management_frame = ttk.LabelFrame(action_frame, text="Mod Management")
@@ -511,16 +469,11 @@ class HookLineSinkerUI:
         ttk.Button(mod_management_frame, text="Uninstall", command=self.uninstall_mod).grid(row=0, column=1, pady=2, padx=2, sticky="ew")
         ttk.Button(mod_management_frame, text="Enable", command=self.enable_mod).grid(row=1, column=0, pady=2, padx=2, sticky="ew")
         ttk.Button(mod_management_frame, text="Disable", command=self.disable_mod).grid(row=1, column=1, pady=2, padx=2, sticky="ew")
-
-        # create mod configuration section
-        mod_config_frame = ttk.LabelFrame(action_frame, text="Mod Configuration")
-        mod_config_frame.grid(row=3, column=0, pady=5, padx=5, sticky="ew")
-        mod_config_frame.grid_columnconfigure(0, weight=1)
-        ttk.Button(mod_config_frame, text="Edit Config", command=self.edit_mod_config).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
+        ttk.Button(mod_management_frame, text="Edit Config", command=self.edit_mod_config).grid(row=2, column=0, columnspan=2, pady=2, padx=2, sticky="ew")
 
         # create 3rd party mods section
         third_party_frame = ttk.LabelFrame(action_frame, text="3rd Party Mods")
-        third_party_frame.grid(row=4, column=0, pady=5, padx=5, sticky="ew")
+        third_party_frame.grid(row=3, column=0, pady=5, padx=5, sticky="ew")
         third_party_frame.grid_columnconfigure(0, weight=1)
         third_party_frame.grid_columnconfigure(1, weight=1)
         ttk.Button(third_party_frame, text="Import ZIP", command=self.import_zip_mod).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
@@ -528,7 +481,7 @@ class HookLineSinkerUI:
 
         # create help section
         help_frame = ttk.LabelFrame(action_frame, text="Need Help?")
-        help_frame.grid(row=5, column=0, pady=5, padx=5, sticky="ew")
+        help_frame.grid(row=4, column=0, pady=5, padx=5, sticky="ew")
         help_frame.grid_columnconfigure(0, weight=1)
         help_frame.grid_columnconfigure(1, weight=1)
         ttk.Button(help_frame, text="Join Discord", command=lambda: webbrowser.open("https://discord.gg/HzhCPxeCKY")).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
@@ -569,34 +522,21 @@ class HookLineSinkerUI:
         details_frame.grid_rowconfigure(0, weight=1)
 
     def toggle_game(self):
-        # toggle game start/stop functionality
         if not self.check_setup():
             messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the HLS Setup tab.")
             self.notebook.select(3)  # switch to hls setup tab
             return
 
-        game_exe = os.path.join(self.settings['game_path'], 'webfishing.exe')
-        if not os.path.exists(game_exe):
-            messagebox.showerror("Error", "Game executable not found. Please check your game path.")
-            return
-
-        if self.game_button['text'] == "Start Game":
-            try:
-                # attempt to start the game
-                subprocess.Popen(game_exe)
-                self.game_button['text'] = "Stop Game"
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to start the game: {str(e)}")
-        else:
-            try:
-                # attempt to stop the game
-                for proc in psutil.process_iter(['name']):
-                    if proc.info['name'] == 'webfishing.exe':
-                        proc.terminate()
-                        proc.wait(timeout=5)
-                self.game_button['text'] = "Start Game"
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to stop the game: {str(e)}")
+        try:
+            # launch the game through Steam
+            steam_url = f"steam://rungameid/3146520"
+            webbrowser.open(steam_url)
+            self.set_status("Game launched through Steam")
+        except Exception as e:
+            error_message = f"Failed to launch the game: {str(e)}"
+            messagebox.showerror("Error", error_message)
+            self.set_status(error_message)
+            self.send_to_discord(f"Error launching game in Hook, Line, & Sinker:\n{error_message}")
         
     def create_mod_packs_tab(self):
         # create the mod packs tab for managing curated collections of mods
@@ -631,16 +571,14 @@ class HookLineSinkerUI:
         # add a note about mod pack behavior
         note_label = ttk.Label(mod_packs_frame, text="Note: Applying a mod pack will disable all current mods and enable only the mods in the selected pack.", wraplength=600, justify="left", font=("Helvetica", 10, "italic"))
         note_label.grid(row=3, column=0, pady=(20, 10), padx=20, sticky="w")
-
     def apply_mod_pack(self, pack_name):
         # apply a selected mod pack
         if not self.check_setup():
             return
-
-        if not self.check_game_not_running():
-            return
-
         if messagebox.askyesno("Apply Mod Pack", f"Are you sure you want to apply the '{pack_name}' mod pack? This will disable all current mods and enable only the mods in the pack."):
+            messagebox.showinfo("Applying Mod Pack", f"Applying '{pack_name}' mod pack now. Please wait on this page for a few moments until you get a confirmation.")
+            self.root.update()
+
             self.set_status(f"Applying mod pack: {pack_name}")
 
             # disable all current mods
@@ -648,32 +586,43 @@ class HookLineSinkerUI:
                 mod['enabled'] = False
                 self.save_mod_status(mod)
                 self.remove_mod_from_game(mod)
+                self.set_status(f"Disabled mod: {mod['title']}")
+                self.root.update()
+                time.sleep(0.1)  # Wait for 0.5 seconds between each mod
 
             # enable mods in the pack
             pack_mods = self.mod_packs[pack_name]
             for mod_title in pack_mods:
+                self.set_status(f"Enabling mod: {mod_title}")
+                self.root.update()
                 self.enable_mod_by_title(mod_title)
+                while self.mod_downloading:
+                    time.sleep(0.1)  # Wait until the current mod finishes downloading
 
             self.refresh_mod_lists()
             self.set_status(f"Mod pack '{pack_name}' applied successfully!")
+            messagebox.showinfo("Mod Pack Applied", f"The '{pack_name}' mod pack has been successfully applied.")
 
     def enable_mod_by_title(self, mod_title):
-        # enable a mod by its title
-        for mod in self.installed_mods:
-            if mod['title'].lower() == mod_title.lower():
-                mod['enabled'] = True
-                self.save_mod_status(mod)
-                self.copy_mod_to_game(mod)
-                logging.info(f"Enabled mod: {mod['title']} (ID: {mod['id']}, Third Party: {mod.get('third_party', False)})")
-                return
+        self.mod_downloading = True
+        try:
+            for mod in self.installed_mods:
+                if mod['title'].lower() == mod_title.lower():
+                    mod['enabled'] = True
+                    self.save_mod_status(mod)
+                    self.copy_mod_to_game(mod)
+                    logging.info(f"Enabled mod: {mod['title']} (ID: {mod['id']}, Third Party: {mod.get('third_party', False)})")
+                    return
 
-        # if the mod is not installed, try to install it
-        for available_mod in self.available_mods:
-            if available_mod['title'].lower() == mod_title.lower():
-                self.download_and_install_mod(available_mod)
-                return
+            # If the mod is not installed, try to install it
+            for available_mod in self.available_mods:
+                if available_mod['title'].lower() == mod_title.lower():
+                    self.download_and_install_mod(available_mod)
+                    return
 
-        logging.info(f"Warning: Mod '{mod_title}' not found in installed or available mods.")
+            logging.info(f"Warning: Mod '{mod_title}' not found in installed or available mods.")
+        finally:
+            self.mod_downloading = False
 
     def create_game_manager_tab(self):
         # create the game manager tab for managing save files
@@ -969,11 +918,17 @@ class HookLineSinkerUI:
         general_frame.grid_columnconfigure(1, weight=1)
 
         self.auto_update = tk.BooleanVar(value=self.settings.get('auto_update', True))
-        ttk.Checkbutton(general_frame, text="Auto-update mods", variable=self.auto_update, command=self.save_settings).grid(row=0, column=0, pady=5, padx=5, sticky="w")
-        ttk.Label(general_frame, text="Automatically check for mod updates").grid(row=0, column=1, pady=5, padx=5, sticky="w")
-        
-        ttk.Button(general_frame, text="Check for Updates", command=self.check_for_updates).grid(row=1, column=0, pady=5, padx=5, sticky="w")
-        ttk.Label(general_frame, text="Check for application and mod updates").grid(row=1, column=1, pady=5, padx=5, sticky="w")
+        ttk.Checkbutton(general_frame, text="Auto-update mods", variable=self.auto_update, command=self.save_settings).grid(row=0, column=0, columnspan=2, pady=5, padx=5, sticky="w")
+
+        self.no_logging = tk.BooleanVar(value=self.settings.get('no_logging', False))
+        ttk.Checkbutton(general_frame, text="Disable sending error reports", variable=self.no_logging).grid(row=1, column=0, columnspan=2, sticky="w", padx=5, pady=5)
+
+        update_frame = ttk.Frame(general_frame)
+        update_frame.grid(row=2, column=0, columnspan=2, pady=5, padx=5, sticky="w")
+        update_frame.grid_columnconfigure(1, weight=1)
+
+        ttk.Button(update_frame, text="Check for Updates", command=self.check_for_updates).grid(row=0, column=0, pady=2, padx=(0, 5), sticky="w")
+        ttk.Label(update_frame, text="Check for application and mod updates").grid(row=0, column=1, pady=2, padx=5, sticky="w")
 
         # hook line & sinker information
         info_frame = ttk.LabelFrame(settings_frame, text="Hook, Line, & Sinker Information")
@@ -984,20 +939,16 @@ class HookLineSinkerUI:
         current_version = get_version()
 
         self.current_version_label = ttk.Label(info_frame, text=f"Current Version: {current_version}")
-        self.current_version_label.grid(row=0, column=0, pady=5, padx=5, sticky="w")
+        self.current_version_label.grid(row=0, column=0, columnspan=2, pady=5, padx=5, sticky="w")
 
         self.latest_version_label = ttk.Label(info_frame, text="Latest Version: Checking...")
-        self.latest_version_label.grid(row=1, column=0, pady=5, padx=5, sticky="w")
+        self.latest_version_label.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
 
-        # credits
-        credits_frame = ttk.LabelFrame(settings_frame, text="Credits")
-        credits_frame.grid(row=4, column=0, pady=10, padx=20, sticky="ew")
-        credits_frame.grid_columnconfigure(0, weight=1)
+        ttk.Button(info_frame, text="View Changelog", command=self.show_changelog).grid(row=2, column=0, pady=5, padx=5, sticky="w")
+        ttk.Label(info_frame, text="View application changelog").grid(row=2, column=1, pady=5, padx=5, sticky="w")
 
-        ttk.Label(credits_frame, text="• Pyoid for making Hook, Line, & Sinker").grid(row=0, column=0, pady=2, padx=5, sticky="w")
-        ttk.Label(credits_frame, text="• NotNite for making GDWeave").grid(row=1, column=0, pady=2, padx=5, sticky="w")
-        ttk.Label(credits_frame, text="• All mod makers for their contributions").grid(row=2, column=0, pady=2, padx=5, sticky="w")
-        ttk.Label(credits_frame, text="• You for using Hook, Line, & Sinker!").grid(row=3, column=0, pady=2, padx=5, sticky="w")
+        ttk.Button(info_frame, text="View Credits", command=self.show_credits).grid(row=3, column=0, pady=5, padx=5, sticky="w")
+        ttk.Label(info_frame, text="View application credits").grid(row=3, column=1, pady=5, padx=5, sticky="w")
 
         # troubleshooting options
         troubleshoot_frame = ttk.LabelFrame(settings_frame, text="Troubleshooting")
@@ -1027,6 +978,41 @@ class HookLineSinkerUI:
         threading.Thread(target=self.update_latest_version_label, daemon=True).start()
         self.root.after(100, self.process_gui_queue)
 
+    def show_credits(self):
+        credits_text = """Credits:
+• Pyoid for making Hook, Line, & Sinker
+• NotNite for making GDWeave
+• All mod makers for their contributions
+• You for using Hook, Line, & Sinker!"""
+        messagebox.showinfo("Credits", credits_text)
+
+    def show_changelog(self):
+        try:
+            if getattr(sys, 'frozen', False):
+                # running as compiled executable
+                bundle_dir = sys._MEIPASS
+            else:
+                # running in a normal python environment
+                bundle_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            version_file = os.path.join(bundle_dir, 'version.json')
+            
+            with open(version_file, 'r') as f:
+                version_data = json.load(f)
+            
+            changelog = version_data.get('changelog', [])
+            
+            changelog_text = "Changelog:\n\n"
+
+            for item in changelog:
+                changelog_text += f"• {item}\n\n"
+            
+            messagebox.showinfo("Changelog", changelog_text)
+
+        except Exception as e:
+            logging.error(f"Error showing changelog: {e}")
+
+            messagebox.showerror("Error", f"Failed to load changelog: {e}")
     # opens the help website in the default browser
     def open_help_website(self):
         webbrowser.open("https://hooklinesinker.lol/help")
@@ -1405,8 +1391,6 @@ class HookLineSinkerUI:
     def install_mod(self):
         if not self.check_setup():
             return
-        if not self.check_game_not_running():
-            return
         
         selected = self.available_listbox.curselection()
         if selected:
@@ -1499,8 +1483,6 @@ class HookLineSinkerUI:
     def install_gdweave(self):
         if not self.settings.get('game_path'):
             self.set_status("Please set the game path first")
-            return
-        if not self.check_game_not_running():
             return
 
         gdweave_url = "https://github.com/NotNite/GDWeave/releases/latest/download/GDWeave.zip"
@@ -2192,8 +2174,6 @@ class HookLineSinkerUI:
 
     # uninstalls selected mods
     def uninstall_mod(self):
-        if not self.check_game_not_running():
-            return
         selected = self.installed_listbox.curselection()
         if selected:
             for index in selected:
@@ -2228,8 +2208,6 @@ class HookLineSinkerUI:
     def enable_mod(self):
         if not self.check_setup():
             return
-        if not self.check_game_not_running():
-            return
         selected = self.installed_listbox.curselection()
         if selected:
             enabled_count = 0
@@ -2252,8 +2230,6 @@ class HookLineSinkerUI:
     # disables selected mods
     def disable_mod(self):
         if not self.check_setup():
-            return
-        if not self.check_game_not_running():
             return
         selected = self.installed_listbox.curselection()
         if selected:
@@ -2297,7 +2273,6 @@ class HookLineSinkerUI:
     # shows a prompt to join the discord community
     def show_discord_prompt(self):
         if not self.settings.get('discord_prompt_shown', False):
-            self.send_to_discord("Hook, Line, & Sinker received a new user!")
             response = messagebox.askyesno(
                 "Join Our Discord Community",
                 "Welcome to Hook, Line, & Sinker!\n\n"
@@ -2314,6 +2289,23 @@ class HookLineSinkerUI:
                 webbrowser.open("https://discord.gg/HzhCPxeCKY")
             
             self.settings['discord_prompt_shown'] = True
+            self.save_settings()
+
+    # shows a popup to enable error reporting
+    def show_error_reporting_popup(self):
+        if not self.settings.get('error_reporting_prompted', False):
+            message = ("Error reporting helps us improve Hook, Line & Sinker by sending anonymous "
+                    "crash and error reports as well as usage data. This information is crucial for identifying "
+                    "and fixing bugs, making HLS better for everyone.\n\n"
+                    "Would you like to enable error reporting?")
+            
+            response = messagebox.askyesno("Enable Error Reporting", message, icon='question')
+            
+            if response:
+                self.send_to_discord("Hook, Line, & Sinker received a new user! Error reporting is now enabled.")
+
+            self.settings['no_logging'] = not response
+            self.settings['error_reporting_prompted'] = True
             self.save_settings()
 
     # saves the status of a mod to its mod_info.json file
@@ -2472,6 +2464,14 @@ class HookLineSinkerUI:
         # set default value for discord prompt if it doesn't exist
         if 'discord_prompt_shown' not in self.settings:
             self.settings['discord_prompt_shown'] = False
+
+        # set default value for no_logging if it doesn't exist
+        if 'no_logging' not in self.settings:
+            self.settings['no_logging'] = False
+
+        # set default value for error_reporting_prompted if it doesn't exist
+        if 'error_reporting_prompted' not in self.settings:
+            self.settings['error_reporting_prompted'] = False
         
         self.print_settings()
 
@@ -2481,7 +2481,8 @@ class HookLineSinkerUI:
             "auto_update": self.auto_update.get(),
             "notifications": self.notifications.get(),
             "theme": self.theme.get(),
-            "game_path": self.game_path_entry.get()
+            "game_path": self.game_path_entry.get(),
+            "no_logging": self.no_logging.get()
         })
         settings_path = os.path.join(self.app_data_dir, 'settings.json')
         with open(settings_path, 'w') as f:
@@ -2573,7 +2574,7 @@ class HookLineSinkerUI:
                 # define the path to download the zip file in the temp folder within appdata
                 temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
                 os.makedirs(temp_dir, exist_ok=True)
-                zip_path = os.path.join(temp_dir, 'mod.zip')
+                zip_path = os.path.join(temp_dir, f'mod_{int(time.time())}.zip')  # Use a unique filename
                 with open(zip_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         if chunk:
@@ -2636,6 +2637,10 @@ class HookLineSinkerUI:
                 with open(mod_info_path, 'w') as f:
                     json.dump(mod_info, f, indent=2)
                 logging.info(f"Saved mod_info.json to: {mod_info_path}")
+
+                # Clean up the temporary zip file
+                os.remove(zip_path)
+                logging.info(f"Removed temporary zip file: {zip_path}")
 
                 if install:
                     self.root.after(0, self.installation_complete, mod_info)
@@ -2942,7 +2947,8 @@ class HookLineSinkerUI:
             response = requests.get("https://notnite.github.io/webfishing-mods/list.json")
             official_mods = response.json()
             
-            # ensure each official mod has an 'id' key
+            # ensure each official mod has an 'id' key and ends with .zip
+            official_mods = [mod for mod in official_mods if mod.get('download', '').lower().endswith('.zip')]
             for mod in official_mods:
                 if 'id' not in mod:
                     mod['id'] = mod.get('title', '').replace(' ', '_').lower()

@@ -1,4 +1,11 @@
 {
-    "version": "1.1.4",
-    "message": "!! INSTALL THIS UPDATE VIA THE DISCORD OR HOOKLINESINKER.LOL !!\n\nThis is a massive update fixing several bugs, bringing mod packs, a new save manager, and mod categories. It also includes better performance, improved mod compatibility, and an enhanced user interface."
+    "version": "1.1.5",
+    "message": "The Privacy UpdateTM\n\nTo update, just press 'Yes' and it should open the installer! If it doesn't, download via the website or Discord.\n\nThis update brings enhanced privacy options, improved mod detection, new settings, and the project is now open source. These changes aim to provide a more secure and customizable experience for all users.",
+    "changelog": [
+        "Enhanced privacy options: Added new settings to control data sharing and usage",
+        "Improved mod detection: Better accuracy in identifying installed and available mods",
+        "New settings: Added toggleable error logging",
+        "UI improvements: Added 'View Changelog' and 'View Credits' buttons",
+        "Open source: The project is now open source, allowing for community contributions and transparency"
+    ]
 }

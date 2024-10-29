@@ -24,6 +24,7 @@ from packaging import version
 import psutil
 import datetime
 import logging
+import random
 
 # third-party imports
 import appdirs
@@ -1365,61 +1366,90 @@ class HookLineSinkerUI:
             self.set_status("Please select a mod to install")
             return
 
-        for index in selected:
-            mod_title = self.available_listbox.get(index)
-            if mod_title.startswith("Category:"):
-                continue  # skip category headers
-                
-            clean_title = mod_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
-            mod = next((m for m in self.available_mods if m['title'].strip() == clean_title), None)
-            if not mod:
-                continue
+        all_dependencies = []
+        
+        try:
+            # First check all dependencies
+            for index in selected:
+                mod_title = self.available_listbox.get(index)
+                if mod_title.startswith("Category:"):
+                    continue
 
-            # check for dependencies before installing
-            dependencies = self.check_mod_dependencies(mod)
-            if dependencies:
-                missing_deps = [dep for dep in dependencies if not self.is_mod_installed(dep)]
-                if missing_deps:
-                    if messagebox.askyesno("Dependencies Required", 
-                        f"This mod requires the following dependencies that will be installed:\n" +
-                        "\n".join(f"• {dep}" for dep in missing_deps) +
-                        "\n\nWould you like to continue?"):
-                        # install dependencies first
-                        for dep_id in missing_deps:
-                            dep_mod = self.find_mod_by_id(dep_id)
-                            if dep_mod:
-                                self.set_status(f"Installing dependency: {dep_mod['title']}")
-                                self.download_and_install_mod(dep_mod)
-                    else:
-                        continue
-                    
-            # now install the main mod
-            self.set_status(f"Installing mod: {mod['title']}")
-            try:
+                clean_title = mod_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
+                mod = next((m for m in self.available_mods if m['title'].strip() == clean_title), None)
+                if not mod:
+                    continue
+
+                self.set_status(f"Checking dependencies for {mod['title']}...")
+                dependencies = self.check_mod_dependencies(mod)
+                if dependencies:
+                    missing_deps = [dep for dep in dependencies if not self.is_mod_installed(dep)]
+                    for dep_id in missing_deps:
+                        dep_mod = self.find_mod_by_id(dep_id)
+                        if dep_mod and dep_mod not in all_dependencies:
+                            all_dependencies.append(dep_mod)
+
+            # If there are dependencies, prompt user
+            if all_dependencies:
+                dep_names = "\n".join([f"• {dep['title']}" for dep in all_dependencies])
+                if not messagebox.askyesno("Dependencies Required", 
+                    f"The following dependencies need to be installed:\n\n{dep_names}\n\nWould you like to install them?"):
+                    return
+
+                # Install dependencies first
+                for dep_mod in all_dependencies:
+                    self.set_status(f"Installing dependency: {dep_mod['title']}")
+                    self.download_and_install_mod(dep_mod)
+
+            # Install selected mods
+            for index in selected:
+                mod_title = self.available_listbox.get(index)
+                if mod_title.startswith("Category:"):
+                    continue
+
+                clean_title = mod_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
+                mod = next((m for m in self.available_mods if m['title'].strip() == clean_title), None)
+                if not mod:
+                    continue
+
+                self.set_status(f"Installing {mod['title']}")
                 self.download_and_install_mod(mod)
-            except Exception as e:
-                error_message = f"Failed to install mod {mod['title']}: {str(e)}"
-                self.set_status(error_message)
-                logging.error(error_message)
-                self.send_to_discord(f"Error installing mod in Hook, Line, & Sinker:\n{error_message}")
 
-        self.refresh_mod_lists()
+            self.set_status("Continuing installation...")
+            self.refresh_mod_lists()
+
+        except Exception as e:
+            error_message = f"Installation failed: {str(e)}"
+            messagebox.showerror("Error", error_message)
+            logging.error(error_message)
+
+    # checks if a mod is installed by its ID
+    def is_mod_installed(self, mod_id):
+        return any(m['id'] == mod_id for m in self.installed_mods)
+    
+    def find_mod_by_id(self, mod_id):
+        return next((m for m in self.available_mods if m['id'] == mod_id), None)
 
     def check_mod_dependencies(self, mod):
+        unique_id = f'dep_check_{mod["id"]}_{int(time.time())}'
+        temp_dir = os.path.join(self.app_data_dir, 'temp', unique_id)
         try:
-            # download and extract the mod to temp directory
-            temp_dir = os.path.join(self.app_data_dir, 'temp', f'dep_check_{int(time.time())}')
             os.makedirs(temp_dir, exist_ok=True)
             
-            response = requests.get(mod['download'])
-            zip_path = os.path.join(temp_dir, "mod.zip")
+            # Download the file with unique name
+            zip_path = os.path.join(temp_dir, f"{mod['id']}_dep_check.zip")
+            response = requests.get(mod['download'], stream=True)
+            response.raise_for_status()
+            
             with open(zip_path, 'wb') as f:
-                f.write(response.content)
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
                 
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_dir)
                 
-            # find and read manifest.json
+            # Find and read manifest.json
             manifest_path = self.find_manifest(temp_dir)
             if manifest_path:
                 with open(manifest_path, 'r') as f:
@@ -1430,8 +1460,11 @@ class HookLineSinkerUI:
             logging.error(f"Error checking dependencies for {mod['title']}: {str(e)}")
             
         finally:
-            # cleanup temp directory
-            shutil.rmtree(temp_dir, ignore_errors=True)
+            # Cleanup temp directory
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception as e:
+                logging.error(f"Error cleaning up temp directory: {str(e)}")
             
         return []
 
@@ -2554,7 +2587,8 @@ class HookLineSinkerUI:
                 # define the path to download the zip file in the temp folder within appdata
                 temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
                 os.makedirs(temp_dir, exist_ok=True)
-                zip_path = os.path.join(temp_dir, f'mod_{int(time.time())}.zip')  # Use a unique filename
+                random_num = random.randint(100, 999)
+                zip_path = os.path.join(temp_dir, f'mod_{int(time.time())}{random_num}.zip')  # Use a unique filename
                 with open(zip_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         if chunk:
@@ -2562,7 +2596,8 @@ class HookLineSinkerUI:
                 logging.info(f"Download completed. Saved to: {zip_path}")
                 
                 # extract the zip file into a temporary directory within the temp folder
-                extract_dir = os.path.join(temp_dir, 'extract_' + str(int(time.time())))
+                random_num = random.randint(100, 999)
+                extract_dir = os.path.join(temp_dir, 'extract_' + str(int(time.time())) + str(random_num))
                 os.makedirs(extract_dir, exist_ok=True)
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     zip_ref.extractall(extract_dir)
@@ -2595,7 +2630,8 @@ class HookLineSinkerUI:
                 final_mod_dir = os.path.join(self.mods_dir, mod_id)
                 if os.path.exists(final_mod_dir):
                     logging.info(f"Moving existing mod directory to temp: {final_mod_dir}")
-                    old_mod_dir = os.path.join(temp_dir, f'old_{mod_id}_{int(time.time())}')
+                    random_num = random.randint(100, 999)
+                    old_mod_dir = os.path.join(temp_dir, f'old_{mod_id}_{int(time.time())}{random_num}')
                     shutil.move(final_mod_dir, old_mod_dir)
                 shutil.move(mod_dir, final_mod_dir)
                 logging.info(f"Moved mod directory to: {final_mod_dir}")

@@ -1179,45 +1179,27 @@ class HookLineSinkerUI:
 
         logging.info(f"Selected ZIP file: {zip_path}")
 
-        # create a dedicated temp folder if it doesn't exist
+        # Create temp directories
         temp_dir = os.path.join(self.app_data_dir, 'temp')
         os.makedirs(temp_dir, exist_ok=True)
-
-        # create a unique subfolder for this import operation
         import_temp_dir = os.path.join(temp_dir, f"import_{int(time.time())}")
         os.makedirs(import_temp_dir)
-        logging.info(f"Created import temp directory: {import_temp_dir}")
-
-        # create an 'extractedzip' folder inside the import folder
         extracted_zip_dir = os.path.join(import_temp_dir, 'extractedzip')
         os.makedirs(extracted_zip_dir)
-        logging.info(f"Created extractedzip directory: {extracted_zip_dir}")
 
         try:
-            # extract the zip contents to the extractedzip directory
+            # Extract zip contents
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                logging.info(f"ZIP file opened successfully: {zip_path}")
                 zip_ref.extractall(extracted_zip_dir)
-                logging.info(f"ZIP contents extracted to: {extracted_zip_dir}")
             
-            # log the contents of the extracted directory
-            logging.info(f"Contents of {extracted_zip_dir}:")
-            for root, dirs, files in os.walk(extracted_zip_dir):
-                for file in files:
-                    logging.info(os.path.join(root, file))
-
-            # find the manifest.json file
             manifest_path = self.find_manifest(extracted_zip_dir)
-            
             if not manifest_path:
                 error_msg = "manifest.json not found in the ZIP file. This may not be a valid mod package."
                 logging.error(error_msg)
                 messagebox.showerror("Error", error_msg)
                 return
 
-            logging.info(f"Found manifest.json at: {manifest_path}")
-
-            # read the manifest to get the mod id and other information
+            # Read manifest and check dependencies
             with open(manifest_path, 'r') as f:
                 manifest = json.load(f)
             
@@ -1228,41 +1210,61 @@ class HookLineSinkerUI:
                 messagebox.showerror("Error", error_msg)
                 return
 
-            logging.info(f"Mod ID from manifest: {mod_id}")
+            # Check for dependencies
+            dependencies = manifest.get('Dependencies', [])
+            if dependencies:
+                all_dependencies = []
+                missing_dependencies = []
+                
+                for dep_id in dependencies:
+                    if not self.is_mod_installed(dep_id):
+                        dep_mod = self.find_mod_by_id(dep_id)
+                        if dep_mod:
+                            if dep_mod not in all_dependencies:
+                                all_dependencies.append(dep_mod)
+                        else:
+                            missing_dependencies.append(dep_id)
 
-            # check if a mod with this id already exists
+                if all_dependencies or missing_dependencies:
+                    message = f"The mod '{manifest.get('Name', mod_id)}' has dependencies:\n\n"
+                    
+                    if all_dependencies:
+                        message += "The following dependencies will be installed:\n"
+                        message += "\n".join([f"• {dep['title']}" for dep in all_dependencies])
+                        message += "\n"
+                    
+                    if missing_dependencies:
+                        message += "\nThe following dependencies could not be found:\n"
+                        message += "\n".join([f"• {dep_id}" for dep in missing_dependencies])
+                        message += "\n\nThe mod may not work correctly without these dependencies. Try finding and importing them manually."
+                    
+                    message += "\n\nWould you like to continue?"
+                    
+                    if not messagebox.askyesno("Dependencies Required", message):
+                        return
+
+                    # Install available dependencies
+                    for dep_mod in all_dependencies:
+                        self.set_status(f"Installing dependency: {dep_mod['title']}")
+                        self.download_and_install_mod(dep_mod)
+
+            # Check if mod already exists
             if self.mod_id_exists(mod_id):
                 messagebox.showwarning("Mod Conflict", f"A mod with ID '{mod_id}' already exists. You must uninstall the existing mod before importing a new mod with the same ID.")
                 return
 
-            # prepare the final mod directory
+            # Continue with mod installation
             mod_dir = os.path.join(self.mods_dir, "3rd_party", mod_id)
-            logging.info(f"Final mod directory: {mod_dir}")
-
             if os.path.exists(mod_dir):
-                logging.info(f"Removing existing mod directory: {mod_dir}")
                 shutil.rmtree(mod_dir)
 
-            # move the mod files to the final directory
             manifest_parent = os.path.dirname(manifest_path)
-            logging.info(f"Manifest parent directory: {manifest_parent}")
-            logging.info(f"Extracted ZIP directory: {extracted_zip_dir}")
-
             if manifest_parent != extracted_zip_dir:
-                # the mod is already in a subfolder just move it
-                logging.info(f"Moving {manifest_parent} to {mod_dir}")
                 shutil.move(manifest_parent, mod_dir)
             else:
-                # the mod is not in a subfolder create one and move all files into it
-                logging.info(f"Moving contents of {extracted_zip_dir} to {mod_dir}")
                 shutil.move(extracted_zip_dir, mod_dir)
 
-            logging.info(f"Contents of final mod directory {mod_dir}:")
-            for root, dirs, files in os.walk(mod_dir):
-                for file in files:
-                    logging.info(os.path.join(root, file))
-
-            # create mod_info.json
+            # Create mod_info.json
             mod_info = {
                 'id': mod_id,
                 'title': manifest.get('Name', mod_id),
@@ -1276,39 +1278,15 @@ class HookLineSinkerUI:
             mod_info_path = os.path.join(mod_dir, 'mod_info.json')
             with open(mod_info_path, 'w') as f:
                 json.dump(mod_info, f, indent=2)
-            logging.info(f"Created mod_info.json at {mod_info_path}")
-
-            # log the entire mod_info dictionary
-            logging.info(f"mod_info to be sent to copy_mod_to_game:")
-            for key, value in mod_info.items():
-                logging.info(f"  {key}: {value}")
-
-            # log the contents of the mod directory before copying
-            logging.info(f"Contents of mod directory before copying:")
-            for root, dirs, files in os.walk(mod_dir):
-                for file in files:
-                    logging.info(os.path.join(root, file))
 
             self.set_status(f"3rd party mod '{mod_info['title']}' imported successfully!")
             self.refresh_mod_lists()
-
-            # log that we're about to call copy_mod_to_game
-            logging.info(f"Calling copy_mod_to_game with mod_info for '{mod_info['title']}'")
             self.copy_mod_to_game(mod_info)
-
-            # log after copy_mod_to_game has been called
-            logging.info(f"Returned from copy_mod_to_game for '{mod_info['title']}'")
-
-            # check if the mod is still in the directory after copying
-            logging.info(f"Contents of mod directory after copying:")
-            for root, dirs, files in os.walk(mod_dir):
-                for file in files:
-                    logging.info(os.path.join(root, file))
 
         except Exception as e:
             error_message = f"Failed to import mod: {str(e)}"
             logging.error(error_message)
-            logging.error(traceback.format_exc())  # This will log the full traceback
+            logging.error(traceback.format_exc())
             self.set_status(error_message)
             self.send_to_discord(f"Error importing 3rd party mod in Hook, Line, & Sinker:\n{error_message}")
 
@@ -1367,6 +1345,7 @@ class HookLineSinkerUI:
             return
 
         all_dependencies = []
+        missing_dependencies = []
         
         try:
             # First check all dependencies
@@ -1383,20 +1362,33 @@ class HookLineSinkerUI:
                 self.set_status(f"Checking dependencies for {mod['title']}...")
                 dependencies = self.check_mod_dependencies(mod)
                 if dependencies:
-                    missing_deps = [dep for dep in dependencies if not self.is_mod_installed(dep)]
-                    for dep_id in missing_deps:
-                        dep_mod = self.find_mod_by_id(dep_id)
-                        if dep_mod and dep_mod not in all_dependencies:
-                            all_dependencies.append(dep_mod)
+                    for dep_id in dependencies:
+                        if not self.is_mod_installed(dep_id):
+                            dep_mod = self.find_mod_by_id(dep_id)
+                            if dep_mod:
+                                if dep_mod not in all_dependencies:
+                                    all_dependencies.append(dep_mod)
+                            else:
+                                missing_dependencies.append(dep_id)
 
             # If there are dependencies, prompt user
-            if all_dependencies:
-                dep_names = "\n".join([f"• {dep['title']}" for dep in all_dependencies])
-                if not messagebox.askyesno("Dependencies Required", 
-                    f"The following dependencies need to be installed:\n\n{dep_names}\n\nWould you like to install them?"):
+            if all_dependencies or missing_dependencies:
+                message = ""
+                if all_dependencies:
+                    dep_names = "\n".join([f"• {dep['title']}" for dep in all_dependencies])
+                    message += f"The following dependencies will be installed:\n\n{dep_names}\n"
+                
+                if missing_dependencies:
+                    message += "\nThe following dependencies could not be found:\n"
+                    message += "\n".join([f"• {dep_id}" for dep in missing_dependencies])
+                    message += "\n\nThe mod may not work correctly without these dependencies. Try finding and importing them manually."
+                
+                message += "\n\nWould you like to continue?"
+                
+                if not messagebox.askyesno("Dependencies Required", message):
                     return
 
-                # Install dependencies first
+                # Install available dependencies first
                 for dep_mod in all_dependencies:
                     self.set_status(f"Installing dependency: {dep_mod['title']}")
                     self.download_and_install_mod(dep_mod)
@@ -1415,7 +1407,7 @@ class HookLineSinkerUI:
                 self.set_status(f"Installing {mod['title']}")
                 self.download_and_install_mod(mod)
 
-            self.set_status("Continuing installation...")
+            self.set_status("Installation complete")
             self.refresh_mod_lists()
 
         except Exception as e:

@@ -1,11 +1,13 @@
 {
-    "version": "1.1.5",
-    "message": "The Privacy UpdateTM\n\nTo update, just press 'Yes' and it should open the installer! If it doesn't, download via the website or Discord.\n\nThis update brings enhanced privacy options, improved mod detection, new settings, and the project is now open source. These changes aim to provide a more secure and customizable experience for all users.",
+    "version": "1.1.6",
+    "message": "The Mod Management Update\n\nTo update, just press 'Yes' and it should open the installer! If it doesn't, download via the website or Discord.\n\nThis update brings dependency warnings, better mod organization, new testing features, and various improvements to make mod management easier.",
     "changelog": [
-        "Enhanced privacy options: Added new settings to control data sharing and usage",
-        "Improved mod detection: Better accuracy in identifying installed and available mods",
-        "New settings: Added toggleable error logging",
-        "UI improvements: Added 'View Changelog' and 'View Credits' buttons",
-        "Open source: The project is now open source, allowing for community contributions and transparency"
+        "Added dependency warnings when installing mods",
+        "Improved mod organization with better categories and mod packs",
+        "Added Test Mod option and Export ZIP feature for 3rd party mods in right-click menu",
+        "Replaced search with comprehensive filtering system",
+        "Enhanced HLS log viewer",
+        "Updated credits section",
+        "Various bug fixes and improvements"
     ]
 }

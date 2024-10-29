@@ -124,36 +124,45 @@ class HookLineSinkerUI:
         self.available_mods = []
         self.installed_mods = []
         self.mod_packs = {
-            "Vanilla+": ["WebfishingPlus", "SprintToggle", "QuickGamble", "BorderlessFix", "SaveCanvas"],
-            "Quality of Life": ["WebfishingPlus", "SprintToggle", "QuickGamble", "BorderlessFix", "SaveCanvas", "EventAlert", "Automasher"],
-            "Accessibility": ["Automasher", "EventAlert", "SprintToggle", "LegibleChat", "BionicFisher"],
-            "Fishing Enthusiast": ["Fishing+", "BionicFisher", "Lure", "MidiStrummer"],
-            "Visual Enhancements": ["BorderlessFix", "SaveCanvas", "WebfishingRichPresence"]
+            "Creature Comforts Pack": ["Awesome Possums!", "Rabbits", "RAYTRAC3R's Cosmetics", "VoiceTrainedSpecies", "Lure"],
+            "Fishing & Adventure Pack": ["Fishing Expanded", "Fishing+", "NeoQOLPack", "QuickGamble"],
+            "Accessibility Essentials": ["Automasher", "BionicFisher", "ReelChat"], 
+            "Quality of Life Pack": ["No Accessory Limit", "BuffStack", "UncappedSoda", "WebfishingPlus", "SprintToggle"],
+            "Creative Tools Pack": ["SaveCanvas", "MidiStrummer", "BorderlessFix"],
+            "Enhanced Communication": ["ReelChat", "WebfishingRichPresence", "LegibleChat"],
+            "Exploration & Movement Pack": ["Nyoom!!!", "SprintToggle", "EventAlert", "LonelyLoner"],
+            "Gameplay Utility Pack": ["TackleBox", "Lure", "PropTweaks", "BorderlessFix"] 
         }
 
         self.mod_categories = {
-            "Automasher": "Accessibility",
-            "BionicFisher": "Accessibility",
-            "LegibleChat": "Accessibility",
-            "BorderlessFix": "Improvements",
-            "SaveCanvas": "Improvements",
-            "ReelChat": "Improvements",
-            "EventAlert": "Quality of Life",
-            "Fishing+": "Quality of Life",
-            "NeoQOLPack": "Quality of Life",
-            "Nyoom!!!": "Quality of Life",
-            "PropTweaks": "Quality of Life",
-            "QuickGamble": "Quality of Life",
-            "SprintToggle": "Quality of Life",
-            "TackleBox": "Quality of Life",
-            "WebfishingPlus": "Quality of Life",
-            "Lure": "Customization",
-            "MidiStrummer": "Customization",
-            "RAYTRAC3R's Cosmetics": "Customization",
-            "VoiceTrainedSpecies": "Customization",
-            "WebfishingRichPresence": "Customization",
-            "UncappedSoda": "Customization",
-            "Awesome Possums!": "Customization"
+            "Awesome Possums!": "Species & Cosmetics",
+            "BetterChalk": "Gameplay Tools",
+            "Fishing Expanded": "Gameplay Enhancements",
+            "Fishing+": "Gameplay Enhancements",
+            "LonelyLoner": "Environment & Time",
+            "No Accessory Limit": "Gameplay Enhancements",
+            "PropTweaks": "Gameplay Enhancements",
+            "RAYTRAC3R's Cosmetics": "Species & Cosmetics",
+            "Rabbits": "Species & Cosmetics",
+            "ReelChat": "Communication & Accessibility",
+            "Automasher": "Communication & Accessibility",
+            "BionicFisher": "Communication & Accessibility",
+            "BorderlessFix": "Gameplay Tools",
+            "BuffStack": "Gameplay Enhancements",
+            "EventAlert": "Environment & Time",
+            "LegibleChat": "Communication & Accessibility",
+            "Lure": "Gameplay Tools",
+            "MidiStrummer": "Gameplay Enhancements",
+            "NeoQOLPack": "Gameplay Enhancements",
+            "Nyoom!!!": "Gameplay Enhancements",
+            "QuickGamble": "Gameplay Enhancements",
+            "SaveCanvas": "Gameplay Tools",
+            "SprintToggle": "Gameplay Enhancements",
+            "TackleBox": "Gameplay Tools",
+            "UncappedSoda": "Gameplay Enhancements",
+            "VoiceTrainedSpecies": "Species & Cosmetics",
+            "WebfishingPlus": "Gameplay Enhancements",
+            "WebfishingRichPresence": "Communication & Accessibility"
         }
         
         self.load_settings()
@@ -181,6 +190,7 @@ class HookLineSinkerUI:
         self.check_for_program_updates()
         self.show_discord_prompt()
         self.show_error_reporting_popup()
+        self.check_for_duplicate_mods()
 
         # check if this is a fresh update
         parser = argparse.ArgumentParser()
@@ -193,26 +203,42 @@ class HookLineSinkerUI:
         # start update checking thread
         self.update_thread = threading.Thread(target=self.periodic_update_check, daemon=True)
         self.update_thread.start()
-
-    # sets up logging to write to latestlog.txt
+    # sets up logging to write to latestlog.txt and fulllatestlog.txt
     def setup_logging(self):
-        log_file = os.path.join(self.app_data_dir, 'latestlog.txt')
-        
         # ensure the directory exists
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        os.makedirs(os.path.dirname(os.path.join(self.app_data_dir, 'latestlog.txt')), exist_ok=True)
         
-        # clear the old log file or create a new one if it doesn't exist
-        open(log_file, 'w').close()
+        # set up error-only logging to latestlog.txt
+        error_log = os.path.join(self.app_data_dir, 'latestlog.txt')
+        with open(error_log, 'w') as f:
+            f.write("=" * 80 + "\n")
+            f.write("Hook, Line, & Sinker Error Log\n")
+            f.write("If you need support, join discord.gg/webfishingmods\n")
+            f.write("This log only contains errors and important messages\n")
+            f.write("=" * 80 + "\n\n")
+        error_handler = logging.FileHandler(error_log, mode='a')
+        error_handler.setLevel(logging.ERROR)
+        error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S'))
         
-        # set up logging
-        logging.basicConfig(
-            filename=log_file,
-            level=logging.DEBUG,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
+        # set up full logging to fulllatestlog.txt
+        full_log = os.path.join(self.app_data_dir, 'fulllatestlog.txt')
+        with open(full_log, 'w') as f:
+            f.write("=" * 80 + "\n")
+            f.write("Hook, Line, & Sinker Full Debug Log\n")
+            f.write("If you need support, join discord.gg/webfishingmods\n")
+            f.write("This log contains all debug messages and program activity\n")
+            f.write("=" * 80 + "\n\n")
+        full_handler = logging.FileHandler(full_log, mode='a')
+        full_handler.setLevel(logging.DEBUG)
+        full_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S'))
         
-        # redirect stdout and stderr to the log file
+        # configure root logger
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        root_logger.addHandler(error_handler)
+        root_logger.addHandler(full_handler)
+        
+        # redirect stdout and stderr
         sys.stdout = LoggerWriter(logging.info)
         sys.stderr = LoggerWriter(logging.error)
 
@@ -225,7 +251,7 @@ class HookLineSinkerUI:
             
             # create a new top-level window
             log_window = tk.Toplevel(self.root)
-            log_window.title("Latest Log")
+            log_window.title("HLS Log")
             log_window.geometry("800x600")
             
             # set the window icon
@@ -233,17 +259,34 @@ class HookLineSinkerUI:
             if os.path.exists(icon_path):
                 log_window.iconbitmap(icon_path)
 
-            # add a text widget to display the log content
-            log_text = tk.Text(log_window, wrap=tk.NONE)
-            log_text.pack(expand=True, fill='both')
+            # create main frame
+            main_frame = ttk.Frame(log_window)
+            main_frame.pack(expand=True, fill='both', padx=5, pady=5)
+            main_frame.grid_columnconfigure(0, weight=1)
+            main_frame.grid_rowconfigure(0, weight=1)
 
-            # add scrollbars
-            y_scrollbar = ttk.Scrollbar(log_window, orient='vertical', command=log_text.yview)
-            y_scrollbar.pack(side='right', fill='y')
-            x_scrollbar = ttk.Scrollbar(log_window, orient='horizontal', command=log_text.xview)
-            x_scrollbar.pack(side='bottom', fill='x')
+            # create text widget with scrollbar
+            text_frame = ttk.Frame(main_frame)
+            text_frame.grid(row=0, column=0, sticky='nsew')
+            text_frame.grid_columnconfigure(0, weight=1)
+            text_frame.grid_rowconfigure(0, weight=1)
 
-            log_text.config(yscrollcommand=y_scrollbar.set, xscrollcommand=x_scrollbar.set)
+            log_text = tk.Text(text_frame, wrap=tk.NONE, font=('Consolas', 10))
+            log_text.grid(row=0, column=0, sticky='nsew')
+
+            scrollbar = ttk.Scrollbar(text_frame, orient='vertical', command=log_text.yview)
+            scrollbar.grid(row=0, column=1, sticky='ns')
+            log_text.config(yscrollcommand=scrollbar.set)
+
+            # create button frame
+            button_frame = ttk.Frame(main_frame)
+            button_frame.grid(row=1, column=0, sticky='ew', pady=(5, 0))
+            button_frame.grid_columnconfigure(1, weight=1)
+
+            # add buttons
+            ttk.Button(button_frame, text="Refresh", command=lambda: self.refresh_log_content(log_text)).grid(row=0, column=0, padx=(0, 5))
+            ttk.Button(button_frame, text="Copy to Clipboard", command=lambda: self.root.clipboard_append(log_text.get("1.0", tk.END))).grid(row=0, column=1)
+            ttk.Button(button_frame, text="Close", command=log_window.destroy).grid(row=0, column=2)
 
             # insert the log content
             log_text.insert(tk.END, log_content)
@@ -258,9 +301,7 @@ class HookLineSinkerUI:
     # checks for a fresh update and shows a message if one is found
     def check_for_fresh_update(self):
         current_version = version.parse(get_version())
-        last_update_version = self.settings.get('last_update_version')
-        
-        if last_update_version:
+        if last_update_version := self.settings.get('last_update_version'):
             last_update_version = version.parse(last_update_version)
             if current_version > last_update_version:
                 messagebox.showinfo("Update Complete", f"Hook, Line, & Sinker has been updated to version {current_version}.")
@@ -382,7 +423,6 @@ class HookLineSinkerUI:
         self.copy_existing_gdweave_mods()
         self.load_available_mods()
         self.refresh_mod_lists()
-
     def create_mod_manager_tab(self):
         # create the mod manager tab for managing game modifications
         mod_manager_frame = ttk.Frame(self.notebook)
@@ -399,18 +439,20 @@ class HookLineSinkerUI:
         available_frame = ttk.LabelFrame(mod_manager_frame, text="Available Mods")
         available_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
-        # create search functionality for available mods
-        self.available_search = ttk.Entry(available_frame)
-        self.available_search.grid(row=0, column=0, pady=2, padx=2, sticky="ew")
-        self.available_search.insert(0, "Search available mods...")
-        self.available_search.bind("<FocusIn>", lambda e: self.clear_placeholder(e, "Search available mods..."))
-        self.available_search.bind("<FocusOut>", lambda e: self.restore_placeholder(e, "Search available mods..."))
-        self.available_search.bind("<KeyRelease>", self.search_available_mods)
+        # create filter frame
+        filter_frame = ttk.Frame(available_frame)
+        filter_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
+        
+        ttk.Label(filter_frame, text="Filter:").grid(row=0, column=0, padx=5)
+        self.available_category = ttk.Combobox(filter_frame, values=["All"], state="readonly")
+        self.available_category.grid(row=0, column=1, padx=5)
+        self.available_category.set("All")
+        self.available_category.bind('<<ComboboxSelected>>', self.filter_available_mods)
 
         # create listbox for available mods
         self.available_listbox = tk.Listbox(available_frame, width=30, height=15, selectmode=tk.EXTENDED)
         self.available_listbox.grid(row=1, column=0, pady=2, padx=2, sticky="nsew")
-        self.available_listbox.bind('<<ListboxSelect>>', self.update_mod_details)
+        self.available_listbox.bind('<<ListboxSelect>>', self.on_available_listbox_select)
         self.available_listbox.bind('<Button-3>', self.show_context_menu)
 
         available_frame.grid_columnconfigure(0, weight=1)
@@ -460,13 +502,15 @@ class HookLineSinkerUI:
         installed_frame = ttk.LabelFrame(mod_manager_frame, text="Installed Mods")
         installed_frame.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
 
-        # create search functionality for installed mods
-        self.installed_search = ttk.Entry(installed_frame)
-        self.installed_search.grid(row=0, column=0, pady=2, padx=2, sticky="ew")
-        self.installed_search.insert(0, "Search installed mods...")
-        self.installed_search.bind("<FocusIn>", lambda e: self.clear_placeholder(e, "Search installed mods..."))
-        self.installed_search.bind("<FocusOut>", lambda e: self.restore_placeholder(e, "Search installed mods..."))
-        self.installed_search.bind("<KeyRelease>", self.search_installed_mods)
+        # create filter frame for installed mods
+        filter_frame = ttk.Frame(installed_frame)
+        filter_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
+        
+        ttk.Label(filter_frame, text="Filter:").grid(row=0, column=0, padx=5)
+        self.installed_category = ttk.Combobox(filter_frame, values=["Installed", "Enabled", "Disabled"], state="readonly")
+        self.installed_category.grid(row=0, column=1, padx=5)
+        self.installed_category.set("Installed")
+        self.installed_category.bind('<<ComboboxSelected>>', self.filter_installed_mods)
 
         # create listbox for installed mods
         self.installed_listbox = tk.Listbox(installed_frame, width=30, height=15, selectmode=tk.EXTENDED)
@@ -490,6 +534,147 @@ class HookLineSinkerUI:
         details_frame.grid_columnconfigure(1, weight=1)
         details_frame.grid_rowconfigure(0, weight=1)
 
+    def on_available_listbox_select(self, event):
+        self.update_mod_details(event)
+        self.check_selection_limit(event)
+
+    def check_selection_limit(self, event):
+        listbox = event.widget
+        if listbox != self.available_listbox:
+            return
+            
+        selected = listbox.curselection()
+        
+        # ignore category headers
+        actual_mods = [i for i in selected if not listbox.get(i).startswith('--')]
+        
+        if len(actual_mods) > 3:
+            # keep only the first 3 selections
+            listbox.selection_clear(0, tk.END)
+            for i in actual_mods[:3]:
+                listbox.selection_set(i)
+            messagebox.showinfo("Selection Limit", "You can only select up to 3 mods for installation at once. This is to fix an issue with severe lag when installing many mods at once.")
+
+    def filter_available_mods(self, event=None):
+        selected_category = self.available_category.get()
+        self.available_listbox.delete(0, tk.END)
+        
+        if selected_category == "All":
+            # show all categories and mods
+            categorized_mods = {}
+            for mod in self.available_mods:
+                category = self.mod_categories.get(mod['title'], "Uncategorized")
+                if category not in categorized_mods:
+                    categorized_mods[category] = []
+                categorized_mods[category].append(mod)
+            
+            # add mods to listbox grouped by category
+            for category in sorted(categorized_mods.keys()):
+                if categorized_mods[category]:
+                    self.available_listbox.insert(tk.END, f"-- {category} --")
+                    self.available_listbox.itemconfig(tk.END, {'bg':'lightgray', 'fg':'black'})
+                    for mod in sorted(categorized_mods[category], key=lambda x: x['title']):
+                        self.available_listbox.insert(tk.END, mod['title'])
+        else:
+            # show mods only from selected category
+            for mod in sorted(self.available_mods, key=lambda x: x['title']):
+                if self.mod_categories.get(mod['title'], "Uncategorized") == selected_category:
+                    self.available_listbox.insert(tk.END, mod['title'])
+    def check_for_duplicate_mods(self):
+        mod_ids = {}
+        mod_titles = {}
+        duplicates = []
+        processed_duplicates = set()
+
+        # check normal mods
+        for mod_folder in os.listdir(self.mods_dir):
+            mod_info_path = os.path.join(self.mods_dir, mod_folder, 'mod_info.json')
+            if os.path.exists(mod_info_path):
+                with open(mod_info_path, 'r') as f:
+                    mod_info = json.load(f)
+                    mod_id = mod_info.get('id')
+                    mod_title = mod_info.get('title')
+                    mod_version = mod_info.get('version', 'Unknown')
+                    
+                    # check for duplicate ids
+                    if mod_id:
+                        if mod_id in mod_ids and mod_id not in processed_duplicates:
+                            duplicates.append((mod_ids[mod_id], mod_info_path, mod_id, mod_title, mod_version))
+                            processed_duplicates.add(mod_id)
+                        else:
+                            mod_ids[mod_id] = mod_info_path
+                    
+                    # check for duplicate titles
+                    if mod_title:
+                        if mod_title in mod_titles and mod_title not in processed_duplicates:
+                            duplicates.append((mod_titles[mod_title], mod_info_path, mod_title, mod_id, mod_version))
+                            processed_duplicates.add(mod_title)
+                        else:
+                            mod_titles[mod_title] = mod_info_path
+
+        # check third-party mods
+        third_party_mods_dir = os.path.join(self.mods_dir, "3rd_party")
+        if os.path.exists(third_party_mods_dir):
+            for mod_folder in os.listdir(third_party_mods_dir):
+                mod_info_path = os.path.join(third_party_mods_dir, mod_folder, 'mod_info.json')
+                if os.path.exists(mod_info_path):
+                    with open(mod_info_path, 'r') as f:
+                        mod_info = json.load(f)
+                        mod_id = mod_info.get('id')
+                        mod_title = mod_info.get('title')
+                        mod_version = mod_info.get('version', 'Unknown')
+                        
+                        # check for duplicate ids
+                        if mod_id:
+                            if mod_id in mod_ids and mod_id not in processed_duplicates:
+                                duplicates.append((mod_ids[mod_id], mod_info_path, mod_id, mod_title, mod_version))
+                                processed_duplicates.add(mod_id)
+                            else:
+                                mod_ids[mod_id] = mod_info_path
+                        
+                        # check for duplicate titles
+                        if mod_title:
+                            if mod_title in mod_titles and mod_title not in processed_duplicates:
+                                duplicates.append((mod_titles[mod_title], mod_info_path, mod_title, mod_id, mod_version))
+                                processed_duplicates.add(mod_title)
+                            else:
+                                mod_titles[mod_title] = mod_info_path
+
+        # handle duplicates
+        for original, duplicate, duplicate_identifier, duplicate_title, duplicate_version in duplicates:
+            original_version = 'Unknown'
+            with open(original, 'r') as f:
+                original_info = json.load(f)
+                original_version = original_info.get('version', 'Unknown')
+            if messagebox.askyesno("Duplicate Mod Found", f"Duplicate mod found: {duplicate_title} {duplicate_version} ({duplicate_identifier}) and {duplicate_title} {original_version} ({duplicate_identifier}), would you like to delete the oldest version to fix this confliction?"):
+                try:
+                    duplicate_folder = os.path.dirname(duplicate)
+                    shutil.rmtree(duplicate_folder)
+                    self.set_status(f"Removed duplicate mod: {os.path.basename(duplicate_folder)}")
+                except FileNotFoundError:
+                    messagebox.showerror("Error", f"The file {duplicate_folder} was already deleted.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to delete duplicate mod: {str(e)}")
+        self.refresh_mod_lists()
+
+    def filter_installed_mods(self, event=None):
+        selected_filter = self.installed_category.get()
+        self.installed_listbox.delete(0, tk.END)
+
+        for mod in self.installed_mods:
+            status = "✅" if mod.get('enabled', True) else "❌"
+            if (
+                selected_filter == "Installed"
+                or selected_filter == "Enabled"
+                and status == "✅"
+                or selected_filter == "Disabled"
+                and status == "❌"
+            ):
+                mod_title = f"{status} {mod['title']}"
+
+                self.installed_listbox.insert(tk.END, mod_title)
+
+
     def toggle_game(self):
         if not self.check_setup():
             messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the HLS Setup tab.")
@@ -498,7 +683,7 @@ class HookLineSinkerUI:
 
         try:
             # launch the game through Steam
-            steam_url = f"steam://rungameid/3146520"
+            steam_url = "steam://rungameid/3146520"
             webbrowser.open(steam_url)
             self.set_status("Game launched through Steam")
         except Exception as e:
@@ -949,9 +1134,20 @@ class HookLineSinkerUI:
 
     def show_credits(self):
         credits_text = """Credits:
-• Pyoid for making Hook, Line, & Sinker
-• NotNite for making GDWeave
-• All mod makers for their contributions
+
+Development:
+• Pyoid - Creator of Hook, Line, & Sinker
+• NotNite - Creator of GDWeave
+
+Discord Staff:
+• Daniela - Discord Administrator
+• Sulayre - Discord Administrator
+
+HLS Supporters:
+• betrel, box, david, eZbake, fern, Goobercide, ivy, Maxx, mika, Moro the Webfisher, Munch, Nipi, Nokuuu, PMPKIN, Pongorma, sheebs, shiro, Snowy, sunday, ThatFirey, Vival, Wes
+
+Special Thanks:
+• All mod creators for their contributions
 • You for using Hook, Line, & Sinker!"""
         messagebox.showinfo("Credits", credits_text)
 
@@ -1191,7 +1387,7 @@ class HookLineSinkerUI:
             # Extract zip contents
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(extracted_zip_dir)
-            
+
             manifest_path = self.find_manifest(extracted_zip_dir)
             if not manifest_path:
                 error_msg = "manifest.json not found in the ZIP file. This may not be a valid mod package."
@@ -1202,7 +1398,7 @@ class HookLineSinkerUI:
             # Read manifest and check dependencies
             with open(manifest_path, 'r') as f:
                 manifest = json.load(f)
-            
+
             mod_id = manifest.get('Id')
             if not mod_id:
                 error_msg = "Id not found in manifest.json. This may not be a valid mod package."
@@ -1210,16 +1406,13 @@ class HookLineSinkerUI:
                 messagebox.showerror("Error", error_msg)
                 return
 
-            # Check for dependencies
-            dependencies = manifest.get('Dependencies', [])
-            if dependencies:
+            if dependencies := manifest.get('Dependencies', []):
                 all_dependencies = []
                 missing_dependencies = []
-                
+
                 for dep_id in dependencies:
                     if not self.is_mod_installed(dep_id):
-                        dep_mod = self.find_mod_by_id(dep_id)
-                        if dep_mod:
+                        if dep_mod := self.find_mod_by_id(dep_id):
                             if dep_mod not in all_dependencies:
                                 all_dependencies.append(dep_mod)
                         else:
@@ -1227,19 +1420,19 @@ class HookLineSinkerUI:
 
                 if all_dependencies or missing_dependencies:
                     message = f"The mod '{manifest.get('Name', mod_id)}' has dependencies:\n\n"
-                    
+
                     if all_dependencies:
                         message += "The following dependencies will be installed:\n"
                         message += "\n".join([f"• {dep['title']}" for dep in all_dependencies])
                         message += "\n"
-                    
+
                     if missing_dependencies:
                         message += "\nThe following dependencies could not be found:\n"
                         message += "\n".join([f"• {dep_id}" for dep in missing_dependencies])
                         message += "\n\nThe mod may not work correctly without these dependencies. Try finding and importing them manually."
-                    
+
                     message += "\n\nWould you like to continue?"
-                    
+
                     if not messagebox.askyesno("Dependencies Required", message):
                         return
 
@@ -1292,10 +1485,14 @@ class HookLineSinkerUI:
 
     # searches for manifest.json file in a given directory and its subdirectories
     def find_manifest(self, directory):
-        for root, dirs, files in os.walk(directory):
-            if 'manifest.json' in files:
-                return os.path.join(root, 'manifest.json')
-        return None
+        return next(
+            (
+                os.path.join(root, 'manifest.json')
+                for root, dirs, files in os.walk(directory)
+                if 'manifest.json' in files
+            ),
+            None,
+        )
     
     # refreshes all mods by reloading available mods and updating the UI
     def refresh_all_mods(self):
@@ -1338,7 +1535,7 @@ class HookLineSinkerUI:
     def install_mod(self):
         if not self.check_setup():
             return
-        
+
         selected = self.available_listbox.curselection()
         if not selected:
             self.set_status("Please select a mod to install")
@@ -1346,7 +1543,7 @@ class HookLineSinkerUI:
 
         all_dependencies = []
         missing_dependencies = []
-        
+
         try:
             # First check all dependencies
             for index in selected:
@@ -1360,12 +1557,10 @@ class HookLineSinkerUI:
                     continue
 
                 self.set_status(f"Checking dependencies for {mod['title']}...")
-                dependencies = self.check_mod_dependencies(mod)
-                if dependencies:
+                if dependencies := self.check_mod_dependencies(mod):
                     for dep_id in dependencies:
                         if not self.is_mod_installed(dep_id):
-                            dep_mod = self.find_mod_by_id(dep_id)
-                            if dep_mod:
+                            if dep_mod := self.find_mod_by_id(dep_id):
                                 if dep_mod not in all_dependencies:
                                     all_dependencies.append(dep_mod)
                             else:
@@ -1377,14 +1572,14 @@ class HookLineSinkerUI:
                 if all_dependencies:
                     dep_names = "\n".join([f"• {dep['title']}" for dep in all_dependencies])
                     message += f"The following dependencies will be installed:\n\n{dep_names}\n"
-                
+
                 if missing_dependencies:
                     message += "\nThe following dependencies could not be found:\n"
                     message += "\n".join([f"• {dep_id}" for dep in missing_dependencies])
                     message += "\n\nThe mod may not work correctly without these dependencies. Try finding and importing them manually."
-                
+
                 message += "\n\nWould you like to continue?"
-                
+
                 if not messagebox.askyesno("Dependencies Required", message):
                     return
 
@@ -1423,41 +1618,74 @@ class HookLineSinkerUI:
         return next((m for m in self.available_mods if m['id'] == mod_id), None)
 
     def check_mod_dependencies(self, mod):
+        # first check if the mod is already installed
+        if self.is_mod_installed(mod['id']):
+            try:
+                # determine the correct path based on whether it's a third-party mod
+                if mod.get('third_party', False):
+                    mod_dir = os.path.join(self.mods_dir, "3rd_party", mod['id'])
+                else:
+                    mod_dir = os.path.join(self.mods_dir, mod['id'])
+
+                manifest_path = next(
+                    (
+                        os.path.join(root, 'manifest.json')
+                        for root, dirs, files in os.walk(mod_dir)
+                        if 'manifest.json' in files
+                    ),
+                    None,
+                )
+                if manifest_path and os.path.exists(manifest_path):
+                    with open(manifest_path, 'r') as f:
+                        manifest = json.load(f)
+                        return manifest.get('Dependencies', [])
+                return []
+
+            except Exception as e:
+                logging.error(f"Error checking dependencies for installed mod {mod['title']}: {str(e)}")
+                return []
+
+        # if not installed, proceed with original download logic for non-third-party mods
+        if mod.get('third_party', False):
+            return []  # third-party mods that aren't installed can't be downloaded
+
         unique_id = f'dep_check_{mod["id"]}_{int(time.time())}'
         temp_dir = os.path.join(self.app_data_dir, 'temp', unique_id)
         try:
             os.makedirs(temp_dir, exist_ok=True)
-            
+
+            if not mod.get('download'):
+                logging.warning(f"No download URL found for mod {mod['title']}")
+                return []
+
             # Download the file with unique name
             zip_path = os.path.join(temp_dir, f"{mod['id']}_dep_check.zip")
             response = requests.get(mod['download'], stream=True)
             response.raise_for_status()
-            
+
             with open(zip_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
-                
+
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_dir)
-                
-            # Find and read manifest.json
-            manifest_path = self.find_manifest(temp_dir)
-            if manifest_path:
+
+            if manifest_path := self.find_manifest(temp_dir):
                 with open(manifest_path, 'r') as f:
                     manifest = json.load(f)
                     return manifest.get('Dependencies', [])
-                    
+
         except Exception as e:
             logging.error(f"Error checking dependencies for {mod['title']}: {str(e)}")
-            
+
         finally:
             # Cleanup temp directory
             try:
                 shutil.rmtree(temp_dir, ignore_errors=True)
             except Exception as e:
                 logging.error(f"Error cleaning up temp directory: {str(e)}")
-            
+
         return []
 
     # searches for an installed mod by its ID
@@ -1809,8 +2037,6 @@ class HookLineSinkerUI:
         if os.path.exists(gdweave_path):
             if sys.platform.startswith('win'):
                 os.startfile(gdweave_path)
-            elif sys.platform.startswith('linux'):
-                subprocess.Popen(['xdg-open', gdweave_path])
             else:
                 messagebox.showerror("Error", "Unsupported operating system")
         else:
@@ -1826,6 +2052,11 @@ class HookLineSinkerUI:
             log_window = tk.Toplevel(self.root)
             log_window.title("GDWeave Log")
             log_window.geometry("800x600")
+
+            # set the window icon
+            icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+            if os.path.exists(icon_path):
+                log_window.iconbitmap(icon_path)
 
             log_text = tk.Text(log_window, wrap=tk.WORD)
             log_text.pack(expand=True, fill='both')
@@ -1850,46 +2081,54 @@ class HookLineSinkerUI:
 
     # removes all mods from the game's mods folder
     def clear_gdweave_mods(self):
-        if messagebox.askyesno("Confirm Clear", "Are you sure you want to remove all mods from the game's mods folder? This action cannot be undone."):
-            gdweave_mods_path = os.path.join(self.settings['game_path'], 'GDWeave', 'Mods')
-            if os.path.exists(gdweave_mods_path):
-                try:
-                    for item in os.listdir(gdweave_mods_path):
-                        item_path = os.path.join(gdweave_mods_path, item)
-                        if os.path.isdir(item_path):
-                            shutil.rmtree(item_path)
-                        else:
-                            os.remove(item_path)
-                    self.set_status("All mods have been removed from the game's mods folder.")
-                except Exception as e:
-                    self.set_status(f"Error clearing GDWeave mods: {str(e)}")
-                    self.send_to_discord(f"Error clearing GDWeave mods in Hook, Line, & Sinker:\n{str(e)}")
-            else:
-                self.set_status("GDWeave mods folder not found.")
-
-    # removes all mods managed by hook line & sinker
-    def clear_hls_mods(self):
-        if messagebox.askyesno("Confirm Clear", "Are you sure you want to remove all mods managed by Hook, Line, & Sinker? This action cannot be undone."):
+        if not messagebox.askyesno(
+            "Confirm Clear",
+            "Are you sure you want to remove all mods from the game's mods folder? This action cannot be undone.",
+        ):
+            return
+        gdweave_mods_path = os.path.join(self.settings['game_path'], 'GDWeave', 'Mods')
+        if os.path.exists(gdweave_mods_path):
             try:
-                # clear mods in appdata
-                for item in os.listdir(self.mods_dir):
-                    item_path = os.path.join(self.mods_dir, item)
+                for item in os.listdir(gdweave_mods_path):
+                    item_path = os.path.join(gdweave_mods_path, item)
                     if os.path.isdir(item_path):
                         shutil.rmtree(item_path)
                     else:
                         os.remove(item_path)
-                
-                # clear mod cache
-                self.mod_cache = {}
-                self.save_mod_cache()
-                
-                # refresh mod lists
-                self.refresh_mod_lists()
-                
-                self.set_status("All Hook, Line, & Sinker managed mods and cache have been cleared.")
+                self.set_status("All mods have been removed from the game's mods folder.")
             except Exception as e:
-                self.set_status(f"Error clearing HLS mods: {str(e)}")
-                self.send_to_discord(f"Error clearing HLS mods in Hook, Line, & Sinker:\n{str(e)}")
+                self.set_status(f"Error clearing GDWeave mods: {str(e)}")
+                self.send_to_discord(f"Error clearing GDWeave mods in Hook, Line, & Sinker:\n{str(e)}")
+        else:
+            self.set_status("GDWeave mods folder not found.")
+
+    # removes all mods managed by hook line & sinker
+    def clear_hls_mods(self):
+        if not messagebox.askyesno(
+            "Confirm Clear",
+            "Are you sure you want to remove all mods managed by Hook, Line, & Sinker? This action cannot be undone.",
+        ):
+            return
+        try:
+            # clear mods in appdata
+            for item in os.listdir(self.mods_dir):
+                item_path = os.path.join(self.mods_dir, item)
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                else:
+                    os.remove(item_path)
+
+            # clear mod cache
+            self.mod_cache = {}
+            self.save_mod_cache()
+
+            # refresh mod lists
+            self.refresh_mod_lists()
+
+            self.set_status("All Hook, Line, & Sinker managed mods and cache have been cleared.")
+        except Exception as e:
+            self.set_status(f"Error clearing HLS mods: {str(e)}")
+            self.send_to_discord(f"Error clearing HLS mods in Hook, Line, & Sinker:\n{str(e)}")
 
     # fetches the latest version from the server
     def update_latest_version_label(self):
@@ -2011,33 +2250,6 @@ class HookLineSinkerUI:
         if event.widget.get() == "":
             event.widget.insert(0, placeholder)
 
-    # filters available mods based on search term
-    def search_available_mods(self, event):
-        search_term = self.available_search.get().lower()
-        self.available_listbox.delete(0, tk.END)
-        
-        visible_categories = set()
-        for mod in self.available_mods:
-            if search_term in mod['title'].lower():
-                category = self.mod_categories.get(mod['title'], "Uncategorized")
-                visible_categories.add(category)
-        
-        for category in sorted(visible_categories):
-            self.available_listbox.insert(tk.END, f"-- Category: {category} --")
-            self.available_listbox.itemconfig(tk.END, {'bg':'lightgray', 'fg':'black'})
-            for mod in self.available_mods:
-                if self.mod_categories.get(mod['title'], "Uncategorized") == category and search_term in mod['title'].lower():
-                    self.available_listbox.insert(tk.END, mod['title'])
-
-    # filters installed mods based on search term
-    def search_installed_mods(self, event):
-        search_term = self.installed_search.get().lower()
-        self.installed_listbox.delete(0, tk.END)
-        for mod in self.installed_mods:
-            if search_term in mod['title'].lower():
-                self.installed_listbox.insert(tk.END, mod['title'])
-                self.update_mod_status_in_listbox(mod)
-
     # opens a window to edit the configuration of a selected mod
     def edit_mod_config(self):
         selected = self.installed_listbox.curselection()
@@ -2155,19 +2367,106 @@ class HookLineSinkerUI:
             if listbox == self.available_listbox:
                 menu.add_command(label="Install", command=self.install_mod)
             elif listbox == self.installed_listbox:
+                mod = self.installed_mods[index]
                 menu.add_command(label="Uninstall", command=self.uninstall_mod)
                 menu.add_command(label="Enable", command=self.enable_mod)
                 menu.add_command(label="Disable", command=self.disable_mod)
                 menu.add_command(label="Edit Config", command=self.edit_mod_config)
+                if mod.get('third_party', False):
+                    menu.add_command(label="Export as ZIP", command=lambda: self.export_mod_as_zip(mod))
+                menu.add_separator()
+                menu.add_command(label="Test Mod", command=lambda: self.test_mod(mod))
 
         menu.tk_popup(event.x_root, event.y_root)
+
+    def test_mod(self, mod):
+        try:
+            # check dependencies first
+            dependencies = self.check_mod_dependencies(mod)
+
+            # disable all mods first
+            for installed_mod in self.installed_mods:
+                if installed_mod.get('enabled', True):
+                    installed_mod['enabled'] = False
+                    self.update_mod_status_in_listbox(installed_mod)
+                    self.save_mod_status(installed_mod)
+                    self.remove_mod_from_game(installed_mod)
+
+            # enable the selected mod and its dependencies
+            mods_to_enable = [mod]
+
+            # find and add dependencies to enable list if there are any
+            if dependencies:
+                for dep_id in dependencies:
+                    if dep_mod := next(
+                        (m for m in self.installed_mods if m['id'] == dep_id), None
+                    ):
+                        mods_to_enable.append(dep_mod)
+
+            # enable all required mods
+            for mod_to_enable in mods_to_enable:
+                mod_to_enable['enabled'] = True
+                self.update_mod_status_in_listbox(mod_to_enable)
+                self.save_mod_status(mod_to_enable)
+                self.copy_mod_to_game(mod_to_enable)
+
+            self.refresh_mod_lists()
+
+            # update status message to show enabled dependencies
+            if len(mods_to_enable) > 1:
+                dep_names = ", ".join(m['title'] for m in mods_to_enable[1:])
+                self.set_status(f"Test mode enabled for {mod['title']} with dependencies: {dep_names}")
+                messagebox.showinfo("Test Mode", f"Mod test mode enabled for {mod['title']} and its dependencies: {dep_names}")
+            else:
+                self.set_status(f"Test mode enabled for: {mod['title']}")
+                messagebox.showinfo("Test Mode", "Mod test mode enabled. All other mods have been disabled.")
+
+        except Exception as e:
+            error_message = f"Failed to enable test mode: {str(e)}"
+            self.set_status(error_message)
+            messagebox.showerror("Error", error_message)
+
+    def export_mod_as_zip(self, mod):
+        try:
+            # determine source directory
+            mod_dir = os.path.join(self.mods_dir, "3rd_party", mod['id'])
+            if not os.path.exists(mod_dir):
+                messagebox.showerror("Error", "Mod directory not found.")
+                return
+                
+            # ask user where to save the zip
+            zip_path = filedialog.asksaveasfilename(
+                defaultextension=".zip",
+                filetypes=[("ZIP files", "*.zip")],
+                initialfile=f"{mod['title']}.zip"
+            )
+            
+            if not zip_path:
+                return
+                
+            self.set_status(f"Exporting {mod['title']} as ZIP...")
+            
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, dirs, files in os.walk(mod_dir):
+                    for file in files:
+                        if file != 'mod_info.json':  # exclude mod_info.json
+                            file_path = os.path.join(root, file)
+                            arcname = os.path.relpath(file_path, mod_dir)
+                            zipf.write(file_path, arcname)
+            
+            self.set_status(f"Successfully exported {mod['title']} to {zip_path}")
+            messagebox.showinfo("Success", f"Mod exported successfully to:\n{zip_path}")
+            
+        except Exception as e:
+            error_message = f"Failed to export mod: {str(e)}"
+            self.set_status(error_message)
+            messagebox.showerror("Error", error_message)
 
     # enables selected mods
     def enable_mod(self):
         if not self.check_setup():
             return
-        selected = self.installed_listbox.curselection()
-        if selected:
+        if selected := self.installed_listbox.curselection():
             for index in selected:
                 mod = self.installed_mods[index]
                 mod['enabled'] = True
@@ -2188,8 +2487,7 @@ class HookLineSinkerUI:
 
     # uninstalls selected mods
     def uninstall_mod(self):
-        selected = self.installed_listbox.curselection()
-        if selected:
+        if selected := self.installed_listbox.curselection():
             for index in selected:
                 mod = self.installed_mods[index]
                 self.set_status(f"Uninstalling mod: {mod['title']}")
@@ -2222,8 +2520,7 @@ class HookLineSinkerUI:
     def enable_mod(self):
         if not self.check_setup():
             return
-        selected = self.installed_listbox.curselection()
-        if selected:
+        if selected := self.installed_listbox.curselection():
             enabled_count = 0
             for index in selected:
                 mod = self.installed_mods[index]
@@ -2234,7 +2531,7 @@ class HookLineSinkerUI:
                     self.copy_mod_to_game(mod)
                     enabled_count += 1
                     logging.info(f"Enabled mod: {mod['title']} (ID: {mod['id']}, Third Party: {mod.get('third_party', False)})")
-            
+
             if enabled_count > 0:
                 self.refresh_mod_lists()
                 self.set_status(f"Enabled {enabled_count} mod(s)")
@@ -2245,8 +2542,7 @@ class HookLineSinkerUI:
     def disable_mod(self):
         if not self.check_setup():
             return
-        selected = self.installed_listbox.curselection()
-        if selected:
+        if selected := self.installed_listbox.curselection():
             for index in selected:
                 mod = self.installed_mods[index]
                 mod['enabled'] = False
@@ -2280,14 +2576,14 @@ class HookLineSinkerUI:
     def update_mod_status_in_listbox(self, mod):
         index = self.installed_mods.index(mod)
         status = "✅" if mod.get('enabled', True) else "❌"
-        third_party = "[3rd]" if mod.get('third_party', False) else ""
+        third_party = "[3rd] " if mod.get('third_party', False) else "" 
         self.installed_listbox.delete(index)
-        self.installed_listbox.insert(index, f"{status} {third_party} {mod['title']}".strip())
+        self.installed_listbox.insert(index, f"{status} {third_party}{mod['title']}".strip())
 
     # shows a prompt to join the discord community
     def show_discord_prompt(self):
         if not self.settings.get('discord_prompt_shown', False):
-            response = messagebox.askyesno(
+            if response := messagebox.askyesno(
                 "Join Our Discord Community",
                 "Welcome to Hook, Line, & Sinker!\n\n"
                 "We highly recommend joining our Discord community for:\n"
@@ -2296,12 +2592,10 @@ class HookLineSinkerUI:
                 "• Mod discussions and sharing\n"
                 "• Direct support from the developer\n\n"
                 "Would you like to join our Discord now?",
-                icon='info'
-            )
-            
-            if response:
+                icon='info',
+            ):
                 webbrowser.open("https://discord.gg/HzhCPxeCKY")
-            
+
             self.settings['discord_prompt_shown'] = True
             self.save_settings()
 
@@ -2517,26 +2811,40 @@ class HookLineSinkerUI:
 
         self.installed_mods = self.get_installed_mods()
         
+        # something here is seriously fucked up and i give up, i'll fix in 1.1.7
         if hasattr(self, 'installed_listbox'):
             self.installed_listbox.delete(0, tk.END)
             for mod in self.installed_mods:
                 status = "✅" if mod.get('enabled', True) else "❌"
-                third_party = " [3rd]" if mod.get('third_party', False) else ""
-                if third_party:
-                    display_text = f"{status}{third_party} {mod['title']}"
-                else:
-                    display_text = f"{status} {mod['title']}"
+                third_party = "[3rd]" if mod.get('third_party', False) else ""  # Removed extra space
+                display_text = f"{status} {third_party} {mod['title']}".strip()  # Added strip() to remove extra spaces
                 self.installed_listbox.insert(tk.END, display_text)
 
         # update the mod cache
         self.save_mod_cache()
 
+        # get unique categories
+        categories = set()
+        for mod in self.available_mods:
+            category = self.mod_categories.get(mod['title'], "Uncategorized")
+            categories.add(category)
+        
+        # update available categories combobox
+        self.available_category['values'] = ["All"] + sorted(list(categories))
+        
+        # refresh the lists with current filters
+        self.filter_available_mods()
+        self.filter_installed_mods()
+
     # removes non-existent mods from the cache
     def clean_mod_cache(self):
-        updated_cache = {}
-        for mod_id, mod_info in self.mod_cache.items():
-            if self.mod_exists({'id': mod_id, 'third_party': mod_info.get('third_party', False)}):
-                updated_cache[mod_id] = mod_info
+        updated_cache = {
+            mod_id: mod_info
+            for mod_id, mod_info in self.mod_cache.items()
+            if self.mod_exists(
+                {'id': mod_id, 'third_party': mod_info.get('third_party', False)}
+            )
+        }
         self.mod_cache = updated_cache
         self.save_mod_cache()
 
@@ -2575,7 +2883,7 @@ class HookLineSinkerUI:
                 response.raise_for_status()
                 total_size = int(response.headers.get('content-length', 0))
                 logging.info(f"Total download size: {total_size} bytes")
-                
+
                 # define the path to download the zip file in the temp folder within appdata
                 temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
                 os.makedirs(temp_dir, exist_ok=True)
@@ -2586,22 +2894,22 @@ class HookLineSinkerUI:
                         if chunk:
                             f.write(chunk)
                 logging.info(f"Download completed. Saved to: {zip_path}")
-                
+
                 # extract the zip file into a temporary directory within the temp folder
                 random_num = random.randint(100, 999)
-                extract_dir = os.path.join(temp_dir, 'extract_' + str(int(time.time())) + str(random_num))
+                extract_dir = os.path.join(temp_dir, f'extract_{int(time.time())}{random_num}')
                 os.makedirs(extract_dir, exist_ok=True)
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     zip_ref.extractall(extract_dir)
                 logging.info(f"Extracted zip file to: {extract_dir}")
-                
+
                 # find the manifest.json file
                 manifest_path = None
                 for root, dirs, files in os.walk(extract_dir):
                     if 'manifest.json' in files:
                         manifest_path = os.path.join(root, 'manifest.json')
                         break
-                
+
                 if not manifest_path:
                     raise ValueError("manifest.json not found in the mod package")
                 logging.info(f"Found manifest.json at: {manifest_path}")
@@ -2722,7 +3030,7 @@ class HookLineSinkerUI:
         try:
             url = mod['download']
             parsed_url = urlparse(url)
-            
+
             if 'github.com' in parsed_url.netloc:
                 # github url
                 repo_owner, repo_name = parsed_url.path.split('/')[1:3]
@@ -2733,15 +3041,15 @@ class HookLineSinkerUI:
                 path_parts = parsed_url.path.split('/')
                 repo_owner, repo_name = path_parts[1:3]
                 api_url = f"{base_url}/api/v1/repos/{repo_owner}/{repo_name}/releases/latest"
-            
+
             response = requests.get(api_url)
             response.raise_for_status()
             data = response.json()
-            
+
             # extract version from tag_name
             version = re.search(r'v?(\d+\.\d+\.\d+)', data['tag_name'])
-            version = version.group(1) if version else data['tag_name']
-            
+            version = version[1] if version else data['tag_name']
+
             return {
                 'version': version,
                 'published_at': data['published_at']
@@ -2759,7 +3067,7 @@ class HookLineSinkerUI:
             # check for mod updates
             self.set_status("Checking for mod and GDWeave updates...")
             updates_available = False
-            
+
             if not self.installed_mods:
                 self.set_status("No mods installed. Skipping mod update check.")
             else:
@@ -2777,18 +3085,23 @@ class HookLineSinkerUI:
                                 self.set_status(error_message)
                                 self.send_to_discord(f"Error checking mod update in Hook, Line, & Sinker:\n{error_message}")
                             break
-            
+
             # check for gdweave update
             gdweave_version = self.get_gdweave_version()
             if gdweave_version != self.settings.get('gdweave_version', 'Unknown'):
                 updates_available = True
-                if silent:
-                    self.install_gdweave()
-                elif messagebox.askyesno("Update Available", f"Update available for GDWeave. Do you want to update?"):
+                if (
+                    silent
+                    or not silent
+                    and messagebox.askyesno(
+                        "Update Available",
+                        "Update available for GDWeave. Do you want to update?",
+                    )
+                ):
                     self.install_gdweave()
                 else:
                     self.set_status("GDWeave update skipped by user.")
-            
+
             if not silent and not program_updated and not updates_available:
                 messagebox.showinfo("Up to Date", "Your program and all mods are up to date!")
             elif not updates_available:
@@ -2803,36 +3116,36 @@ class HookLineSinkerUI:
         installed_published_at = installed_mod.get('published_at')
         available_version_info = self.get_mod_version(available_mod)
         available_published_at = available_version_info['published_at']
-        
+
         if installed_published_at and available_published_at:
             return installed_published_at < available_published_at
-        else:
-            # fallback to version string comparison if timestamps are not available
-            installed_version = installed_mod.get('version', '0.0.0')
-            available_version = available_version_info['version']
-            
-            # convert version strings to tuples for comparison
-            def version_tuple(v):
-                return tuple(map(int, (v.split("."))))
-            
-            try:
-                return version_tuple(installed_version) < version_tuple(available_version)
-            except ValueError:
-                # if version comparison fails assume an update is not available
-                logging.info(f"Warning: Unable to compare versions for {installed_mod['title']}. Assuming update is not available.")
-                return False
+        # fallback to version string comparison if timestamps are not available
+        installed_version = installed_mod.get('version', '0.0.0')
+        available_version = available_version_info['version']
+
+        # convert version strings to tuples for comparison
+        def version_tuple(v):
+            return tuple(map(int, (v.split("."))))
+
+        try:
+            return version_tuple(installed_version) < version_tuple(available_version)
+        except ValueError:
+            # if version comparison fails assume an update is not available
+            logging.info(f"Warning: Unable to compare versions for {installed_mod['title']}. Assuming update is not available.")
+            return False
 
     # saves the current state of installed mods to a cache file
     def save_mod_cache(self):
         try:
-            mod_cache = {}
-            for mod in self.installed_mods:
-                mod_cache[mod['id']] = {
+            mod_cache = {
+                mod['id']: {
                     'title': mod['title'],
                     'version': mod.get('version', 'Unknown'),
                     'enabled': mod.get('enabled', True),
-                    'third_party': mod.get('third_party', False)
+                    'third_party': mod.get('third_party', False),
                 }
+                for mod in self.installed_mods
+            }
             with open(self.mod_cache_file, 'w') as f:
                 json.dump(mod_cache, f, indent=2)
             logging.info(f"Mod cache saved. Total mods cached: {len(mod_cache)}")
@@ -2927,8 +3240,7 @@ class HookLineSinkerUI:
 
     # opens a file dialog to select the game directory
     def browse_game_directory(self):
-        directory = filedialog.askdirectory()
-        if directory:
+        if directory := filedialog.askdirectory():
             self.game_path_entry.delete(0, tk.END)
             self.game_path_entry.insert(0, directory)
             self.save_game_path()
@@ -3013,17 +3325,12 @@ class HookLineSinkerUI:
         # check in the mods directory
         if os.path.exists(os.path.join(self.mods_dir, mod_id)):
             return True
-        
+
         # check in the 3rd party mods directory
         if os.path.exists(os.path.join(self.mods_dir, "3rd_party", mod_id)):
             return True
-        
-        # check in the installed mods list
-        for mod in self.installed_mods:
-            if mod.get('id') == mod_id:
-                return True
-        
-        return False
+
+        return any(mod.get('id') == mod_id for mod in self.installed_mods)
 
     # checks if a mod exists in the mods directory
     def mod_exists(self, mod):

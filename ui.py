@@ -1368,32 +1368,32 @@ class HookLineSinkerUI:
         for index in selected:
             mod_title = self.available_listbox.get(index)
             if mod_title.startswith("Category:"):
-                continue  # Skip category headers
+                continue  # skip category headers
                 
             clean_title = mod_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
             mod = next((m for m in self.available_mods if m['title'].strip() == clean_title), None)
             if not mod:
                 continue
 
-            # Check for dependencies before installing
-            # dependencies = self.check_mod_dependencies(mod)
-            # if dependencies:
-            #     missing_deps = [dep for dep in dependencies if not self.is_mod_installed(dep)]
-            #     if missing_deps:
-            #         if messagebox.askyesno("Dependencies Required", 
-            #             f"This mod requires the following dependencies that will be installed:\n" +
-            #             "\n".join(f"• {dep}" for dep in missing_deps) +
-            #             "\n\nWould you like to continue?"):
-            #             # Install dependencies first
-            #             for dep_id in missing_deps:
-            #                 dep_mod = self.find_mod_by_id(dep_id)
-            #                 if dep_mod:
-            #                     self.set_status(f"Installing dependency: {dep_mod['title']}")
-            #                     self.download_and_install_mod(dep_mod)
-            #         else:
-            #             continue
-                        
-            # Now install the main mod
+            # check for dependencies before installing
+            dependencies = self.check_mod_dependencies(mod)
+            if dependencies:
+                missing_deps = [dep for dep in dependencies if not self.is_mod_installed(dep)]
+                if missing_deps:
+                    if messagebox.askyesno("Dependencies Required", 
+                        f"This mod requires the following dependencies that will be installed:\n" +
+                        "\n".join(f"• {dep}" for dep in missing_deps) +
+                        "\n\nWould you like to continue?"):
+                        # install dependencies first
+                        for dep_id in missing_deps:
+                            dep_mod = self.find_mod_by_id(dep_id)
+                            if dep_mod:
+                                self.set_status(f"Installing dependency: {dep_mod['title']}")
+                                self.download_and_install_mod(dep_mod)
+                    else:
+                        continue
+                    
+            # now install the main mod
             self.set_status(f"Installing mod: {mod['title']}")
             try:
                 self.download_and_install_mod(mod)
@@ -1405,8 +1405,35 @@ class HookLineSinkerUI:
 
         self.refresh_mod_lists()
 
-    # search for dependencies via notnites json
-    # def search_for_dependencies(self, mod):
+    def check_mod_dependencies(self, mod):
+        try:
+            # download and extract the mod to temp directory
+            temp_dir = os.path.join(self.app_data_dir, 'temp', f'dep_check_{int(time.time())}')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            response = requests.get(mod['download'])
+            zip_path = os.path.join(temp_dir, "mod.zip")
+            with open(zip_path, 'wb') as f:
+                f.write(response.content)
+                
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+                
+            # find and read manifest.json
+            manifest_path = self.find_manifest(temp_dir)
+            if manifest_path:
+                with open(manifest_path, 'r') as f:
+                    manifest = json.load(f)
+                    return manifest.get('Dependencies', [])
+                    
+        except Exception as e:
+            logging.error(f"Error checking dependencies for {mod['title']}: {str(e)}")
+            
+        finally:
+            # cleanup temp directory
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            
+        return []
 
     # searches for an installed mod by its ID
     # checks both regular and third-party mods

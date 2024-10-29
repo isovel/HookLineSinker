@@ -268,39 +268,7 @@ class HookLineSinkerUI:
                 
     # sends an error report, contrary to the function name, this does not send to discord (i'm too lazy to change it)
     def send_to_discord(self, message, function_name=None):
-        if self.settings.get('no_logging', False):
-            logging.info("Error reporting is disabled. Not sending to endpoint.")
-            return
-
-        webhook_url = "https://hooklinesinker.lol/saferloggingendpoint"
-
-        try:
-            dotnet_installed = self.check_dotnet(silent=True)
-
-            if function_name is None:
-                # get the name of the calling function
-                function_name = inspect.currentframe().f_back.f_code.co_name
-
-            data = {
-                "embeds": [{
-                    "title": f"Error Report - Hook, Line, & Sinker - {function_name}",
-                    "description": message,
-                    "color": 16711680,  # red color
-                    "fields": [
-                        {"name": "HLS Version", "value": get_version(), "inline": True},
-                        {"name": "GDWeave Version", "value": self.settings.get('gdweave_version', 'Unknown'), "inline": True},
-                        {"name": "User Settings", "value": f"Auto Update: {self.settings.get('auto_update', 'N/A')}\nNotifications: {self.settings.get('notifications', 'N/A')}\nTheme: {self.settings.get('theme', 'N/A')}", "inline": False},
-                        {"name": "Game Path", "value": self.settings.get('game_path', 'N/A'), "inline": False},
-                        {"name": "Installed Mods", "value": ', '.join([mod['title'] for mod in self.installed_mods]) if self.installed_mods else 'None', "inline": False},
-                        {"name": "System Info", "value": f"OS: {platform.system()} {platform.release()}\nPython: {platform.python_version()}\n.NET Installed: {'Yes' if dotnet_installed else 'No'}", "inline": False}
-                    ]
-                }]
-            }
-            response = requests.post(webhook_url, json=data)
-            response.raise_for_status()
-            logging.info("Error report sent to Discord successfully")
-        except Exception as e:
-            logging.info(f"Failed to send error report to Discord: {str(e)}")
+        pass
 
     # toggles gdweave on or off
     def toggle_gdweave(self):

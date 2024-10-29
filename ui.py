@@ -1393,58 +1393,52 @@ class HookLineSinkerUI:
             return
         
         selected = self.available_listbox.curselection()
-        if selected:
-            for index in selected:
-                mod_title = self.available_listbox.get(index)
-                logging.info(f"Attempting to install mod: {mod_title}")
-                if mod_title.startswith("Category:"):
-                    logging.info("Skipping category")
-                    continue  # skip category separators
-                
-                # clean the mod title by removing spaces, emojis, and [3rd] tag
-                clean_title = mod_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
-                logging.info(f"Cleaned mod title: {clean_title}")
-                
-                mod = next((m for m in self.available_mods if m['title'].strip() == clean_title), None)
-                if mod is None:
-                    logging.error(f"No mod found with title: {clean_title}")
-                    continue  # skip if mod not found
-
-                self.set_status(f"Downloading mod: {mod['title']}")
-                try:
-                    # download and get the full mod info
-                    downloaded_mod = self.download_and_install_mod(mod, install=False)
-                    
-                    if downloaded_mod is None:
-                        self.set_status(f"Failed to download mod: {mod['title']}")
-                        logging.error(f"Failed to download mod: {mod['title']}")
-                        continue
-                    
-                    # check if a mod with this ID already exists
-                    existing_mod = self.find_installed_mod_by_id(downloaded_mod['id'])
-                    if existing_mod:
-                        if existing_mod.get('third_party', False):
-                            messagebox.showwarning("Mod Conflict", f"A third-party mod with ID '{downloaded_mod['id']}' already exists. You must uninstall the existing mod before installing a new mod with the same ID.")
-                            self.set_status(f"Mod conflict: {downloaded_mod['title']}")
-                            logging.info(f"Mod conflict: {downloaded_mod['title']}")
-                            continue
-                        else:
-                            self.uninstall_mod_files(existing_mod)
-                            logging.info(f"Uninstalled existing mod: {existing_mod['id']}")
-
-                    # if we've reached here, we can safely install the mod
-                    self.set_status(f"Installing mod: {downloaded_mod['title']}")
-                    self.install_downloaded_mod(downloaded_mod)
-                    
-                except Exception as e:
-                    error_message = f"Failed to install mod {mod['title']}: {str(e)}"
-                    self.set_status(error_message)
-                    logging.error(error_message)
-                    self.send_to_discord(f"Error installing mod in Hook, Line, & Sinker:\n{error_message}")
-            self.refresh_mod_lists()
-        else:
-            logging.info("No mod selected for installation")
+        if not selected:
             self.set_status("Please select a mod to install")
+            return
+
+        for index in selected:
+            mod_title = self.available_listbox.get(index)
+            if mod_title.startswith("Category:"):
+                continue  # Skip category headers
+                
+            clean_title = mod_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
+            mod = next((m for m in self.available_mods if m['title'].strip() == clean_title), None)
+            if not mod:
+                continue
+
+            # Check for dependencies before installing
+            # dependencies = self.check_mod_dependencies(mod)
+            # if dependencies:
+            #     missing_deps = [dep for dep in dependencies if not self.is_mod_installed(dep)]
+            #     if missing_deps:
+            #         if messagebox.askyesno("Dependencies Required", 
+            #             f"This mod requires the following dependencies that will be installed:\n" +
+            #             "\n".join(f"• {dep}" for dep in missing_deps) +
+            #             "\n\nWould you like to continue?"):
+            #             # Install dependencies first
+            #             for dep_id in missing_deps:
+            #                 dep_mod = self.find_mod_by_id(dep_id)
+            #                 if dep_mod:
+            #                     self.set_status(f"Installing dependency: {dep_mod['title']}")
+            #                     self.download_and_install_mod(dep_mod)
+            #         else:
+            #             continue
+                        
+            # Now install the main mod
+            self.set_status(f"Installing mod: {mod['title']}")
+            try:
+                self.download_and_install_mod(mod)
+            except Exception as e:
+                error_message = f"Failed to install mod {mod['title']}: {str(e)}"
+                self.set_status(error_message)
+                logging.error(error_message)
+                self.send_to_discord(f"Error installing mod in Hook, Line, & Sinker:\n{error_message}")
+
+        self.refresh_mod_lists()
+
+    # search for dependencies via notnites json
+    # def search_for_dependencies(self, mod):
 
     # searches for an installed mod by its ID
     # checks both regular and third-party mods
@@ -2489,15 +2483,6 @@ class HookLineSinkerUI:
             json.dump(self.settings, f)
         self.set_status("Settings saved successfully!")
         logging.info("Settings saved:", self.settings)
-
-    # fetches list of available mods from remote server
-    def load_mods(self):
-        try:
-            response = requests.get("https://notnite.github.io/webfishing-mods/list.json")
-            self.available_mods = response.json()
-            self.refresh_mod_lists()
-        except requests.RequestException as e:
-            self.set_status(f"Failed to load mods: {str(e)}")
 
     # updates the ui lists of available and installed mods
     def refresh_mod_lists(self):

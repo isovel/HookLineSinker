@@ -133,38 +133,16 @@ class HookLineSinkerUI:
             "Exploration & Movement Pack": ["Nyoom!!!", "SprintToggle", "EventAlert", "LonelyLoner"],
             "Gameplay Utility Pack": ["TackleBox", "Lure", "PropTweaks", "BorderlessFix"] 
         }
-
-        self.mod_categories = {
-            "Awesome Possums!": "Species & Cosmetics",
-            "BetterChalk": "Gameplay Tools",
-            "Fishing Expanded": "Gameplay Enhancements",
-            "Fishing+": "Gameplay Enhancements",
-            "LonelyLoner": "Environment & Time",
-            "No Accessory Limit": "Gameplay Enhancements",
-            "PropTweaks": "Gameplay Enhancements",
-            "RAYTRAC3R's Cosmetics": "Species & Cosmetics",
-            "Rabbits": "Species & Cosmetics",
-            "ReelChat": "Communication & Accessibility",
-            "Automasher": "Communication & Accessibility",
-            "BionicFisher": "Communication & Accessibility",
-            "BorderlessFix": "Gameplay Tools",
-            "BuffStack": "Gameplay Enhancements",
-            "EventAlert": "Environment & Time",
-            "LegibleChat": "Communication & Accessibility",
-            "Lure": "Gameplay Tools",
-            "MidiStrummer": "Gameplay Enhancements",
-            "NeoQOLPack": "Gameplay Enhancements",
-            "Nyoom!!!": "Gameplay Enhancements",
-            "QuickGamble": "Gameplay Enhancements",
-            "SaveCanvas": "Gameplay Tools",
-            "SprintToggle": "Gameplay Enhancements",
-            "TackleBox": "Gameplay Tools",
-            "UncappedSoda": "Gameplay Enhancements",
-            "VoiceTrainedSpecies": "Species & Cosmetics",
-            "WebfishingPlus": "Gameplay Enhancements",
-            "WebfishingRichPresence": "Communication & Accessibility"
-        }
         
+        # mod category constants
+        TOOLS = "Tools"
+        COSMETICS = "Cosmetics"
+        LIBRARIES = "Libraries"
+        MODS = "Mods"
+        MISC = "Misc"
+
+        self.mod_categories = {}  # Will be populated dynamically from Thunderstore categories
+                
         self.load_settings()
         self.load_mod_cache()
         self.mod_downloading = False
@@ -554,32 +532,37 @@ class HookLineSinkerUI:
             for i in actual_mods[:3]:
                 listbox.selection_set(i)
             messagebox.showinfo("Selection Limit", "You can only select up to 3 mods for installation at once. This is to fix an issue with severe lag when installing many mods at once.")
-
+            
     def filter_available_mods(self, event=None):
         selected_category = self.available_category.get()
         self.available_listbox.delete(0, tk.END)
         
         if selected_category == "All":
-            # show all categories and mods
-            categorized_mods = {}
-            for mod in self.available_mods:
-                category = self.mod_categories.get(mod['title'], "Uncategorized")
-                if category not in categorized_mods:
-                    categorized_mods[category] = []
-                categorized_mods[category].append(mod)
+            self.update_available_mods_list()
+            return
             
-            # add mods to listbox grouped by category
-            for category in sorted(categorized_mods.keys()):
-                if categorized_mods[category]:
-                    self.available_listbox.insert(tk.END, f"-- {category} --")
-                    self.available_listbox.itemconfig(tk.END, {'bg':'lightgray', 'fg':'black'})
-                    for mod in sorted(categorized_mods[category], key=lambda x: x['title']):
-                        self.available_listbox.insert(tk.END, mod['title'])
-        else:
-            # show mods only from selected category
-            for mod in sorted(self.available_mods, key=lambda x: x['title']):
-                if self.mod_categories.get(mod['title'], "Uncategorized") == selected_category:
-                    self.available_listbox.insert(tk.END, mod['title'])
+        # show mods that have the selected category in their categories list
+        filtered_mods = {}
+        
+        for mod in self.available_mods:
+            # check if the selected category is in the mod's categories
+            if selected_category in mod.get('categories', []):
+                # use first category as primary for grouping
+                primary_category = mod['categories'][0] if mod['categories'] else "Uncategorized"
+                
+                if primary_category not in filtered_mods:
+                    filtered_mods[primary_category] = []
+                filtered_mods[primary_category].append(mod)
+        
+        # display filtered mods grouped by their primary category
+        for category in sorted(filtered_mods.keys()):
+            if filtered_mods[category]:
+                self.available_listbox.insert(tk.END, f"-- {category} --")
+                self.available_listbox.itemconfig(tk.END, {'bg':'lightgray', 'fg':'black'})
+                
+                for mod in sorted(filtered_mods[category], key=lambda x: x['title']):
+                    self.available_listbox.insert(tk.END, f"  {mod['title']}")
+
     def check_for_duplicate_mods(self):
         mod_ids = {}
         mod_titles = {}
@@ -2187,6 +2170,60 @@ Special Thanks:
             logging.info(f"Error checking for updates: {str(e)}")
             return False
 
+    def update_available_mods_list(self):
+        # clear current list
+        self.available_listbox.delete(0, tk.END)
+        
+        # organize mods by category
+        categorized_mods = {}
+        
+        for mod in self.available_mods:
+            # use first category as primary category
+            primary_category = mod['categories'][0] if mod['categories'] else "Uncategorized"
+            
+            if primary_category not in categorized_mods:
+                categorized_mods[primary_category] = []
+            categorized_mods[primary_category].append(mod)
+        
+        # add mods to listbox grouped by category
+        for category in sorted(categorized_mods.keys()):
+            if categorized_mods[category]:
+                self.available_listbox.insert(tk.END, f"-- {category} --")
+                self.available_listbox.itemconfig(tk.END, {'bg':'lightgray', 'fg':'black'})
+                
+                for mod in sorted(categorized_mods[category], key=lambda x: x['title']):
+                    display_title = self.get_display_name(mod['title'])
+                    self.available_listbox.insert(tk.END, f"  {display_title}")
+
+    def extract_mod_from_zip(self, zip_path, temp_dir):
+        # extract the mod from the thunderstore zip file
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                # extract to temp directory
+                zip_ref.extractall(temp_dir)
+                
+            # look for GDWeave/Mods/* structure
+            gdweave_path = os.path.join(temp_dir, 'GDWeave')
+            mods_path = os.path.join(gdweave_path, 'Mods')
+            
+            if not os.path.exists(mods_path):
+                raise ValueError("Invalid mod structure: No GDWeave/Mods folder found")
+                
+            # get the first directory in the Mods folder (should be the mod folder)
+            mod_folders = [f for f in os.listdir(mods_path) 
+                        if os.path.isdir(os.path.join(mods_path, f))]
+            
+            if not mod_folders:
+                raise ValueError("No mod folder found in GDWeave/Mods")
+                
+            mod_folder = mod_folders[0]  # take first folder
+            mod_path = os.path.join(mods_path, mod_folder)
+            
+            return mod_path
+            
+        except Exception as e:
+            raise ValueError(f"Failed to extract mod: {str(e)}")
+
     # downloads and installs the new version of the application
     def update_application(self, new_version):
         def download_and_install():
@@ -2662,15 +2699,15 @@ Special Thanks:
             return
 
         index = selected[0]
-        mod_title = selected_listbox.get(index)
+        display_title = selected_listbox.get(index)
 
         # clear previous details
         self.mod_details.config(state='normal')
         self.mod_details.delete('1.0', tk.END)
 
         # check if the selected item is a category
-        if mod_title.startswith('-- '):
-            category = mod_title.replace('--', '').strip()
+        if display_title.startswith('-- '):
+            category = display_title.replace('--', '').strip()
             details = f"Category: {category}\n\n"
             details += f"This category groups together mods with similar functionality or purpose related to {category.lower()}."
             self.mod_details.insert(tk.END, details)
@@ -2678,14 +2715,15 @@ Special Thanks:
         else:
             try:
                 # remove status emojis and leading/trailing spaces
-                clean_title = mod_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
+                clean_title = display_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
+                backend_title = self.get_backend_name(clean_title)
 
                 # find the mod in the appropriate list
                 mod_list = self.available_mods if selected_listbox == self.available_listbox else self.installed_mods
-                mod = next((m for m in mod_list if m['title'].strip() == clean_title), None)
+                mod = next((m for m in mod_list if m['title'].strip() == backend_title), None)
 
                 if mod is None:
-                    raise ValueError(f"No mod found with title: {clean_title}")
+                    raise ValueError(f"No mod found with title: {backend_title}")
 
                 # update image
                 image_path = os.path.join(self.mods_dir, mod['id'], 'icon.png')
@@ -2699,11 +2737,11 @@ Special Thanks:
                     self.mod_image.config(image='')
 
                 # prepare details text
-                details = f"Title: {mod['title']}\n"
+                details = f"Title: {self.get_display_name(mod['title'])}\n"
                 details += f"Author: {mod.get('author', 'Unknown')}\n\n"
                 
                 if mod.get('third_party'):
-                    details += f"Description: This is a third-party mod. We don't know much about {mod['title']} but we're sure it's great!\n\n"
+                    details += f"Description: This is a third-party mod. We don't know much about {self.get_display_name(mod['title'])} but we're sure it's great!\n\n"
                 elif mod.get('description'):
                     description = strip_tags(mod['description']) or mod['description']
                     details += f"Description: {description}\n\n"
@@ -2726,7 +2764,7 @@ Special Thanks:
                     self.mod_details.tag_bind("source_link", "<Leave>", lambda e: self.mod_details.config(cursor=""))
 
             except Exception as e:
-                error_message = f"Error: Unable to find mod details for '{mod_title}'. Error: {str(e)}"
+                error_message = f"Error: Unable to find mod details for '{display_title}'. Error: {str(e)}"
                 self.mod_details.insert(tk.END, error_message)
                 logging.error(f"Error in update_mod_details: {error_message}")
 
@@ -2876,109 +2914,93 @@ Special Thanks:
 
     # downloads and installs a mod
     def download_and_install_mod(self, mod, install=True):
+        """Downloads and installs a mod from Thunderstore"""
         try:
-            def download_task():
-                logging.info(f"Starting download for mod: {mod['title']}")
-                response = requests.get(mod['download'], stream=True)
-                response.raise_for_status()
-                total_size = int(response.headers.get('content-length', 0))
-                logging.info(f"Total download size: {total_size} bytes")
-
-                # define the path to download the zip file in the temp folder within appdata
-                temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
-                os.makedirs(temp_dir, exist_ok=True)
-                random_num = random.randint(100, 999)
-                zip_path = os.path.join(temp_dir, f'mod_{int(time.time())}{random_num}.zip')  # Use a unique filename
-                with open(zip_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-                logging.info(f"Download completed. Saved to: {zip_path}")
-
-                # extract the zip file into a temporary directory within the temp folder
-                random_num = random.randint(100, 999)
-                extract_dir = os.path.join(temp_dir, f'extract_{int(time.time())}{random_num}')
-                os.makedirs(extract_dir, exist_ok=True)
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(extract_dir)
-                logging.info(f"Extracted zip file to: {extract_dir}")
-
-                # find the manifest.json file
-                manifest_path = None
-                for root, dirs, files in os.walk(extract_dir):
-                    if 'manifest.json' in files:
-                        manifest_path = os.path.join(root, 'manifest.json')
-                        break
-
-                if not manifest_path:
-                    raise ValueError("manifest.json not found in the mod package")
-                logging.info(f"Found manifest.json at: {manifest_path}")
-
-                # read the manifest.json before moving the directory
-                with open(manifest_path, 'r') as f:
-                    manifest = json.load(f)
-                    mod_id = manifest.get('Id')
-                    if not mod_id:
-                        raise ValueError("Id not found in manifest.json")
-                logging.info(f"Mod ID from manifest: {mod_id}")
-
-                # determine the main mod directory
-                mod_dir = os.path.dirname(manifest_path)
-                logging.info(f"Main mod directory determined: {mod_dir}")
-
-                # move the mod directory to self.mods_dir
-                final_mod_dir = os.path.join(self.mods_dir, mod_id)
-                if os.path.exists(final_mod_dir):
-                    logging.info(f"Moving existing mod directory to temp: {final_mod_dir}")
-                    random_num = random.randint(100, 999)
-                    old_mod_dir = os.path.join(temp_dir, f'old_{mod_id}_{int(time.time())}{random_num}')
-                    shutil.move(final_mod_dir, old_mod_dir)
-                shutil.move(mod_dir, final_mod_dir)
-                logging.info(f"Moved mod directory to: {final_mod_dir}")
-
-                version_info = self.get_mod_version(mod)
-                mod_info = {
-                    'id': mod_id,
-                    'title': mod['title'],
-                    'author': mod.get('author', 'Unknown'),
-                    'description': mod.get('description', ''),
-                    'version': version_info['version'],
-                    'published_at': version_info['published_at'],
-                    'enabled': True,
-                    'download_url': mod['download']
-                }
-
-                # save mod_info.json
-                mod_info_path = os.path.join(final_mod_dir, 'mod_info.json')
-                with open(mod_info_path, 'w') as f:
-                    json.dump(mod_info, f, indent=2)
-                logging.info(f"Saved mod_info.json to: {mod_info_path}")
-
-                # Clean up the temporary zip file
-                os.remove(zip_path)
-                logging.info(f"Removed temporary zip file: {zip_path}")
-
-                if install:
-                    self.root.after(0, self.installation_complete, mod_info)
-                else:
-                    return mod_info
-
+            # create temp directory
+            temp_dir = os.path.join(self.app_data_dir, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # download zip file
+            zip_path = os.path.join(temp_dir, f"{mod['id']}.zip")
+            self.download_file(mod['download'], zip_path)
+            
+            # extract the actual mod folder
+            mod_source_path = self.extract_mod_from_zip(zip_path, temp_dir)
+            
+            # prepare final installation path
+            mod_id = mod['id']
+            final_mod_dir = os.path.join(self.mods_dir, mod_id)
+            
+            # remove existing mod if present
+            if os.path.exists(final_mod_dir):
+                shutil.rmtree(final_mod_dir)
+                
+            # move mod to final location
+            shutil.move(mod_source_path, final_mod_dir)
+            
+            # create mod info
+            mod_info = {
+                'id': mod_id,
+                'title': mod['title'],
+                'author': mod.get('author', 'Unknown'),
+                'description': mod.get('description', ''),
+                'version': mod['version'],
+                'enabled': True,
+                'download_url': mod['download'],
+                'dependencies': mod.get('dependencies', [])
+            }
+            
+            # save mod info
+            mod_info_path = os.path.join(final_mod_dir, 'mod_info.json')
+            with open(mod_info_path, 'w') as f:
+                json.dump(mod_info, f, indent=2)
+                
+            # cleanup
+            shutil.rmtree(temp_dir)
+            
             if install:
-                threading.Thread(target=download_task, daemon=True).start()
-                return None
+                self.root.after(0, self.installation_complete, mod_info)
             else:
-                return download_task()
-
+                return mod_info
+                
         except Exception as e:
-            logging.exception(f"Error during mod installation: {str(e)}")
-            self.root.after(0, self.installation_failed, str(e))
-            return None
+            error_message = f"Failed to install {mod['title']}: {str(e)}"
+            if install:
+                self.root.after(0, self.installation_failed, error_message)
+            else:
+                raise ValueError(error_message)
 
     # called when mod installation is complete
     def installation_complete(self, mod_info):
         self.set_status(f"Mod {mod_info['title']} version {mod_info['version']} installed successfully!")
         self.refresh_mod_lists()
         self.copy_mod_to_game(mod_info)
+
+    def download_file(self, url, destination):
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            
+            # get file size if available
+            total_size = int(response.headers.get('content-length', 0))
+            
+            # download with progress tracking
+            with open(destination, 'wb') as f:
+                if total_size == 0:
+                    f.write(response.content)
+                else:
+                    downloaded_size = 0
+                    for data in response.iter_content(chunk_size=4096):
+                        downloaded_size += len(data)
+                        f.write(data)
+                        # update progress
+                        self.update_progress(downloaded_size, total_size)
+                        
+            return True
+        except Exception as e:
+            error_message = f"Failed to download file from {url}: {str(e)}"
+            logging.error(error_message)
+            raise ValueError(error_message)
 
     # installs a previously downloaded mod
     def install_downloaded_mod(self, mod_info):
@@ -3257,68 +3279,57 @@ Special Thanks:
         else:
             self.set_status("Invalid game path. Please enter a valid directory.")
             logging.info("Invalid game path entered.")
+
+    def get_display_name(self, mod_title):
+        return mod_title.replace('_', ' ')
+
+    def get_backend_name(self, display_title):
+        return display_title.replace(' ', '_')
+
     # loads and displays available mods categorized
     def load_available_mods(self):
         try:
-            # start with an empty list
+            # fetch mods from thunderstore api
+            response = requests.get("https://thunderstore.io/c/webfishing/api/v1/package/")
+            thunderstore_mods = response.json()
+            
             self.available_mods = []
-
-            # load official mods
-            response = requests.get("https://notnite.github.io/webfishing-mods/list.json")
-            official_mods = response.json()
             
-            # ensure each official mod has an 'id' key and ends with .zip
-            official_mods = [mod for mod in official_mods if mod.get('download', '').lower().endswith('.zip')]
-            for mod in official_mods:
-                if 'id' not in mod:
-                    mod['id'] = mod.get('title', '').replace(' ', '_').lower()
+            for mod in thunderstore_mods:
+                # get latest version info
+                if not mod['versions']:
+                    continue
+                    
+                latest_version = mod['versions'][0]
+                
+                # create mod info structure
+                mod_info = {
+                    'title': mod['name'],
+                    'id': f"{mod['owner']}-{mod['name']}",
+                    'description': latest_version['description'],
+                    'version': latest_version['version_number'],
+                    'download': latest_version['download_url'],
+                    'categories': mod['categories'],
+                    'author': mod['owner'],
+                    'dependencies': latest_version['dependencies'],
+                    'icon': latest_version.get('icon', ''),
+                    'website': latest_version.get('website_url', '')
+                }
+                
+                # add to available mods
+                self.available_mods.append(mod_info)
+                
+                # update categories mapping
+                for category in mod['categories']:
+                    if mod_info['title'] not in self.mod_categories:
+                        self.mod_categories[mod_info['title']] = category
+
+            # update the listbox with categorized mods
+            self.update_available_mods_list()
             
-            # create a dictionary to hold mods by category
-            categorized_mods = {"Uncategorized": []}
-
-            # debug print mod categories
-            print("Mod Categories:", self.mod_categories)
-
-            for mod in official_mods:
-                category = self.mod_categories.get(mod['title'], "Uncategorized")
-                if category not in categorized_mods:
-                    categorized_mods[category] = []
-                categorized_mods[category].append(mod)
-
-            # debug print categorized mods
-            print("Categorized Mods:", categorized_mods)
-
-            # clear the current list
-            self.available_listbox.delete(0, tk.END)
-
-            # add mods to the listbox grouped by category
-            for category in sorted(categorized_mods.keys()):
-                if category != "Uncategorized" and categorized_mods[category]:
-                    self.available_listbox.insert(tk.END, f"-- {category} --")
-                    self.available_listbox.itemconfig(tk.END, {'bg':'lightgray', 'fg':'black'})
-                    print(f"Added category: {category}")  # debug print
-                    for mod in sorted(categorized_mods[category], key=lambda x: x['title']):
-                        self.available_listbox.insert(tk.END, f"  {mod['title']}")
-                        self.available_mods.append(mod)
-                        print(f"  Added mod: {mod['title']}")  # debug print
-
-            # add uncategorized mods at the end
-            if categorized_mods["Uncategorized"]:
-                self.available_listbox.insert(tk.END, "-- Uncategorized --")
-                self.available_listbox.itemconfig(tk.END, {'bg':'lightgray', 'fg':'black'})
-                print("Added category: Uncategorized")  # debug print
-                for mod in sorted(categorized_mods["Uncategorized"], key=lambda x: x['title']):
-                    self.available_listbox.insert(tk.END, f"  {mod['title']}")
-                    self.available_mods.append(mod)
-                    print(f"  Added mod: {mod['title']}")  # debug print
-            
-            self.refresh_mod_lists()
         except requests.RequestException as e:
             self.set_status(f"Failed to load mods: {str(e)}")
-            self.send_to_discord(f"Error loading mods in Hook, Line, & Sinker:\n{str(e)}")
-
-        # debug print final available mods list
-        print("Final Available Mods:", [mod['title'] for mod in self.available_mods])
+            self.send_to_discord(f"Error loading mods from Thunderstore in Hook, Line, & Sinker:\n{str(e)}")
 
     # checks if a mod id exists in the mods directory
     def mod_id_exists(self, mod_id):

@@ -123,16 +123,6 @@ class HookLineSinkerUI:
 
         self.available_mods = []
         self.installed_mods = []
-        self.mod_packs = {
-            "Creature Comforts Pack": ["Awesome Possums!", "Rabbits", "RAYTRAC3R's Cosmetics", "VoiceTrainedSpecies", "Lure"],
-            "Fishing & Adventure Pack": ["Fishing Expanded", "Fishing+", "NeoQOLPack", "QuickGamble"],
-            "Accessibility Essentials": ["Automasher", "BionicFisher", "ReelChat"], 
-            "Quality of Life Pack": ["No Accessory Limit", "BuffStack", "UncappedSoda", "WebfishingPlus", "SprintToggle"],
-            "Creative Tools Pack": ["SaveCanvas", "MidiStrummer", "BorderlessFix"],
-            "Enhanced Communication": ["ReelChat", "WebfishingRichPresence", "LegibleChat"],
-            "Exploration & Movement Pack": ["Nyoom!!!", "SprintToggle", "EventAlert", "LonelyLoner"],
-            "Gameplay Utility Pack": ["TackleBox", "Lure", "PropTweaks", "BorderlessFix"] 
-        }
         
         # mod category constants
         TOOLS = "Tools"
@@ -392,7 +382,6 @@ class HookLineSinkerUI:
 
         # create various tabs for different functionalities
         self.create_mod_manager_tab()
-        self.create_mod_packs_tab()
         self.create_game_manager_tab()
         self.create_hls_setup_tab()
         self.create_settings_tab()
@@ -674,71 +663,6 @@ class HookLineSinkerUI:
             messagebox.showerror("Error", error_message)
             self.set_status(error_message)
             self.send_to_discord(f"Error launching game in Hook, Line, & Sinker:\n{error_message}")
-        
-    def create_mod_packs_tab(self):
-        # create the mod packs tab for managing curated collections of mods
-        mod_packs_frame = ttk.Frame(self.notebook)
-        self.notebook.add(mod_packs_frame, text="Mod Packs")
-
-        mod_packs_frame.grid_columnconfigure(0, weight=1)
-        mod_packs_frame.grid_rowconfigure(2, weight=1)  # increased to accommodate the subtitle
-
-        # create title and subtitle
-        title_label = ttk.Label(mod_packs_frame, text="Mod Packs", font=("Helvetica", 16, "bold"))
-        title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
-
-        subtitle_label = ttk.Label(mod_packs_frame, text="Quickly apply curated collections of mods", font=("Helvetica", 10, "italic"))
-        subtitle_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
-
-        # create frame for mod packs
-        packs_frame = ttk.Frame(mod_packs_frame)
-        packs_frame.grid(row=2, column=0, pady=10, padx=20, sticky="nsew")
-        packs_frame.grid_columnconfigure(0, weight=1)
-
-        # create buttons for each mod pack
-        for i, (pack_name, mods) in enumerate(self.mod_packs.items()):
-            pack_frame = ttk.Frame(packs_frame)
-            pack_frame.grid(row=i, column=0, pady=5, padx=5, sticky="ew")
-            pack_frame.grid_columnconfigure(1, weight=1)
-
-            ttk.Label(pack_frame, text=pack_name, font=("Helvetica", 12, "bold")).grid(row=0, column=0, sticky="w", padx=(0, 10))
-            ttk.Label(pack_frame, text=", ".join(mods), wraplength=400).grid(row=0, column=1, sticky="w")
-            ttk.Button(pack_frame, text="Apply", command=lambda p=pack_name: self.apply_mod_pack(p)).grid(row=0, column=2, padx=(10, 0))
-
-        # add a note about mod pack behavior
-        note_label = ttk.Label(mod_packs_frame, text="Note: Applying a mod pack will disable all current mods and enable only the mods in the selected pack.", wraplength=600, justify="left", font=("Helvetica", 10, "italic"))
-        note_label.grid(row=3, column=0, pady=(20, 10), padx=20, sticky="w")
-    def apply_mod_pack(self, pack_name):
-        # apply a selected mod pack
-        if not self.check_setup():
-            return
-        if messagebox.askyesno("Apply Mod Pack", f"Are you sure you want to apply the '{pack_name}' mod pack? This will disable all current mods and enable only the mods in the pack."):
-            messagebox.showinfo("Applying Mod Pack", f"Applying '{pack_name}' mod pack now. Please wait on this page for a few moments until you get a confirmation.")
-            self.root.update()
-
-            self.set_status(f"Applying mod pack: {pack_name}")
-
-            # disable all current mods
-            for mod in self.installed_mods:
-                mod['enabled'] = False
-                self.save_mod_status(mod)
-                self.remove_mod_from_game(mod)
-                self.set_status(f"Disabled mod: {mod['title']}")
-                self.root.update()
-                time.sleep(0.1)  # Wait for 0.5 seconds between each mod
-
-            # enable mods in the pack
-            pack_mods = self.mod_packs[pack_name]
-            for mod_title in pack_mods:
-                self.set_status(f"Enabling mod: {mod_title}")
-                self.root.update()
-                self.enable_mod_by_title(mod_title)
-                while self.mod_downloading:
-                    time.sleep(0.1)  # Wait until the current mod finishes downloading
-
-            self.refresh_mod_lists()
-            self.set_status(f"Mod pack '{pack_name}' applied successfully!")
-            messagebox.showinfo("Mod Pack Applied", f"The '{pack_name}' mod pack has been successfully applied.")
 
     def enable_mod_by_title(self, mod_title):
         self.mod_downloading = True
@@ -2719,7 +2643,6 @@ Special Thanks:
             details = f"Category: {category}\n\n"
             details += f"This category groups together mods with similar functionality or purpose related to {category.lower()}."
             self.mod_details.insert(tk.END, details)
-            self.mod_image.config(image='')
         else:
             try:
                 # remove status emojis and leading/trailing spaces
@@ -2732,17 +2655,6 @@ Special Thanks:
 
                 if mod is None:
                     raise ValueError(f"No mod found with title: {backend_title}")
-
-                # update image
-                image_path = os.path.join(self.mods_dir, mod['id'], 'icon.png')
-                if os.path.exists(image_path):
-                    img = Image.open(image_path)
-                    img = img.resize((64, 64), Image.LANCZOS)
-                    photo = ImageTk.PhotoImage(img)
-                    self.mod_image.config(image=photo)
-                    self.mod_image.image = photo
-                else:
-                    self.mod_image.config(image='')
 
                 # prepare details text
                 details = f"Title: {self.get_display_name(mod['title'])}\n"
@@ -2777,19 +2689,6 @@ Special Thanks:
                 logging.error(f"Error in update_mod_details: {error_message}")
 
         self.mod_details.config(state='disabled')
-
-    # loads and displays the mod image
-    def load_mod_image(self, image_url):
-        try:
-            response = requests.get(image_url)
-            image = Image.open(io.BytesIO(response.content))
-            image.thumbnail((100, 100))  # resize image
-            photo = ImageTk.PhotoImage(image)
-            self.mod_image.config(image=photo)
-            self.mod_image.image = photo  # keep a reference
-        except Exception as e:
-            logging.info(f"Failed to load image: {str(e)}")
-            self.mod_image.config(image='')
 
     # verifies the game installation path
     def verify_installation(self):
@@ -2919,7 +2818,6 @@ Special Thanks:
                         installed_mods.append(mod_info)
 
         return installed_mods
-
     # downloads and installs a mod
     def download_and_install_mod(self, mod, install=True):
         """Downloads and installs a mod from Thunderstore"""
@@ -2934,7 +2832,13 @@ Special Thanks:
             
             # extract the actual mod folder
             mod_source_path = self.extract_mod_from_zip(zip_path, temp_dir)
-            
+
+            # read manifest to get actual mod id
+            manifest_path = os.path.join(mod_source_path, 'manifest.json')
+            with open(manifest_path, 'r') as f:
+                manifest = json.load(f)
+                mod['id'] = manifest['Id']  # update the id from manifest
+
             # prepare final installation path
             mod_id = mod['id']
             final_mod_dir = os.path.join(self.mods_dir, mod_id)
@@ -3314,14 +3218,13 @@ Special Thanks:
                 mod_info = {
                     'title': mod['name'],
                     'thunderstore_id': f"{mod['owner']}-{mod['name']}", # store thunderstore id separately
-                    'id': None,  # will be populated from manifest.json after download
+                    'id': f"{mod['owner']}-{mod['name']}", # Use thunderstore_id as temporary id
                     'description': latest_version['description'],
                     'version': latest_version['version_number'],
                     'download': latest_version['download_url'],
                     'categories': mod['categories'],
                     'author': mod['owner'],
                     'dependencies': latest_version['dependencies'],
-                    'icon': latest_version.get('icon', ''),
                     'website': latest_version.get('website_url', '')
                 }
                 

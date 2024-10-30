@@ -2194,32 +2194,40 @@ Special Thanks:
                 for mod in sorted(categorized_mods[category], key=lambda x: x['title']):
                     display_title = self.get_display_name(mod['title'])
                     self.available_listbox.insert(tk.END, f"  {display_title}")
-
     def extract_mod_from_zip(self, zip_path, temp_dir):
-        # extract the mod from the thunderstore zip file
+        """Extract mod from zip file by finding manifest.json with Id field"""
         try:
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 # extract to temp directory
                 zip_ref.extractall(temp_dir)
                 
-            # look for GDWeave/Mods/* structure
-            gdweave_path = os.path.join(temp_dir, 'GDWeave')
-            mods_path = os.path.join(gdweave_path, 'Mods')
+            # recursively search for manifest.json files
+            manifest_files = []
+            for root, _, files in os.walk(temp_dir):
+                if 'manifest.json' in files:
+                    manifest_path = os.path.join(root, 'manifest.json')
+                    try:
+                        # read the manifest to get the actual mod ID
+                        with open(manifest_path, 'r') as f:
+                            manifest = json.load(f)
+                            if 'Id' in manifest:
+                                mod_id = manifest['Id']
+                                manifest_files.append((manifest_path, mod_id))
+                    except (json.JSONDecodeError, KeyError):
+                        continue
             
-            if not os.path.exists(mods_path):
-                raise ValueError("Invalid mod structure: No GDWeave/Mods folder found")
+            if not manifest_files:
+                raise ValueError("No valid manifest.json with Id field found in mod package")
                 
-            # get the first directory in the Mods folder (should be the mod folder)
-            mod_folders = [f for f in os.listdir(mods_path) 
-                        if os.path.isdir(os.path.join(mods_path, f))]
+            # use the first valid manifest found
+            manifest_path, mod_id = manifest_files[0]
+            mod_dir = os.path.dirname(manifest_path)
             
-            if not mod_folders:
-                raise ValueError("No mod folder found in GDWeave/Mods")
+            # verify this is a mod directory
+            if not os.path.exists(mod_dir):
+                raise ValueError("Mod directory not found after extraction")
                 
-            mod_folder = mod_folders[0]  # take first folder
-            mod_path = os.path.join(mods_path, mod_folder)
-            
-            return mod_path
+            return mod_dir
             
         except Exception as e:
             raise ValueError(f"Failed to extract mod: {str(e)}")
@@ -3305,7 +3313,8 @@ Special Thanks:
                 # create mod info structure
                 mod_info = {
                     'title': mod['name'],
-                    'id': f"{mod['owner']}-{mod['name']}",
+                    'thunderstore_id': f"{mod['owner']}-{mod['name']}", # store thunderstore id separately
+                    'id': None,  # will be populated from manifest.json after download
                     'description': latest_version['description'],
                     'version': latest_version['version_number'],
                     'download': latest_version['download_url'],

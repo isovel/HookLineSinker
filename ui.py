@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 import argparse
 from packaging import version
 import psutil
-import datetime
+from datetime import datetime, timedelta, timezone
 import logging
 import random
 
@@ -765,7 +765,7 @@ class HookLineSinkerUI:
                     name = name_parts[0].replace('_', ' ')
                     try:
                         timestamp = float(name_parts[1].replace('.save', ''))
-                        formatted_time = datetime.datetime.fromtimestamp(timestamp).strftime("%I:%M%p %d/%m/%Y")
+                        formatted_time = datetime.fromtimestamp(timestamp).strftime("%I:%M%p %d/%m/%Y")
                         self.backup_tree.insert('', 'end', values=(name, formatted_time))
                     except ValueError:
                         self.backup_tree.insert('', 'end', values=(backup, 'Unknown'))
@@ -2656,30 +2656,58 @@ Special Thanks:
                 if mod is None:
                     raise ValueError(f"No mod found with title: {backend_title}")
 
+                # Format last updated time
+                last_updated = ""
+                if 'last_updated' in mod and mod['last_updated']:
+                    try:
+                        # Parse the ISO format timestamp
+                        updated_dt = datetime.fromisoformat(mod['last_updated'].replace('Z', '+00:00'))
+                        now = datetime.now(timezone.utc)
+                        diff = now - updated_dt
+                        
+                        if diff.days > 365:
+                            years = diff.days // 365
+                            last_updated = f"{years} year{'s' if years != 1 else ''} ago"
+                        elif diff.days > 30:
+                            months = diff.days // 30
+                            last_updated = f"{months} month{'s' if months != 1 else ''} ago"
+                        elif diff.days > 0:
+                            last_updated = f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
+                        elif diff.seconds > 3600:
+                            hours = diff.seconds // 3600
+                            last_updated = f"{hours} hour{'s' if hours != 1 else ''} ago"
+                        else:
+                            minutes = (diff.seconds % 3600) // 60
+                            last_updated = f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+                    except Exception:
+                        last_updated = "Unknown"
+
                 # prepare details text
-                details = f"Title: {self.get_display_name(mod['title'])}\n"
-                details += f"Author: {mod.get('author', 'Unknown')}\n\n"
+                details = f"{mod['title']} v{mod.get('version', '?')} by {mod.get('author', 'Unknown')}\n"
+                if last_updated or 'downloads' in mod:
+                    details += f"Last updated {last_updated or 'Unknown'} • {mod.get('downloads', 0):,} downloads\n"
+                details += "\n"
                 
                 if mod.get('third_party'):
-                    details += f"Description: This is a third-party mod. We don't know much about {self.get_display_name(mod['title'])} but we're sure it's great!\n\n"
+                    details += f"This is a third-party mod. We don't know much about {self.get_display_name(mod['title'])} but we're sure it's great!\n\n"
                 elif mod.get('description'):
                     description = strip_tags(mod['description']) or mod['description']
-                    details += f"Description: {description}\n\n"
-                
+                    details += f"{description}\n\n"
+
                 if selected_listbox == self.installed_listbox:
-                    details += f"Version: {mod.get('version', 'Unknown')}\n"
                     details += f"Status: {'Enabled' if mod.get('enabled', False) else 'Disabled'}\n"
-                if mod.get('source'):
-                    details += f"Source: {mod['source']}\n"
+                if mod.get('website'):
+                    thunderstore_url = f"https://thunderstore.io/c/webfishing/p/{mod.get('thunderstore_id')}/"
+                    details += f"Thunderstore: {thunderstore_url}\n"
 
                 # add the details to the text widget
                 self.mod_details.insert(tk.END, details)
 
-                # make source link clickable
-                if mod.get('source'):
+                # make website link clickable
+                if mod.get('website'):
                     self.mod_details.tag_add("source_link", "end-2l", "end-1c")
                     self.mod_details.tag_config("source_link", foreground="blue", underline=1)
-                    self.mod_details.tag_bind("source_link", "<Button-1>", lambda e: webbrowser.open(mod['source']))
+                    self.mod_details.tag_bind("source_link", "<Button-1>", lambda e: webbrowser.open(mod['website']))
                     self.mod_details.tag_bind("source_link", "<Enter>", lambda e: self.mod_details.config(cursor="hand2"))
                     self.mod_details.tag_bind("source_link", "<Leave>", lambda e: self.mod_details.config(cursor=""))
 
@@ -3217,15 +3245,17 @@ Special Thanks:
                 # create mod info structure
                 mod_info = {
                     'title': mod['name'],
-                    'thunderstore_id': f"{mod['owner']}-{mod['name']}", # store thunderstore id separately
-                    'id': f"{mod['owner']}-{mod['name']}", # Use thunderstore_id as temporary id
+                    'thunderstore_id': f"{mod['owner']}-{mod['name']}", 
+                    'id': f"{mod['owner']}-{mod['name']}", 
                     'description': latest_version['description'],
                     'version': latest_version['version_number'],
                     'download': latest_version['download_url'],
                     'categories': mod['categories'],
                     'author': mod['owner'],
                     'dependencies': latest_version['dependencies'],
-                    'website': latest_version.get('website_url', '')
+                    'website': latest_version.get('website_url', ''),
+                    'downloads': latest_version.get('downloads', 0), 
+                    'last_updated': mod.get('date_updated', '')  
                 }
                 
                 # add to available mods

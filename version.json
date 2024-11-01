@@ -1,13 +1,13 @@
 {
-    "version": "1.1.6",
-    "message": "The Mod Management Update\n\nTo update, just press 'Yes' and it should open the installer! If it doesn't, download via the website or Discord.\n\nThis update brings dependency warnings, better mod organization, new testing features, and various improvements to make mod management easier.",
+    "version": "1.2.0",
+    "message": "The Thunderstore UpdateTM\n\nTo update, just press 'Yes' and it should open the installer! If it doesn't, download via the website or Discord.\n\nThis major update adds full Thunderstore integration, improved mod management, and various UI enhancements to make modding easier than ever.",
     "changelog": [
-        "Added dependency warnings when installing mods",
-        "Improved mod organization with better categories and mod packs",
-        "Added Test Mod option and Export ZIP feature for 3rd party mods in right-click menu",
-        "Replaced search with comprehensive filtering system",
-        "Enhanced HLS log viewer",
-        "Updated credits section",
-        "Various bug fixes and improvements"
+        "Added full Thunderstore API integration for mods and updates",
+        "Implemented mod categories with emoji indicators",
+        "Enhanced dependency checking and version comparison",
+        "Improved mod testing and export capabilities", 
+        "Added selection limits when batch installing mods",
+        "Fixed background process issues",
+        "Various UI improvements and bug fixes"
     ]
 }

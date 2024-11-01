@@ -25,6 +25,7 @@ import psutil
 from datetime import datetime, timedelta, timezone
 import logging
 import random
+import uuid
 
 # third-party imports
 import appdirs
@@ -100,12 +101,15 @@ class HookLineSinkerUI:
         self.setup_logging()
         self.gui_queue = queue.Queue()
         self.gdweave_queue = queue.Queue()
+        self.load_settings()
         
         version = get_version()
 
         self.root.title(f"Hook, Line, & Sinker v{version} - WEBFISHING Mod Manager")
-        self.root.geometry("800x600")
-        self.root.state('zoomed')
+        if not self.settings.get('windowed_mode', False):
+            self.root.state('zoomed')
+        else:
+            self.root.geometry("800x600")
 
         icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
         if os.path.exists(icon_path):
@@ -134,7 +138,6 @@ class HookLineSinkerUI:
 
         self.mod_categories = {}  # Will be populated dynamically from Thunderstore categories
                 
-        self.load_settings()
         self.load_mod_cache()
         self.mod_downloading = False
 
@@ -161,7 +164,6 @@ class HookLineSinkerUI:
         self.check_for_fresh_update()
         self.check_for_program_updates()
         self.show_discord_prompt()
-        self.show_error_reporting_popup()
         self.check_for_duplicate_mods()
 
         # check if this is a fresh update
@@ -279,10 +281,6 @@ class HookLineSinkerUI:
                 messagebox.showinfo("Update Complete", f"Hook, Line, & Sinker has been updated to version {current_version}.")
                 self.settings['last_update_version'] = str(current_version)
                 self.save_settings()
-                
-    # sends an error report, contrary to the function name, this does not send to discord (i'm too lazy to change it)
-    def send_to_discord(self, message, function_name=None):
-        pass
 
     # toggles gdweave on or off
     def toggle_gdweave(self):
@@ -308,7 +306,6 @@ class HookLineSinkerUI:
                 self.set_status("GDWeave disabled and backed up")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to disable GDWeave: {str(e)}")
-                self.send_to_discord(f"Error disabling GDWeave in Hook, Line, & Sinker:\n{str(e)}")
                 return
         else:
             # gdweave is not in the game folder let's restore it from backup
@@ -321,7 +318,6 @@ class HookLineSinkerUI:
                 self.set_status("GDWeave enabled and restored")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to enable GDWeave: {str(e)}")
-                self.send_to_discord(f"Error enabling GDWeave in Hook, Line, & Sinker:\n{str(e)}")
                 return
 
         self.update_toggle_gdweave_button()
@@ -359,7 +355,6 @@ class HookLineSinkerUI:
                     warning_message = f"Some files could not be deleted: {', '.join(remaining_files)}. This may be due to insufficient permissions or open programs. Please close all related programs and try again."
                     messagebox.showwarning("Partial Uninstall", warning_message)
                     self.set_status("GDWeave partially uninstalled")
-                    self.send_to_discord(f"Partial GDWeave uninstall in Hook, Line, & Sinker:\n{warning_message}")
                 else:
                     # uninstall successful, update settings and ui
                     self.settings['gdweave_version'] = None
@@ -377,7 +372,6 @@ class HookLineSinkerUI:
                 error_message = f"Failed to uninstall GDWeave: {str(e)}"
                 self.set_status(error_message)
                 messagebox.showerror("Error", error_message)
-                self.send_to_discord(f"Error uninstalling GDWeave in Hook, Line, & Sinker:\n{error_message}")
 
     def create_main_ui(self):
         # create and set up the main user interface
@@ -478,6 +472,8 @@ class HookLineSinkerUI:
         third_party_frame.grid_columnconfigure(1, weight=1)
         ttk.Button(third_party_frame, text="Import ZIP", command=self.import_zip_mod).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(third_party_frame, text="Refresh Mods", command=self.refresh_all_mods).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
+        ttk.Button(third_party_frame, text="View Deprecated Mods List", command=self.view_deprecated_mods_list).grid(row=1, column=0, columnspan=2, padx=2, pady=2, sticky="ew")
+
         # create help section
         help_frame = ttk.LabelFrame(action_frame, text="Need Help?")
         help_frame.grid(row=4, column=0, pady=5, padx=5, sticky="ew")
@@ -535,6 +531,10 @@ class HookLineSinkerUI:
 
         self.mod_details_frame.grid_columnconfigure(1, weight=1)
         self.mod_details_frame.grid_rowconfigure(0, weight=1)
+
+    def view_deprecated_mods_list(self):
+        messagebox.showinfo("Deprecated Mods List", "This will open a new tab with the deprecated mods list. Note that these mods may be outdated, broken, or no longer work. If you download one, you'll need to import it via the 'Import ZIP' option.")
+        webbrowser.open("https://notnite.github.io/webfishing-mods")
 
     def on_available_listbox_select(self, event):
         self.update_mod_details(event)
@@ -605,6 +605,7 @@ class HookLineSinkerUI:
                     self.mod_details.insert(tk.END, f"• {mod['title']} v{mod.get('version', '?')} by {mod.get('author', 'Unknown')}\n")
         
         self.mod_details.config(state='disabled')
+        
     def filter_available_mods(self, event=None):
         search_text = self.search_var.get().lower()
         self.available_listbox.delete(0, tk.END)
@@ -621,9 +622,10 @@ class HookLineSinkerUI:
                 
             filtered_mods.append(mod)
 
-        # display filtered mods in a flat sorted list
+        # display filtered mods in a flat sorted list with converted display names
         for mod in sorted(filtered_mods, key=lambda x: x['title']):
-            self.available_listbox.insert(tk.END, mod['title'])
+            display_title = self.get_display_name(mod['title'])
+            self.available_listbox.insert(tk.END, display_title)
 
     def check_for_duplicate_mods(self):
         mod_ids = {}
@@ -743,7 +745,6 @@ class HookLineSinkerUI:
             error_message = f"Failed to launch the game: {str(e)}"
             messagebox.showerror("Error", error_message)
             self.set_status(error_message)
-            self.send_to_discord(f"Error launching game in Hook, Line, & Sinker:\n{error_message}")
 
     def create_game_manager_tab(self):
         # create the game manager tab for managing save files
@@ -869,7 +870,6 @@ class HookLineSinkerUI:
             error_message = f"Failed to create backup: {str(e)}"
             messagebox.showerror("Error", error_message)
             self.set_status(error_message)
-            self.send_to_discord(f"Error creating backup in Hook, Line, & Sinker:\n{error_message}")
 
     def check_migration_needed(self):
         """Check if migration from old format is needed and handle it"""
@@ -914,7 +914,6 @@ class HookLineSinkerUI:
                     error_msg = f"Failed to migrate: {str(e)}"
                     logging.error(error_msg)
                     self.set_status(error_msg)
-                    self.send_to_discord(f"Error during migration in Hook, Line, & Sinker:\n{error_msg}")
                     messagebox.showerror("Migration Failed", 
                         "Failed to complete migration. Please try again or contact support.")
                     sys.exit(1)
@@ -958,7 +957,6 @@ class HookLineSinkerUI:
             error_message = f"Failed to restore backup: {str(e)}"
             messagebox.showerror("Error", error_message)
             self.set_status(error_message)
-            self.send_to_discord(f"Error restoring backup in Hook, Line, & Sinker:\n{error_message}")
 
     def delete_backup(self):
         selected = self.backup_tree.selection()
@@ -992,7 +990,6 @@ class HookLineSinkerUI:
                 error_message = f"Failed to delete backup: {str(e)}"
                 messagebox.showerror("Error", error_message)
                 self.set_status(error_message)
-                self.send_to_discord(f"Error deleting backup in Hook, Line, & Sinker:\n{error_message}")
 
     # creates the main setup tab for hook line & sinker
     def create_hls_setup_tab(self):
@@ -1092,9 +1089,10 @@ class HookLineSinkerUI:
 
         self.auto_update = tk.BooleanVar(value=self.settings.get('auto_update', True))
         ttk.Checkbutton(general_frame, text="Auto-update mods", variable=self.auto_update, command=self.save_settings).grid(row=0, column=0, columnspan=2, pady=5, padx=5, sticky="w")
-
-        self.no_logging = tk.BooleanVar(value=self.settings.get('no_logging', False))
-        ttk.Checkbutton(general_frame, text="Disable sending error reports", variable=self.no_logging).grid(row=1, column=0, columnspan=2, sticky="w", padx=5, pady=5)
+        self.windowed_mode = tk.BooleanVar(value=self.settings.get('windowed_mode', False))
+        ttk.Checkbutton(general_frame, text="Launch in windowed mode", 
+                variable=self.windowed_mode, 
+                command=self.save_windowed_mode).grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
 
         update_frame = ttk.Frame(general_frame)
         update_frame.grid(row=2, column=0, columnspan=2, pady=5, padx=5, sticky="w")
@@ -1150,6 +1148,10 @@ class HookLineSinkerUI:
         # start a thread to check the latest version
         threading.Thread(target=self.update_latest_version_label, daemon=True).start()
         self.root.after(100, self.process_gui_queue)
+
+    def save_windowed_mode(self):
+        self.settings['windowed_mode'] = self.windowed_mode.get()
+        self.save_settings()
 
     def show_credits(self):
         credits_text = """Credits:
@@ -1278,7 +1280,6 @@ Special Thanks:
 
             except Exception as e:
                 logging.info(f"Error processing mod {mod_folder}: {str(e)}")
-                self.send_to_discord(f"Error in Hook, Line, & Sinker:\n{str(e)}")
 
         # add newly installed mods to the installed mods list
         self.installed_mods.extend(newly_installed_mods)
@@ -1311,7 +1312,6 @@ Special Thanks:
                 error_message = f"Failed to delete temporary files and folders: {str(e)}"
                 logging.error(error_message)
                 self.set_status(error_message)
-                self.send_to_discord(f"Error in Hook, Line, & Sinker:\n{error_message}")
         else:
             logging.info(f"Temporary directory does not exist: {temp_dir}")
             self.set_status("No temporary files or folders to delete.")
@@ -1325,7 +1325,6 @@ Special Thanks:
             error_message = "Please install the .NET 8.0 SDK. Visit https://dotnet.microsoft.com/download"
             self.set_status(error_message)
             messagebox.showerror("Installation Error", error_message)
-            self.send_to_discord(f"Error in Hook, Line, & Sinker:\n{str(e)}")
 
     # downloads and runs the net installer
     def download_and_run_dotnet_installer(self):
@@ -1372,7 +1371,6 @@ Special Thanks:
                 error_message = f"Failed to download or install .NET: {str(e)}"
                 self.set_status(error_message)
                 messagebox.showerror("Installation Error", error_message)
-                self.send_to_discord(f"Error downloading .NET in Hook, Line, & Sinker:\n{error_message}")
 
             finally:
                 # clean up the temporary file
@@ -1500,18 +1498,20 @@ Special Thanks:
             logging.error(error_message)
             logging.error(traceback.format_exc())
             self.set_status(error_message)
-            self.send_to_discord(f"Error importing 3rd party mod in Hook, Line, & Sinker:\n{error_message}")
 
-    # searches for manifest.json file in a given directory and its subdirectories
+    # searches for manifest.json file containing an 'Id' field in a given directory and its subdirectories
     def find_manifest(self, directory):
-        return next(
-            (
-                os.path.join(root, 'manifest.json')
-                for root, dirs, files in os.walk(directory)
-                if 'manifest.json' in files
-            ),
-            None,
-        )
+        for root, dirs, files in os.walk(directory):
+            if 'manifest.json' in files:
+                manifest_path = os.path.join(root, 'manifest.json')
+                try:
+                    with open(manifest_path, 'r') as f:
+                        manifest_data = json.load(f)
+                        if manifest_data.get('Id'):  # only return if Id field exists
+                            return manifest_path
+                except (json.JSONDecodeError, IOError):
+                    continue
+        return None
     
     # refreshes all mods by reloading available mods and updating the UI
     def refresh_all_mods(self):
@@ -1531,7 +1531,6 @@ Special Thanks:
                 return data['tag_name']
             except Exception as e:
                 logging.info(f"Error fetching GDWeave version: {str(e)}")
-                self.send_to_discord(f"Error getting GDWeave version in Hook, Line, & Sinker:\n{str(e)}")
                 return "Unknown"
 
         result = None
@@ -1826,7 +1825,6 @@ Special Thanks:
             self.set_status(error_message)
             logging.info(error_message)
             logging.info(f"Error details: {traceback.format_exc()}")
-            self.send_to_discord(f"Error installing/updating GDWeave in Hook, Line, & Sinker:\n{error_message}")
 
         self.refresh_mod_lists()
     # updates the UI to reflect the current setup status
@@ -1939,7 +1937,6 @@ Special Thanks:
         except Exception as e:
             if not silent:
                 self.set_status(f"Error: {str(e)}. .NET is not installed. Please install .NET 8.0 SDK from https://dotnet.microsoft.com/download")
-                self.send_to_discord(f"Error checking .NET in Hook, Line, & Sinker:\n{str(e)}")
             return False
 
     # opens the .NET download page in the default web browser
@@ -2118,7 +2115,6 @@ Special Thanks:
                 self.set_status("All mods have been removed from the game's mods folder.")
             except Exception as e:
                 self.set_status(f"Error clearing GDWeave mods: {str(e)}")
-                self.send_to_discord(f"Error clearing GDWeave mods in Hook, Line, & Sinker:\n{str(e)}")
         else:
             self.set_status("GDWeave mods folder not found.")
 
@@ -2148,7 +2144,6 @@ Special Thanks:
             self.set_status("All Hook, Line, & Sinker managed mods and cache have been cleared.")
         except Exception as e:
             self.set_status(f"Error clearing HLS mods: {str(e)}")
-            self.send_to_discord(f"Error clearing HLS mods in Hook, Line, & Sinker:\n{str(e)}")
 
     # fetches the latest version from the server
     def update_latest_version_label(self):
@@ -2159,7 +2154,6 @@ Special Thanks:
         except Exception as e:
             logging.info(f"Error fetching latest version: {str(e)}")
             self.gui_queue.put(('latest_version', 'Unknown'))
-            self.send_to_discord(f"Error fetching latest version in Hook, Line, & Sinker:\n{str(e)}")
 
     # processes messages in the gui queue
     def process_gui_queue(self):
@@ -2292,7 +2286,6 @@ Special Thanks:
                 error_message = f"Failed to update: {str(e)}"
                 self.root.after(0, lambda: messagebox.showerror("Update Failed", error_message))
                 self.root.after(0, lambda: self.set_status(error_message))
-                self.send_to_discord(f"Error updating Hook, Line, & Sinker:\n{error_message}")
 
         # start the download and installation process in a separate thread
         threading.Thread(target=download_and_install, daemon=True).start()
@@ -2563,7 +2556,6 @@ Special Thanks:
                 except Exception as e:
                     error_message = f"Failed to uninstall mod {mod['title']}: {str(e)}"
                     self.set_status(error_message)
-                    self.send_to_discord(f"Error uninstalling mod in Hook, Line, & Sinker:\n{error_message}")
             self.refresh_mod_lists()
 
     # removes mod files from the system
@@ -2635,7 +2627,7 @@ Special Thanks:
     def check_setup(self):
         if not self.settings.get('game_path') or not os.path.exists(self.settings.get('game_path')):
             messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the Game Manager tab.")
-            self.notebook.select(3)  # switch to hls setup tab
+            self.notebook.select(2)  # switch to hls setup tab
             return False
         return True
 
@@ -2666,23 +2658,6 @@ Special Thanks:
             self.settings['discord_prompt_shown'] = True
             self.save_settings()
 
-    # shows a popup to enable error reporting
-    def show_error_reporting_popup(self):
-        if not self.settings.get('error_reporting_prompted', False):
-            message = ("Error reporting helps us improve Hook, Line & Sinker by sending anonymous "
-                    "crash and error reports as well as usage data. This information is crucial for identifying "
-                    "and fixing bugs, making HLS better for everyone.\n\n"
-                    "Would you like to enable error reporting?")
-            
-            response = messagebox.askyesno("Enable Error Reporting", message, icon='question')
-            
-            if response:
-                self.send_to_discord("Hook, Line, & Sinker received a new user! Error reporting is now enabled.")
-
-            self.settings['no_logging'] = not response
-            self.settings['error_reporting_prompted'] = True
-            self.save_settings()
-
     # saves the status of a mod to its mod_info.json file
     def save_mod_status(self, mod):
         if mod.get('third_party', False):
@@ -2703,7 +2678,6 @@ Special Thanks:
             error_message = f"Failed to save mod status for {mod['title']} (ID: {mod['id']}): {str(e)}"
             self.set_status(error_message)
             logging.info(error_message)
-            self.send_to_discord(f"Error in Hook, Line, & Sinker:\n{error_message}")
 
         self.save_mod_cache()
 
@@ -2718,7 +2692,6 @@ Special Thanks:
         except Exception as e:
             error_message = f"Failed to load mod cache: {str(e)}"
             self.set_status(error_message)
-            self.send_to_discord(f"Error loading mod cache in Hook, Line, & Sinker:\n{error_message}")
             self.mod_cache = {}  # set to empty dict in case of error
     # updates the mod details display when a mod is selected
     def update_mod_details(self, event):
@@ -2743,7 +2716,6 @@ Special Thanks:
         if display_title.startswith('-- '):
             self._show_category_details(display_title)
             return
-
         try:
             # clean title and get mod info
             clean_title = display_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
@@ -2755,7 +2727,8 @@ Special Thanks:
                 raise ValueError(f"no mod found with title: {backend_title}")
 
             # title section with status indicators
-            title_text = f"{mod['title']} v{mod.get('version', '?')}\n"
+            display_title = self.get_display_name(mod['title'])
+            title_text = f"{display_title} v{mod.get('version', '?')}\n"
             title_text += f"by {mod.get('author', 'Unknown')}\n\n"
             self.mod_details.insert(tk.END, title_text, "header")
             self.mod_details.tag_config("header", font=("TkDefaultFont", 10, "bold"))
@@ -2799,7 +2772,10 @@ Special Thanks:
                 self.mod_details.insert(tk.END, "\n")
 
             # description
-            if mod.get('description'):
+            if mod.get('third_party', False):
+                self.mod_details.insert(tk.END, "Description:\n", "subheader")
+                self.mod_details.insert(tk.END, f"We don't know much about the 3rd party mod {display_title}, but we're sure it's great!\n\n")
+            elif mod.get('description'):
                 desc = strip_tags(mod['description']) or mod['description']
                 self.mod_details.insert(tk.END, "Description:\n", "subheader")
                 self.mod_details.insert(tk.END, f"{desc}\n\n")
@@ -2888,7 +2864,6 @@ Special Thanks:
         except Exception as e:
             error_message = f"Error verifying game installation: {str(e)}"
             self.set_status(error_message)
-            self.send_to_discord(f"Error verifying game installation in Hook, Line, & Sinker:\n{error_message}")
 
     # loads user settings from json file
     def load_settings(self):
@@ -2917,10 +2892,10 @@ Special Thanks:
     def save_settings(self):
         self.settings.update({
             "auto_update": self.auto_update.get(),
+            "windowed_mode": self.windowed_mode.get(),
             "notifications": self.notifications.get(),
             "theme": self.theme.get(),
             "game_path": self.game_path_entry.get(),
-            "no_logging": self.no_logging.get(),
             "show_nsfw": self.show_nsfw.get(),
             "show_deprecated": self.show_deprecated.get()
         })
@@ -2941,13 +2916,14 @@ Special Thanks:
 
         self.installed_mods = self.get_installed_mods()
         
-        # something here is seriously fucked up and i give up, i'll fix in 1.1.7
+        # something here is seriously fucked up and i give up, i'll fix in 1.1.7, edit: i'll fix in 1.2.1
         if hasattr(self, 'installed_listbox'):
             self.installed_listbox.delete(0, tk.END)
             for mod in self.installed_mods:
                 status = "✅" if mod.get('enabled', True) else "❌"
-                third_party = "[3rd]" if mod.get('third_party', False) else ""  # Removed extra space
-                display_text = f"{status} {third_party} {mod['title']}".strip()  # Added strip() to remove extra spaces
+                third_party = "[3rd]" if mod.get('third_party', False) else ""
+                display_title = self.get_display_name(mod['title'])
+                display_text = f"{status} {third_party} {display_title}".strip()
                 self.installed_listbox.insert(tk.END, display_text)
 
         # update the mod cache
@@ -3015,8 +2991,8 @@ Special Thanks:
             temp_dir = os.path.join(self.app_data_dir, 'temp')
             os.makedirs(temp_dir, exist_ok=True)
             
-            # create unique temp directory for this download
-            download_temp_dir = os.path.join(temp_dir, f"download_{int(time.time())}")
+            # create unique temp directory with uuid
+            download_temp_dir = os.path.join(temp_dir, f"download_{uuid.uuid4().hex}")
             os.makedirs(download_temp_dir)
             
             # download the mod file with error handling
@@ -3262,7 +3238,6 @@ Special Thanks:
                             except Exception as e:
                                 error_message = f"Error checking update for mod {installed_mod['title']}: {str(e)}"
                                 self.set_status(error_message)
-                                self.send_to_discord(f"Error checking mod update in Hook, Line, & Sinker:\n{error_message}")
                             break
 
             # check for gdweave update
@@ -3288,7 +3263,6 @@ Special Thanks:
         except Exception as e:
             error_message = f"Failed to check for updates: {str(e)}"
             self.set_status(error_message)
-            self.send_to_discord(f"Error checking for updates in Hook, Line, & Sinker:\n{error_message}")
 
     def is_update_available(self, installed_mod, available_mod):
         """Check if an update is available for a mod"""
@@ -3369,7 +3343,6 @@ Special Thanks:
             error_message = f"Failed to save mod cache: {str(e)}"
             self.set_status(error_message)
             logging.info(error_message)
-            self.send_to_discord(f"Error saving mod cache in Hook, Line, & Sinker:\n{error_message}")
             
     # copies a mod from the app data directory to the game directory
     def copy_mod_to_game(self, mod_info):
@@ -3440,13 +3413,11 @@ Special Thanks:
                 except Exception as e:
                     logging.info(f"Error during mod updates check: {str(e)}")
                     self.set_status(f"Error checking for mod updates: {str(e)}")
-                    self.send_to_discord(f"Error checking for mod updates in Hook, Line, & Sinker:\n{str(e)}")
                 try:
                     self.check_for_program_updates(silent=False)
                 except Exception as e:
                     logging.info(f"Error during program updates check: {str(e)}")
                     self.set_status(f"Error checking for program updates: {str(e)}")
-                    self.send_to_discord(f"Error checking for program updates in Hook, Line, & Sinker:\n{str(e)}")
 
     # logs the current settings
     def print_settings(self):
@@ -3573,7 +3544,6 @@ Special Thanks:
             
         except requests.RequestException as e:
             self.set_status(f"Failed to load mods: {str(e)}")
-            self.send_to_discord(f"Error loading mods from Thunderstore in Hook, Line, & Sinker:\n{str(e)}")
 
     # checks if a mod id exists in the mods directory
     def mod_id_exists(self, mod_id):

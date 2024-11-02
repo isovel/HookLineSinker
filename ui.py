@@ -96,55 +96,89 @@ def get_version():
 # main class for the hook line sinker user interface
 class HookLineSinkerUI:
     def __init__(self, root):
+        print("Initializing HookLineSinkerUI...")
         self.root = root
+        print(f"Root window created: {root}")
+        
         self.app_data_dir = appdirs.user_data_dir("Hook_Line_Sinker", "PyoidTM")
+        print(f"App data directory: {self.app_data_dir}")
+        
+        print("Setting up logging...")
         self.setup_logging()
+        print("Logging setup complete")
+        
+        print("Initializing queues...")
         self.gui_queue = queue.Queue()
         self.gdweave_queue = queue.Queue()
-        self.load_settings()
+        print("Queues initialized")
         
+        print("Loading settings...")
+        self.load_settings()
+        print("Settings loaded")
+        
+        print("Getting version...")
         version = get_version()
+        print(f"Current version: {version}")
 
+        print("Setting up window title and state...")
         self.root.title(f"Hook, Line, & Sinker v{version} - WEBFISHING Mod Manager")
         if not self.settings.get('windowed_mode', True):
+            print("Fullscreen mode enabled")
             self.root.state('zoomed')
         else:
+            print("Windowed mode enabled")
             # temporary test may get removed next update
 
             # get screen width and height
             screen_width = self.root.winfo_screenwidth()
             screen_height = self.root.winfo_screenheight()
+            print(f"Screen dimensions: {screen_width}x{screen_height}")
             
             # set window dimensions
             window_width = 800
             window_height = 630
+            print(f"Window dimensions: {window_width}x{window_height}")
             
             # calculate center position
             x = (screen_width - window_width) // 2
             y = (screen_height - window_height) // 2
+            print(f"Window position: {x},{y}")
             
             # set window geometry
             self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
+        print("Setting minimum window size...")
         self.root.minsize(800, 630)
 
+        print("Loading application icon...")
         icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+        print(f"Icon path: {icon_path}")
         if os.path.exists(icon_path):
+            print("Icon file found")
             if platform.system() == 'Windows':
+                print("Setting Windows icon")
                 self.root.iconbitmap(icon_path)
             elif platform.system() == 'Linux':
+                print("Setting Linux icon")
                 img = tk.PhotoImage(file=icon_path)
                 self.root.tk.call('wm', 'iconphoto', self.root._w, img)
         else:
+            print("Warning: icon.ico not found")
             logging.info("Warning: icon.ico not found")
             
+        print("Setting up mod directories...")
         self.app_data_dir = appdirs.user_data_dir("Hook_Line_Sinker", "PyoidTM")
         self.mods_dir = os.path.join(self.app_data_dir, "mods")
         self.mod_cache_file = os.path.join(self.app_data_dir, "mod_cache.json")
+        print(f"Mods directory: {self.mods_dir}")
+        print(f"Mod cache file: {self.mod_cache_file}")
         os.makedirs(self.mods_dir, exist_ok=True)
+        print("Mod directories created")
 
+        print("Initializing mod lists...")
         self.available_mods = []
         self.installed_mods = []
+        print("Mod lists initialized")
         
         # mod category constants
         TOOLS = "Tools"
@@ -183,7 +217,11 @@ class HookLineSinkerUI:
         self.check_for_duplicate_mods()
 
         # check for updates silently after 5 seconds removed
-        self.check_for_updates(silent=True)
+        if self.auto_update.get():
+            self.check_for_updates(silent=True)
+        else:
+            self.check_for_program_updates()
+            logging.info("Auto update is disabled, not prompting for any updates or program updates")
 
         # check if this is a fresh update
         parser = argparse.ArgumentParser()
@@ -198,42 +236,64 @@ class HookLineSinkerUI:
         self.update_thread.start()
     # sets up logging to write to latestlog.txt and fulllatestlog.txt
     def setup_logging(self):
+        print("Setting up logging system...")
+        print(f"App data directory: {self.app_data_dir}")
+        
         # ensure the directory exists
-        os.makedirs(os.path.dirname(os.path.join(self.app_data_dir, 'latestlog.txt')), exist_ok=True)
+        log_dir = os.path.dirname(os.path.join(self.app_data_dir, 'latestlog.txt'))
+        print(f"Creating log directory: {log_dir}")
+        os.makedirs(log_dir, exist_ok=True)
+        print("Log directory created/verified")
         
         # set up error-only logging to latestlog.txt
         error_log = os.path.join(self.app_data_dir, 'latestlog.txt')
+        print(f"Setting up error log at: {error_log}")
         with open(error_log, 'w') as f:
+            print("Writing error log header...")
             f.write("=" * 80 + "\n")
             f.write("Hook, Line, & Sinker Error Log\n")
             f.write("If you need support, join discord.gg/webfishingmods\n")
             f.write("This log only contains errors and important messages\n")
             f.write("=" * 80 + "\n\n")
+        print("Error log header written")
+        
+        print("Configuring error log handler...")
         error_handler = logging.FileHandler(error_log, mode='a')
         error_handler.setLevel(logging.ERROR)
         error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S'))
+        print("Error log handler configured")
         
         # set up full logging to fulllatestlog.txt
         full_log = os.path.join(self.app_data_dir, 'fulllatestlog.txt')
+        print(f"Setting up full debug log at: {full_log}")
         with open(full_log, 'w') as f:
+            print("Writing full log header...")
             f.write("=" * 80 + "\n")
             f.write("Hook, Line, & Sinker Full Debug Log\n")
             f.write("If you need support, join discord.gg/webfishingmods\n")
             f.write("This log contains all debug messages and program activity\n")
             f.write("=" * 80 + "\n\n")
+        print("Full log header written")
+        
+        print("Configuring full log handler...")
         full_handler = logging.FileHandler(full_log, mode='a')
         full_handler.setLevel(logging.DEBUG)
         full_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S'))
+        print("Full log handler configured")
         
         # configure root logger
+        print("Configuring root logger...")
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
         root_logger.addHandler(error_handler)
         root_logger.addHandler(full_handler)
+        print("Root logger configured with both handlers")
         
         # redirect stdout and stderr
+        print("Redirecting stdout and stderr to logging system...")
         sys.stdout = LoggerWriter(logging.info)
         sys.stderr = LoggerWriter(logging.error)
+        print("Logging system setup complete!")
 
     # opens the latest log file in a new window
     def open_latest_log(self):
@@ -354,6 +414,7 @@ class HookLineSinkerUI:
                 self.save_settings()
 
     # toggles gdweave on or off
+    # i need to implement checks to see if gdweave is toggled and disallow things like installing mods etc (1.2.1)
     def toggle_gdweave(self):
         if not self.settings.get('game_path'):
             messagebox.showerror("Error", "Game path not set. Please set the game path first.")
@@ -513,11 +574,16 @@ class HookLineSinkerUI:
                        command=lambda: self.handle_filter_toggle('deprecated')
         ).pack(side="left", padx=5)
 
-        # create listbox for available mods
+        # create listbox for available mods with scrollbar
         self.available_listbox = tk.Listbox(available_frame, width=30, height=15, selectmode=tk.EXTENDED)
         self.available_listbox.grid(row=1, column=0, pady=2, padx=2, sticky="nsew")
         self.available_listbox.bind('<<ListboxSelect>>', self.on_available_listbox_select)
         self.available_listbox.bind('<Button-3>', self.show_context_menu)
+
+        # add scrollbar
+        scrollbar = ttk.Scrollbar(available_frame, orient="vertical", command=self.available_listbox.yview)
+        scrollbar.grid(row=1, column=1, sticky="ns")
+        self.available_listbox.configure(yscrollcommand=scrollbar.set)
 
         available_frame.grid_columnconfigure(0, weight=1)
         available_frame.grid_rowconfigure(1, weight=1)
@@ -571,15 +637,15 @@ class HookLineSinkerUI:
         filter_frame = ttk.LabelFrame(installed_frame, text="Filter Options")
         filter_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
 
-        # create search frame
-        search_frame = ttk.Frame(filter_frame)
-        search_frame.pack(fill="x", padx=5, pady=2)
+        # create search frame (broken atm - will fix in 1.2.2)
+        # search_frame = ttk.Frame(filter_frame)
+        # search_frame.pack(fill="x", padx=5, pady=2)
 
-        ttk.Label(search_frame, text="Search:").pack(side="left", padx=5)
-        self.installed_search_var = tk.StringVar()
-        self.installed_search_var.trace('w', lambda name, index, mode: self.filter_installed_mods())
-        search_entry = ttk.Entry(search_frame, textvariable=self.installed_search_var)
-        search_entry.pack(side="left", fill="x", expand=True, padx=5)
+        # ttk.Label(search_frame, text="Search:").pack(side="left", padx=5)
+        # self.installed_search_var = tk.StringVar()
+        # self.installed_search_var.trace('w', lambda name, index, mode: self.filter_installed_mods())
+        # search_entry = ttk.Entry(search_frame, textvariable=self.installed_search_var)
+        # search_entry.pack(side="left", fill="x", expand=True, padx=5)
 
         # create category frame
         category_frame = ttk.Frame(filter_frame)
@@ -594,9 +660,14 @@ class HookLineSinkerUI:
         self.hide_third_party = tk.BooleanVar(value=False)
         ttk.Checkbutton(filter_frame, text="Hide 3rd Party", variable=self.hide_third_party, command=self.filter_installed_mods).pack(fill="x", padx=5, pady=2)
 
-        # create listbox for installed mods
+        # create listbox for installed mods with scrollbar
         self.installed_listbox = tk.Listbox(installed_frame, width=30, height=15, selectmode=tk.EXTENDED)
+        installed_scrollbar = ttk.Scrollbar(installed_frame, orient="vertical", command=self.installed_listbox.yview)
+        self.installed_listbox.configure(yscrollcommand=installed_scrollbar.set)
+        
         self.installed_listbox.grid(row=1, column=0, pady=2, padx=2, sticky="nsew")
+        installed_scrollbar.grid(row=1, column=1, pady=2, sticky="ns")
+        
         self.installed_listbox.bind('<<ListboxSelect>>', self.update_mod_details)
         self.installed_listbox.bind('<Button-3>', self.show_context_menu)
 
@@ -640,6 +711,12 @@ class HookLineSinkerUI:
             for i in actual_mods[:3]:
                 listbox.selection_set(i)
             messagebox.showinfo("Selection Limit", "You can only select up to 3 mods for installation at once. This is to fix an issue with severe lag when installing many mods at once.")
+
+    def set_status_safe(self, message):
+        if threading.current_thread() is threading.main_thread():
+            self.set_status(message)
+        else:
+            self.root.after(0, self.set_status, message)
 
     def _format_timestamp(self, timestamp):
         try:
@@ -795,7 +872,7 @@ class HookLineSinkerUI:
 
     def filter_installed_mods(self, event=None):
         selected_filter = self.installed_category.get()
-        search_text = self.installed_search_var.get().lower()
+        # search_text = self.installed_search_var.get().lower()
         hide_third_party = self.hide_third_party.get()
         self.installed_listbox.delete(0, tk.END)
 
@@ -806,13 +883,13 @@ class HookLineSinkerUI:
             if hide_third_party and mod.get('third_party', False):
                 continue
             
-            # check if mod matches search criteria
-            if search_text and not (
-                search_text in mod['title'].lower() or 
-                search_text in mod.get('author', '').lower() or
-                search_text in mod.get('description', '').lower()
-            ):
-                continue
+            # # check if mod matches search criteria
+            # if search_text and not (
+            #     search_text in mod['title'].lower() or 
+            #     search_text in mod.get('author', '').lower() or
+            #     search_text in mod.get('description', '').lower()
+            # ):
+            #     continue
                 
             # check if mod matches status filter
             if (
@@ -1700,7 +1777,7 @@ Special Thanks:
                     logging.debug(f"Could not find mod for {backend_title}")
                     continue
 
-                self.set_status(f"Checking dependencies for {mod['title']}...")
+                self.set_status_safe(f"Checking dependencies for {mod['title']}...")
                 if dependencies := mod.get('dependencies', []):
                     logging.debug(f"Found dependencies for {mod['title']}: {dependencies}")
                     for dep in dependencies:
@@ -1747,7 +1824,7 @@ Special Thanks:
                 # install available dependencies first
                 for dep_mod in all_dependencies:
                     logging.debug(f"Installing dependency: {dep_mod['title']}")
-                    self.set_status(f"Installing dependency: {dep_mod['title']}")
+                    self.set_status_safe(f"Installing dependency: {dep_mod['title']}")
                     self.download_and_install_mod(dep_mod)
 
             # install selected mods
@@ -1765,11 +1842,11 @@ Special Thanks:
                     logging.debug(f"Could not find mod for {clean_title}")
                     continue
 
-                self.set_status(f"Installing {mod['title']}")
+                self.set_status_safe(f"Installing {mod['title']}")
                 logging.debug(f"Downloading and installing {mod['title']}")
                 self.download_and_install_mod(mod)
 
-            self.set_status("Installation complete")
+            self.set_status_safe("Installation complete")
             logging.debug("Installation completed successfully")
             self.refresh_mod_lists()
 
@@ -3197,7 +3274,7 @@ Special Thanks:
         download_temp_dir = None
         try:
             self.mod_downloading = True
-            self.set_status(f"Downloading {mod['title']}...")
+            self.set_status_safe(f"Downloading {mod['title']}...")
             
             # create temp directory
             temp_dir = os.path.join(self.app_data_dir, 'temp')
@@ -3306,7 +3383,7 @@ Special Thanks:
                 except Exception as e:
                     raise ValueError(f"Failed to copy mod to game directory: {str(e)}")
                 
-            self.set_status(f"Successfully installed {mod['title']}")
+            self.set_status_safe(f"Successfully installed {mod['title']}")
             logging.info(f"Installed mod: {mod['title']} (ID: {mod_id})")
 
             if install:
@@ -3316,7 +3393,7 @@ Special Thanks:
                 
         except Exception as e:
             error_message = f"Failed to install {mod['title']}: {str(e)}"
-            self.set_status(error_message)
+            self.set_status_safe(error_message)
             logging.error(error_message)
             if install:
                 self.root.after(0, self.installation_failed, error_message)
@@ -3333,7 +3410,7 @@ Special Thanks:
 
     # called when mod installation is complete
     def installation_complete(self, mod_info):
-        self.set_status(f"Mod {mod_info['title']} version {mod_info['version']} installed successfully!")
+        self.set_status_safe(f"Mod {mod_info['title']} version {mod_info['version']} installed successfully!")
         self.refresh_mod_lists()
         self.copy_mod_to_game(mod_info)
 
@@ -3390,7 +3467,7 @@ Special Thanks:
 
     # called when mod installation fails
     def installation_failed(self, error_message):
-        self.set_status(f"Failed to install mod: {error_message}")
+        self.set_status_safe(f"Failed to install mod: {error_message}")
 
     # retrieves the version information for a mod
     def get_mod_version(self, mod):
@@ -3432,34 +3509,43 @@ Special Thanks:
         try:
             program_updated = self.check_for_program_updates()
             # check for mod updates
-            self.set_status("Checking for mod and GDWeave updates...")
+            self.set_status_safe("Checking for mod and GDWeave updates...")
             updates_available = False
 
             if not self.installed_mods:
-                self.set_status("No mods installed. Skipping mod update check.")
+                self.set_status_safe("No mods installed. Skipping mod update check.")
             else:
+                # First pass - collect all mods that need updates
+                mods_to_update = []
                 for installed_mod in self.installed_mods:
                     for available_mod in self.available_mods:
                         if installed_mod['title'].lower() == available_mod['title'].lower():
                             try:
                                 if self.is_update_available(installed_mod, available_mod):
                                     updates_available = True
-                                    new_version = available_mod.get('version', 'Unknown')
-                                    if silent or not silent:  # Only show dialog if not silent
-                                        if messagebox.askyesno(
-                                            "Update Available", 
-                                            f"Update available for {installed_mod['title']}\n"
-                                            f"Current version: {installed_mod.get('version', 'Unknown')}\n"
-                                            f"New version: {new_version}\n\n"
-                                            "Would you like to update?"
-                                        ):
-                                            self.download_and_install_mod(available_mod)
-                                    else:  # If silent, just install the update
-                                        self.download_and_install_mod(available_mod)
+                                    mods_to_update.append({
+                                        'installed': installed_mod,
+                                        'available': available_mod
+                                    })
                             except Exception as e:
                                 error_message = f"Error checking update for mod {installed_mod['title']}: {str(e)}"
-                                self.set_status(error_message)
+                                self.set_status_safe(error_message)
                             break
+
+                # If updates are available, show single prompt
+                if mods_to_update:
+                    update_message = "Updates available for the following mods:\n\n"
+                    for mod in mods_to_update:
+                        installed = mod['installed']
+                        available = mod['available']
+                        update_message += f"• {installed['title']}\n"
+                        update_message += f"  Current version: {installed.get('version', 'Unknown')}\n"
+                        update_message += f"  New version: {available.get('version', 'Unknown')}\n\n"
+                    update_message += "Would you like to install all updates?"
+
+                    if silent or messagebox.askyesno("Updates Available", update_message):
+                        for mod in mods_to_update:
+                            self.download_and_install_mod(mod['available'])
 
             # check for gdweave update
             gdweave_version = self.get_gdweave_version()
@@ -3475,16 +3561,16 @@ Special Thanks:
                 ):
                     self.install_gdweave()
                 else:
-                    self.set_status("GDWeave update skipped by user.")
+                    self.set_status_safe("GDWeave update skipped by user.")
 
             if not silent and not program_updated and not updates_available:
                 messagebox.showinfo("Up to Date", "Your mods, GDWeave, and HLS are up to date!")
-                self.set_status("No updates available.")
+                self.set_status_safe("No updates available.")
             elif not updates_available:
-                self.set_status("No updates available.")
+                self.set_status_safe("No updates available.")
         except Exception as e:
             error_message = f"Failed to check for updates: {str(e)}"
-            self.set_status(error_message)
+            self.set_status_safe(error_message)
 
     def is_update_available(self, installed_mod, available_mod):
         """Check if an update is available for a mod"""

@@ -1,13 +1,17 @@
 {
-    "version": "1.2.0",
-    "message": "The Thunderstore UpdateTM\n\nTo update, just press 'Yes' and it should open the installer! If it doesn't, download via the website or Discord.\n\nThis major update adds full Thunderstore integration, improved mod management, and various UI enhancements to make modding easier than ever.",
+    "version": "1.2.1",
+    "message": "The QOL UpdateTM\n\nTo update, just press 'Yes' and it should open the installer! If it doesn't, download via the website or Discord.\n\nThis update focuses on quality-of-life improvements, better mod management, and various fixes to make the experience smoother.",
     "changelog": [
-        "Added full Thunderstore API integration for mods and updates",
-        "Implemented mod categories with emoji indicators",
-        "Enhanced dependency checking and version comparison",
-        "Improved mod testing and export capabilities", 
-        "Added selection limits when batch installing mods",
-        "Fixed background process issues",
-        "Various UI improvements and bug fixes"
+        "Added expanded category filters and Hide 3rd Party filter for Installed Mods",
+        "Improved search functionality and fixed config-related issues",
+        "Fixed startup lag and crashes with Show NSFW/Deprecated buttons",
+        "Added 'Install Version' button for downgrading/upgrading mods",
+        "Added Restore to Defaults option in Config Editor",
+        "Removed Thunderstore migration prompt",
+        "Fixed program updating even when 'No' was clicked",
+        "Added better troubleshooting settings",
+        "Fixed setup displaying wrong version",
+        "Window now centers on launch",
+        "Reverted maximized-by-default setting"
     ]
 }

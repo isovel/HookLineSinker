@@ -1,7 +1,8 @@
 {
-    "version": "1.2.2",
-    "message": "The QOL Update Part 2 TM\n\nIMPORTANT: After updating, please restart Hook, Line, & Sinker to avoid any update loops. If you experience issues, you can always download manually from hooklinesinker.lol\n\nThis update focuses on performance improvements, better mod management, and various quality-of-life enhancements.",
+    "version": "1.2.3",
+    "message": "The QOL Update Part 3 TM\n\nIMPORTANT: After updating, please restart Hook, Line, & Sinker to avoid any update loops. If you experience issues, you can always download manually from hooklinesinker.lol\n\nThis update focuses on performance improvements, better mod management, and various quality-of-life enhancements.",
     "changelog": [
+        "Fixed crash during HLS Setup",
         "Major performance improvements and memory usage optimizations",
         "Added Version button for easy mod version management",
         "Improved mod filtering and sorting for both Available and Installed tabs",

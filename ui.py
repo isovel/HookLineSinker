@@ -3116,8 +3116,7 @@ Special Thanks:
     # checks if the game path is set and valid
     def check_setup(self):
         if not self.settings.get('game_path') or not os.path.exists(self.settings.get('game_path')):
-            messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the Game Manager tab.")
-            self.notebook.select(2)  # switch to hls setup tab
+            messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the HLS Setup tab.")
             return False
         return True
 

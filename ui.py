@@ -34,6 +34,8 @@ import tkinter as tk
 from dotenv import load_dotenv
 from PIL import Image, ImageTk
 from tkinter import ttk, filedialog, messagebox
+# import ctypes
+# from ctypes import wintypes
 
 # created by pyoid for more information visit the github repository
 # small portions of this code were developed with assistance from anthropic's claude 3.5 sonnet
@@ -106,6 +108,10 @@ class HookLineSinkerUI:
         print("Setting up logging...")
         self.setup_logging()
         print("Logging setup complete")
+        
+        # print("Setting memory limit...")
+        # self.set_memory_limit()
+        # print("Memory limit set")
         
         print("Initializing queues...")
         self.gui_queue = queue.Queue()
@@ -215,6 +221,7 @@ class HookLineSinkerUI:
         self.check_for_fresh_update()
         self.show_discord_prompt()
         self.check_for_duplicate_mods()
+        self.multi_mod_warning_shown = False
 
         # check for updates silently after 5 seconds removed
         if self.auto_update.get():
@@ -234,6 +241,7 @@ class HookLineSinkerUI:
         # start update checking thread
         self.update_thread = threading.Thread(target=self.periodic_update_check, daemon=True)
         self.update_thread.start()
+        
     # sets up logging to write to latestlog.txt and fulllatestlog.txt
     def setup_logging(self):
         print("Setting up logging system...")
@@ -526,49 +534,63 @@ class HookLineSinkerUI:
         self.notebook.add(mod_manager_frame, text="Mod Manager")
 
         # configure grid layout
-        mod_manager_frame.grid_columnconfigure(0, weight=1)
-        mod_manager_frame.grid_columnconfigure(1, weight=0)
-        mod_manager_frame.grid_columnconfigure(2, weight=1)
+        mod_manager_frame.grid_columnconfigure(0, weight=1)  # left panel
+        mod_manager_frame.grid_columnconfigure(1, weight=0)  # center panel (action buttons)
+        mod_manager_frame.grid_columnconfigure(2, weight=1)  # right panel
         mod_manager_frame.grid_rowconfigure(0, weight=3)
         mod_manager_frame.grid_rowconfigure(1, weight=1)
 
         # create left panel for available mods
         available_frame = ttk.LabelFrame(mod_manager_frame, text="Available Mods")
         available_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
-        # create filter frame with better organization
-        filter_frame = ttk.LabelFrame(available_frame, text="Filter Options")
-        filter_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
+        available_frame.grid_columnconfigure(0, weight=1)
+        available_frame.grid_rowconfigure(0, weight=0)  # Search frame
+        available_frame.grid_rowconfigure(1, weight=0)  # Filter frame
+        available_frame.grid_rowconfigure(2, weight=1)  # Listbox
 
         # create search frame
-        search_frame = ttk.Frame(filter_frame)
-        search_frame.pack(fill="x", padx=5, pady=2)
+        search_frame = ttk.Frame(available_frame)
+        search_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
+        search_frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(search_frame, text="Search:").pack(side="left", padx=5)
+        ttk.Label(search_frame, text="Search:").grid(row=0, column=0, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda name, index, mode: self.filter_available_mods())
         search_entry = ttk.Entry(search_frame, textvariable=self.search_var)
-        search_entry.pack(side="left", fill="x", expand=True, padx=5)
+        search_entry.grid(row=0, column=1, sticky="ew", padx=5)
 
-        # create category frame
-        category_frame = ttk.Frame(filter_frame)
+        # create collapsible advanced filter section
+        self.advanced_filters_visible = tk.BooleanVar(value=False)
+        ttk.Button(search_frame, text="Advanced Filters", command=self.toggle_advanced_filters).grid(row=0, column=2, padx=5)
+
+        # create advanced filter frame (hidden by default)
+        self.filter_frame = ttk.LabelFrame(available_frame, text="Advanced Filters")
+        
+        # category frame
+        category_frame = ttk.Frame(self.filter_frame)
         category_frame.pack(fill="x", padx=5, pady=2)
-
         ttk.Label(category_frame, text="Category:").pack(side="left", padx=5)
         self.available_category = ttk.Combobox(category_frame, state="readonly")
         self.available_category.pack(side="left", fill="x", expand=True, padx=5)
         self.available_category.bind('<<ComboboxSelected>>', lambda e: self.filter_available_mods())
 
-        # create separate frame for toggles
-        toggle_frame = ttk.Frame(filter_frame)
-        toggle_frame.pack(fill="x", padx=5, pady=2)
+        # sort frame
+        sort_frame = ttk.Frame(self.filter_frame)
+        sort_frame.pack(fill="x", padx=5, pady=2)
+        ttk.Label(sort_frame, text="Sort:").pack(side="left", padx=5)
+        self.sort_method = ttk.Combobox(sort_frame, state="readonly",
+            values=["Last Updated", "Most Downloads", "Most Likes", "Name (A-Z)", "Name (Z-A)"])
+        self.sort_method.pack(side="left", fill="x", expand=True, padx=5)
+        self.sort_method.set("Last Updated")
+        self.sort_method.bind('<<ComboboxSelected>>', lambda e: self.filter_available_mods())
 
-        # they look like this so i can debug easier lmao
+        # toggle frame
+        toggle_frame = ttk.Frame(self.filter_frame)
+        toggle_frame.pack(fill="x", padx=5, pady=2)
         ttk.Checkbutton(toggle_frame, text="Show NSFW", 
                        variable=self.show_nsfw,
                        command=lambda: self.handle_filter_toggle('nsfw')
         ).pack(side="left", padx=5)
-
         ttk.Checkbutton(toggle_frame, text="Show Deprecated",
                        variable=self.show_deprecated,
                        command=lambda: self.handle_filter_toggle('deprecated')
@@ -576,41 +598,37 @@ class HookLineSinkerUI:
 
         # create listbox for available mods with scrollbar
         self.available_listbox = tk.Listbox(available_frame, width=30, height=15, selectmode=tk.EXTENDED)
-        self.available_listbox.grid(row=1, column=0, pady=2, padx=2, sticky="nsew")
+        self.available_listbox.grid(row=2, column=0, pady=(2,2), padx=2, sticky="nsew")
         self.available_listbox.bind('<<ListboxSelect>>', self.on_available_listbox_select)
         self.available_listbox.bind('<Button-3>', self.show_context_menu)
 
         # add scrollbar
         scrollbar = ttk.Scrollbar(available_frame, orient="vertical", command=self.available_listbox.yview)
-        scrollbar.grid(row=1, column=1, sticky="ns")
+        scrollbar.grid(row=2, column=1, sticky="ns")
         self.available_listbox.configure(yscrollcommand=scrollbar.set)
-
-        available_frame.grid_columnconfigure(0, weight=1)
-        available_frame.grid_rowconfigure(1, weight=1)
 
         # create middle panel for action buttons
         action_frame = ttk.Frame(mod_manager_frame)
-        action_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ns")
-
-        action_frame.grid_rowconfigure(0, weight=1)
-        action_frame.grid_rowconfigure(6, weight=1)
+        action_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ns")  # only stick to north/south
+        action_frame.grid_columnconfigure(0, weight=1)  # make sure internal contents are centered - i dont think these do anything but better safe than sorry
 
         # create game management section
-        game_management_frame = ttk.LabelFrame(action_frame, text="Game Management")
-        game_management_frame.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
-        game_management_frame.grid_columnconfigure(0, weight=1)
-        ttk.Button(game_management_frame, text="Start Game", command=self.toggle_game).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
+        self.game_management_frame = ttk.LabelFrame(action_frame, text="Game Management")
+        self.game_management_frame.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
+        self.game_management_frame.grid_columnconfigure(0, weight=1)
+        ttk.Button(self.game_management_frame, text="Start Game", command=self.toggle_game).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
 
         # create mod management section
-        mod_management_frame = ttk.LabelFrame(action_frame, text="Mod Management")
-        mod_management_frame.grid(row=2, column=0, pady=5, padx=5, sticky="ew")
-        mod_management_frame.grid_columnconfigure(0, weight=1)
-        mod_management_frame.grid_columnconfigure(1, weight=1)
-        ttk.Button(mod_management_frame, text="Install", command=self.install_mod).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
-        ttk.Button(mod_management_frame, text="Uninstall", command=self.uninstall_mod).grid(row=0, column=1, pady=2, padx=2, sticky="ew")
-        ttk.Button(mod_management_frame, text="Enable", command=self.enable_mod).grid(row=1, column=0, pady=2, padx=2, sticky="ew")
-        ttk.Button(mod_management_frame, text="Disable", command=self.disable_mod).grid(row=1, column=1, pady=2, padx=2, sticky="ew")
-        ttk.Button(mod_management_frame, text="Edit Config", command=self.edit_mod_config).grid(row=2, column=0, columnspan=2, pady=2, padx=2, sticky="ew")
+        self.mod_management_frame = ttk.LabelFrame(action_frame, text="Mod Management")
+        self.mod_management_frame.grid(row=2, column=0, pady=5, padx=5, sticky="ew")
+        self.mod_management_frame.grid_columnconfigure(0, weight=1)
+        self.mod_management_frame.grid_columnconfigure(1, weight=1)
+        ttk.Button(self.mod_management_frame, text="Install", command=self.install_mod).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
+        ttk.Button(self.mod_management_frame, text="Uninstall", command=self.uninstall_mod).grid(row=0, column=1, pady=2, padx=2, sticky="ew")
+        ttk.Button(self.mod_management_frame, text="Enable", command=self.enable_mod).grid(row=1, column=0, pady=2, padx=2, sticky="ew")
+        ttk.Button(self.mod_management_frame, text="Disable", command=self.disable_mod).grid(row=1, column=1, pady=2, padx=2, sticky="ew")
+        ttk.Button(self.mod_management_frame, text="Edit Config", command=self.edit_mod_config).grid(row=2, column=0, pady=2, padx=2, sticky="ew")
+        ttk.Button(self.mod_management_frame, text="Version", command=self.show_version_selection).grid(row=2, column=1, pady=2, padx=2, sticky="ew")        # change version logic is very buggy
 
         # create 3rd party mods section
         third_party_frame = ttk.LabelFrame(action_frame, text="3rd Party Mods")
@@ -620,7 +638,6 @@ class HookLineSinkerUI:
         ttk.Button(third_party_frame, text="Import ZIP", command=self.import_zip_mod).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(third_party_frame, text="Refresh Mods", command=self.refresh_all_mods).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
         ttk.Button(third_party_frame, text="View Deprecated Mods List", command=self.view_deprecated_mods_list).grid(row=1, column=0, columnspan=2, padx=2, pady=2, sticky="ew")
-
         # create help section
         help_frame = ttk.LabelFrame(action_frame, text="Need Help?")
         help_frame.grid(row=4, column=0, pady=5, padx=5, sticky="ew")
@@ -633,46 +650,64 @@ class HookLineSinkerUI:
         installed_frame = ttk.LabelFrame(mod_manager_frame, text="Installed Mods")
         installed_frame.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
 
-        # create filter frame for installed mods with better organization
-        filter_frame = ttk.LabelFrame(installed_frame, text="Filter Options")
-        filter_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
+        # create search frame
+        installed_search_frame = ttk.Frame(installed_frame)
+        installed_search_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
+        installed_search_frame.grid_columnconfigure(1, weight=1)
 
-        # create search frame (broken atm - will fix in 1.2.2)
-        # search_frame = ttk.Frame(filter_frame)
-        # search_frame.pack(fill="x", padx=5, pady=2)
+        ttk.Label(installed_search_frame, text="Search:").grid(row=0, column=0, padx=5)
+        self.installed_search_var = tk.StringVar()
+        self.installed_search_var.trace('w', lambda name, index, mode: self.filter_installed_mods())
+        installed_search_entry = ttk.Entry(installed_search_frame, textvariable=self.installed_search_var)
+        installed_search_entry.grid(row=0, column=1, sticky="ew", padx=5)
 
-        # ttk.Label(search_frame, text="Search:").pack(side="left", padx=5)
-        # self.installed_search_var = tk.StringVar()
-        # self.installed_search_var.trace('w', lambda name, index, mode: self.filter_installed_mods())
-        # search_entry = ttk.Entry(search_frame, textvariable=self.installed_search_var)
-        # search_entry.pack(side="left", fill="x", expand=True, padx=5)
+        # create collapsible advanced filter section
+        self.installed_filters_visible = tk.BooleanVar(value=False)
+        ttk.Button(installed_search_frame, text="Advanced Filters", 
+                  command=self.toggle_installed_filters).grid(row=0, column=2, padx=5)
+
+        # create advanced filter frame (hidden by default)
+        self.installed_filter_frame = ttk.LabelFrame(installed_frame, text="Filter Options")
 
         # create category frame
-        category_frame = ttk.Frame(filter_frame)
-        category_frame.pack(fill="x", padx=5, pady=2)
+        installed_category_frame = ttk.Frame(self.installed_filter_frame)
+        installed_category_frame.pack(fill="x", padx=5, pady=2)
 
-        ttk.Label(category_frame, text="Status:").pack(side="left", padx=5)
-        self.installed_category = ttk.Combobox(category_frame, values=["All", "Enabled", "Disabled"], state="readonly")
+        ttk.Label(installed_category_frame, text="Status:").pack(side="left", padx=5)
+        self.installed_category = ttk.Combobox(installed_category_frame, 
+            values=["All", "Enabled", "Disabled"], state="readonly")
         self.installed_category.pack(side="left", fill="x", expand=True, padx=5)
         self.installed_category.set("All")
         self.installed_category.bind('<<ComboboxSelected>>', self.filter_installed_mods)
 
+        # create sort frame
+        installed_sort_frame = ttk.Frame(self.installed_filter_frame)
+        installed_sort_frame.pack(fill="x", padx=5, pady=2)
+        ttk.Label(installed_sort_frame, text="Sort:").pack(side="left", padx=5)
+        self.installed_sort_method = ttk.Combobox(installed_sort_frame, state="readonly",
+            values=["Name (A-Z)", "Name (Z-A)", "Recently Updated", "Recently Installed"])
+        self.installed_sort_method.pack(side="left", fill="x", expand=True, padx=5)
+        self.installed_sort_method.set("Recently Installed")
+        self.installed_sort_method.bind('<<ComboboxSelected>>', lambda e: self.filter_installed_mods())
+
         self.hide_third_party = tk.BooleanVar(value=False)
-        ttk.Checkbutton(filter_frame, text="Hide 3rd Party", variable=self.hide_third_party, command=self.filter_installed_mods).pack(fill="x", padx=5, pady=2)
+        ttk.Checkbutton(self.installed_filter_frame, text="Hide 3rd Party", 
+                        variable=self.hide_third_party,
+                        command=self.filter_installed_mods).pack(fill="x", padx=5, pady=2)
 
         # create listbox for installed mods with scrollbar
         self.installed_listbox = tk.Listbox(installed_frame, width=30, height=15, selectmode=tk.EXTENDED)
         installed_scrollbar = ttk.Scrollbar(installed_frame, orient="vertical", command=self.installed_listbox.yview)
         self.installed_listbox.configure(yscrollcommand=installed_scrollbar.set)
-        
-        self.installed_listbox.grid(row=1, column=0, pady=2, padx=2, sticky="nsew")
-        installed_scrollbar.grid(row=1, column=1, pady=2, sticky="ns")
-        
-        self.installed_listbox.bind('<<ListboxSelect>>', self.update_mod_details)
+
+        self.installed_listbox.grid(row=2, column=0, pady=2, padx=2, sticky="nsew")
+        installed_scrollbar.grid(row=2, column=1, pady=2, sticky="ns")
+
+        self.installed_listbox.bind('<<ListboxSelect>>', lambda e: (self.update_mod_details(e), self.update_button_states()))
         self.installed_listbox.bind('<Button-3>', self.show_context_menu)
 
         installed_frame.grid_columnconfigure(0, weight=1)
-        installed_frame.grid_rowconfigure(1, weight=1)
+        installed_frame.grid_rowconfigure(2, weight=1)
 
         # create bottom panel for mod details
         self.mod_details_frame = ttk.LabelFrame(mod_manager_frame, text="Mod Details")
@@ -687,6 +722,24 @@ class HookLineSinkerUI:
         self.mod_details_frame.grid_columnconfigure(1, weight=1)
         self.mod_details_frame.grid_rowconfigure(0, weight=1)
 
+        self.update_button_states()
+
+    def toggle_advanced_filters(self):
+        if self.advanced_filters_visible.get():
+            self.filter_frame.grid_remove()
+            self.advanced_filters_visible.set(False)
+        else:
+            self.filter_frame.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
+            self.advanced_filters_visible.set(True)
+
+    def toggle_installed_filters(self):
+        if self.installed_filters_visible.get():
+            self.installed_filter_frame.grid_remove()
+            self.installed_filters_visible.set(False)
+        else:
+            self.installed_filter_frame.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
+            self.installed_filters_visible.set(True)
+
     def view_deprecated_mods_list(self):
         messagebox.showinfo("Deprecated Mods List", "This will open a new tab with the deprecated mods list. Note that these mods may be outdated, broken, or no longer work. If you download one, you'll need to import it via the 'Import ZIP' option.")
         webbrowser.open("https://notnite.github.io/webfishing-mods")
@@ -694,6 +747,44 @@ class HookLineSinkerUI:
     def on_available_listbox_select(self, event):
         self.update_mod_details(event)
         self.check_selection_limit(event)
+        self.update_button_states()
+    def update_button_states(self):
+        # Get current selections
+        available_selected = bool(self.available_listbox.curselection())
+        installed_selected = bool(self.installed_listbox.curselection())
+        
+        # Get selected installed mod for config check
+        selected_mod = None
+        if installed_selected:
+            selected_indices = self.get_selected_installed_mod_indices()
+            if selected_indices:
+                selected_mod = self.installed_mods[selected_indices[0]]
+        
+        # Get all buttons in mod management frame
+        for child in self.mod_management_frame.winfo_children():
+            if isinstance(child, ttk.Button):
+                text = child.cget('text')
+                
+                # Handle Install button
+                if text == "Install":
+                    child.configure(state='normal' if available_selected else 'disabled')
+                
+                # Handle Edit Config button
+                elif text == "Edit Config":
+                    has_config = selected_mod and self.mod_has_config(selected_mod)
+                    child.configure(state='normal' if installed_selected and has_config else 'disabled')
+                
+                # Handle other mod management buttons
+                elif text in ["Uninstall", "Enable", "Disable"]:
+                    child.configure(state='normal' if installed_selected else 'disabled')
+
+                # Handle Version button
+                elif text == "Version":
+                    child.configure(state='normal' if installed_selected else 'disabled')
+
+        # Update game management button state based on setup status
+        start_game_btn = self.game_management_frame.winfo_children()[0]
+        start_game_btn.configure(state='normal' if self.check_setup() else 'disabled')
 
     def check_selection_limit(self, event):
         listbox = event.widget
@@ -705,12 +796,19 @@ class HookLineSinkerUI:
         # ignore category headers
         actual_mods = [i for i in selected if not listbox.get(i).startswith('--')]
         
-        if len(actual_mods) > 3:
-            # keep only the first 3 selections
+        if len(actual_mods) > 10:
+            # keep only the first 10 selections
             listbox.selection_clear(0, tk.END)
-            for i in actual_mods[:3]:
+            for i in actual_mods[:10]:
                 listbox.selection_set(i)
-            messagebox.showinfo("Selection Limit", "You can only select up to 3 mods for installation at once. This is to fix an issue with severe lag when installing many mods at once.")
+            messagebox.showwarning("Selection Limit", "You can only select up to 10 mods for installation at once.")
+        elif len(actual_mods) > 3 and not self.multi_mod_warning_shown:
+            # Show warning only once and allow the selection
+            messagebox.showwarning("Performance Warning", 
+                "You have selected more than 3 mods for installation.\n\n"
+                "The program may become unresponsive while downloading and installing multiple mods.\n\n"
+                "This is normal and the program will recover once the installation is complete.")
+            self.multi_mod_warning_shown = True
 
     def set_status_safe(self, message):
         if threading.current_thread() is threading.main_thread():
@@ -766,14 +864,23 @@ class HookLineSinkerUI:
                     self.mod_details.insert(tk.END, f"• {mod['title']} v{mod.get('version', '?')} by {mod.get('author', 'Unknown')}\n")
         
         self.mod_details.config(state='disabled')
-        
     def filter_available_mods(self, event=None):
         search_text = self.search_var.get().lower()
         selected_category = self.available_category.get()
         self.available_listbox.delete(0, tk.END)
         
+        # Get list of installed mod titles (excluding 3rd party)
+        installed_mod_titles = {
+            mod['title'] for mod in self.installed_mods 
+            if not mod.get('third_party', False)
+        }
+        
         filtered_mods = []
         for mod in self.available_mods:
+            # Skip if mod is already installed
+            if mod['title'] in installed_mod_titles:
+                continue
+                
             # Check if mod matches search criteria
             if search_text and not (
                 search_text in mod['title'].lower() or 
@@ -788,8 +895,21 @@ class HookLineSinkerUI:
                 
             filtered_mods.append(mod)
 
-        # Display filtered mods in a flat sorted list with converted display names
-        for mod in sorted(filtered_mods, key=lambda x: x['title']):
+        # sort the filtered mods based on selected method
+        sort_method = self.sort_method.get()
+        if sort_method == "Last Updated":
+            filtered_mods.sort(key=lambda x: x.get('updated_on', ''), reverse=True)
+        elif sort_method == "Most Downloads":
+            filtered_mods.sort(key=lambda x: x.get('downloads', 0), reverse=True)
+        elif sort_method == "Most Likes":
+            filtered_mods.sort(key=lambda x: x.get('likes', 0), reverse=True)
+        elif sort_method == "Name (A-Z)":
+            filtered_mods.sort(key=lambda x: x.get('title', '').lower())
+        elif sort_method == "Name (Z-A)":
+            filtered_mods.sort(key=lambda x: x.get('title', '').lower(), reverse=True)
+
+        # display filtered mods with converted display names
+        for mod in filtered_mods:
             display_title = self.get_display_name(mod['title'])
             self.available_listbox.insert(tk.END, display_title)
 
@@ -869,27 +989,29 @@ class HookLineSinkerUI:
                 except Exception as e:
                     messagebox.showerror("Error", f"Failed to delete duplicate mod: {str(e)}")
         self.refresh_mod_lists()
-
     def filter_installed_mods(self, event=None):
         selected_filter = self.installed_category.get()
-        # search_text = self.installed_search_var.get().lower()
+        search_text = self.installed_search_var.get().lower()
         hide_third_party = self.hide_third_party.get()
+        sort_method = self.installed_sort_method.get()
+        
+        # clear the listbox
         self.installed_listbox.delete(0, tk.END)
-
-        for mod in self.installed_mods:
-            status = "✅" if mod.get('enabled', True) else "❌"
-            
-            # Skip if hiding 3rd party and mod is 3rd party
+        
+        # create a filtered list of mods with their original indices
+        filtered_mods = []
+        for i, mod in enumerate(self.installed_mods):
+            # skip if hiding 3rd party and mod is 3rd party
             if hide_third_party and mod.get('third_party', False):
                 continue
-            
-            # # check if mod matches search criteria
-            # if search_text and not (
-            #     search_text in mod['title'].lower() or 
-            #     search_text in mod.get('author', '').lower() or
-            #     search_text in mod.get('description', '').lower()
-            # ):
-            #     continue
+                
+            # check if mod matches search criteria
+            if search_text and not (
+                search_text in mod['title'].lower() or 
+                search_text in mod.get('author', '').lower() or
+                search_text in mod.get('description', '').lower()
+            ):
+                continue
                 
             # check if mod matches status filter
             if (
@@ -897,9 +1019,38 @@ class HookLineSinkerUI:
                 (selected_filter == "Enabled" and mod.get('enabled', True)) or
                 (selected_filter == "Disabled" and not mod.get('enabled', True))
             ):
-                mod_title = f"{status} {mod['title']}"
-                self.installed_listbox.insert(tk.END, mod_title)
+                filtered_mods.append((i, mod))  # Store tuple of (original_index, mod)
+        # sort the filtered mods
+        if sort_method == "Name (A-Z)":
+            filtered_mods.sort(key=lambda x: x[1]['title'].lower())
+        elif sort_method == "Name (Z-A)":
+            filtered_mods.sort(key=lambda x: x[1]['title'].lower(), reverse=True)
+        elif sort_method == "Recently Updated":
+            filtered_mods.sort(key=lambda x: x[1].get('last_updated', ''), reverse=True)
+        elif sort_method == "Recently Installed":
+            filtered_mods.sort(key=lambda x: x[1].get('updated_on', 0), reverse=True)
+        
+        # store mapping of listbox indices to original mod indices
+        self.installed_mod_map = [x[0] for x in filtered_mods]
+        
+        # display the filtered and sorted mods
+        for _, mod in filtered_mods:
+            status = "✅" if mod.get('enabled', True) else "❌"
+            mod_title = f"{status} {mod['title']}"
+            self.installed_listbox.insert(tk.END, mod_title)
 
+    # there is no fucking way i'm doing this right so just praying this works
+    def get_selected_installed_mod_indices(self):
+        selected = self.installed_listbox.curselection()
+        if not selected:
+            return []
+            
+        # map the listbox indices to actual mod indices using installed_mod_map
+        if hasattr(self, 'installed_mod_map'):
+            return [self.installed_mod_map[i] for i in selected]
+        
+        # fallback to direct indices if no mapping exists
+        return list(selected)
 
     def toggle_game(self):
         if not self.check_setup():
@@ -1336,7 +1487,7 @@ Discord Staff:
 • Sulayre - Discord Administrator
 
 HLS Supporters:
-• betrel, box, david, eZbake, fern, Goobercide, ivy, Maxx, mika, Moro the Webfisher, Munch, Nipi, Nokuuu, PMPKIN, Pongorma, sheebs, shiro, Snowy, sunday, ThatFirey, Vival, Wes
+• azzy, betrel, box, david, delilah, eZbake, fern, fluffy, g, Goobercide, ivy, katyusha, Maxx, mika, Moro the Webfisher, Munch, namko, Nipi, Nokuuu, PMPKIN, Pongorma, Raplin, sheebs, shiro, Skye, Snowy, ThatFirey, Vival, Wes, Yaso, zena, ?
 
 Special Thanks:
 • All mod creators for their contributions
@@ -1439,7 +1590,8 @@ Special Thanks:
                         'description': mod_description,
                         'enabled': True,
                         'version': mod_version,
-                        'third_party': True
+                        'third_party': True,
+                        'updated_on': int(time.time())
                     }
                     with open(os.path.join(dst_mod_path, 'mod_info.json'), 'w') as f:
                         json.dump(mod_info, f, indent=2)
@@ -1554,24 +1706,41 @@ Special Thanks:
         # start the download and installation process in a separate thread
         threading.Thread(target=download_and_install, daemon=True).start()
 
+    def check_thunderstore_title_exists(self, title):
+        logging.debug(f"Checking if title '{title}' exists in Thunderstore mods")
+        backend_title = self.get_backend_name(title)
+        for mod in self.available_mods:
+            logging.debug(f"Comparing with mod title: {mod['title']}")
+            mod_backend_title = self.get_backend_name(mod['title'])
+            if mod_backend_title.lower() == backend_title.lower():
+                logging.debug(f"Found matching mod: {mod['title']}")
+                return True
+        logging.debug(f"No matching mod found for title: {title}")
+        return False
+
     # imports a zip mod file
     def import_zip_mod(self):
-        zip_path = filedialog.askopenfilename(filetypes=[("ZIP files", "*.zip")])
-        if not zip_path:
-            logging.info("No ZIP file selected.")
-            return
-
-        logging.info(f"Selected ZIP file: {zip_path}")
-
-        # Create temp directories
-        temp_dir = os.path.join(self.app_data_dir, 'temp')
-        os.makedirs(temp_dir, exist_ok=True)
-        import_temp_dir = os.path.join(temp_dir, f"import_{int(time.time())}")
-        os.makedirs(import_temp_dir)
-        extracted_zip_dir = os.path.join(import_temp_dir, 'extractedzip')
-        os.makedirs(extracted_zip_dir)
-
         try:
+            # Get the zip file path from user
+            zip_path = filedialog.askopenfilename(
+                title="Select Mod Zip File", 
+                filetypes=[("ZIP files", "*.zip")]
+            )
+            
+            if not zip_path:
+                logging.info("No ZIP file selected.")
+                return
+
+            logging.info(f"Selected ZIP file: {zip_path}")
+
+            # Create temp directories
+            temp_dir = os.path.join(self.app_data_dir, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            import_temp_dir = os.path.join(temp_dir, f"import_{int(time.time())}")
+            os.makedirs(import_temp_dir)
+            extracted_zip_dir = os.path.join(import_temp_dir, 'extractedzip')
+            os.makedirs(extracted_zip_dir)
+
             # Extract zip contents
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(extracted_zip_dir)
@@ -1593,6 +1762,20 @@ Special Thanks:
                 logging.error(error_msg)
                 messagebox.showerror("Error", error_msg)
                 return
+
+            # Get the mod title and check Thunderstore
+            mod_title = manifest.get('Metadata', {}).get('Name') or manifest.get('Name')
+            if mod_title and self.check_thunderstore_title_exists(mod_title):
+                if not messagebox.askokcancel(
+                    "Thunderstore Mod Available",
+                    f"A mod named '{mod_title}' is available on Thunderstore. "
+                    "It's recommended to install from Thunderstore when possible for "
+                    "better compatibility and updates.\n\n"
+                    "WARNING: Installing a third-party version of a Thunderstore mod "
+                    "will likely cause bugs with the mod manager and updates.\n\n"
+                    "Do you still want to continue importing this third-party version?"
+                ):
+                    return
 
             if dependencies := manifest.get('Dependencies', []):
                 all_dependencies = []
@@ -1653,7 +1836,8 @@ Special Thanks:
                 'description': manifest.get('Metadata', {}).get('Description') or manifest.get('Description', ''),
                 'version': manifest.get('Metadata', {}).get('Version') or manifest.get('Version', 'Unknown'),
                 'enabled': True,
-                'third_party': True
+                'third_party': True,
+                'updated_on': int(time.time())
             }
 
             mod_info_path = os.path.join(mod_dir, 'mod_info.json')
@@ -2338,7 +2522,27 @@ Special Thanks:
         finally:
             # schedule the next queue check
             self.root.after(100, self.process_gui_queue)
+    def find_mod_by_title(self, title):
+        # Remove status prefix if present (✅ or ❌)
+        if title.startswith('✅ ') or title.startswith('❌ '):
+            title = title[2:].strip()
+    
+        # Remove [3rd] prefix if present
+        if '[3rd]' in title:
+            title = title.replace('[3rd]', '').strip()
+    
+        # First check installed mods list
+        for mod in self.installed_mods:
+            if mod['title'] == title:
+                return mod
             
+        # Then check available mods from Thunderstore
+        for mod in self.available_mods:
+            if mod['title'] == title:
+                return mod
+            
+        raise ValueError(f"no mod found with title: {title}")
+
     # checks for program updates and prompts user to update if available
     def check_for_program_updates(self, silent=False):
         try:
@@ -2346,28 +2550,24 @@ Special Thanks:
             version_data = response.json()
             remote_version = version_data['version']
             update_message = version_data.get('message', '')
-
             local_version = get_version()
 
             self.current_version_label.config(text=f"Current Version: {local_version}")
             self.latest_version_label.config(text=f"Latest Version: {remote_version}")
 
             if remote_version != local_version:
-                if silent:
-                    self.update_application(remote_version)
+                message = f"A new version ({remote_version}) is available. You are currently on version {local_version}."
+                if update_message:
+                    message += f"\n\n{update_message}"
+                message += "\n\nWould you like to download the update?"
+                
+                if messagebox.askyesno("Update Available", message):
+                    webbrowser.open(f"https://hooklinesinker.lol/download/{remote_version}")
+                    self.root.destroy()
+                    sys.exit(0)
                     return True
-                else:
-                    message = f"A new version ({remote_version}) is available. You are currently on version {local_version}."
-                    if update_message:
-                        message += f"\n\n{update_message}"
-                    message += "\n\nWould you like to update now?"
-                    
-                    should_update = messagebox.askyesno("Update Available", message)
-                    if should_update:
-                        self.update_application(remote_version)
-                    return should_update
             elif not silent:
-                messagebox.showinfo("Up to Date", "Hook, Line, & Sinker is up to date!")
+                self.set_status("Hook, Line, & Sinker is up to date!")
             return False
 
         except Exception as e:
@@ -2490,8 +2690,8 @@ Special Thanks:
 
     # opens a window to edit the configuration of a selected mod
     def edit_mod_config(self):
-        selected = self.installed_listbox.curselection()
-        if not selected:
+        selected_indices = self.get_selected_installed_mod_indices()
+        if not selected_indices:
             messagebox.showinfo("No Mod Selected", "Please select a mod to edit its configuration.")
             return
 
@@ -2499,7 +2699,7 @@ Special Thanks:
             messagebox.showerror("Error", "Game path not set. Please set the game path in the settings.")
             return
 
-        mod = self.installed_mods[selected[0]]
+        mod = self.installed_mods[selected_indices[0]]
         config_path = os.path.join(self.settings['game_path'], 'GDWeave', 'configs', f"{mod['id']}.json")
 
         if not os.path.exists(config_path):
@@ -2627,7 +2827,8 @@ Special Thanks:
                 mod = self.installed_mods[index]
                 
                 # Basic mod management options
-                menu.add_command(label="Edit Config", command=self.edit_mod_config)
+                if self.mod_has_config(mod):
+                    menu.add_command(label="Edit Config", command=self.edit_mod_config)
                 menu.add_command(label="Test Mod", command=lambda: self.test_mod(mod))
                 menu.add_separator()
                 
@@ -2664,6 +2865,14 @@ Special Thanks:
                     menu.add_command(label="Export as ZIP", command=lambda: self.export_mod_as_zip(mod))
 
             menu.tk_popup(event.x_root, event.y_root)
+
+    def mod_has_config(self, mod):
+        if not self.settings.get('game_path'):
+            return False
+            
+        config_path = os.path.join(self.settings['game_path'], 'GDWeave', 'configs', f"{mod['id']}.json")
+        return os.path.exists(config_path)
+            
     def get_mod_versions(self, mod):
         try:
             if not mod.get('thunderstore_id'):
@@ -2826,8 +3035,9 @@ Special Thanks:
 
     # uninstalls selected mods
     def uninstall_mod(self):
-        if selected := self.installed_listbox.curselection():
-            for index in selected:
+        selected_indices = self.get_selected_installed_mod_indices()
+        if selected_indices:
+            for index in selected_indices:
                 mod = self.installed_mods[index]
                 self.set_status(f"Uninstalling mod: {mod['title']}")
                 try:
@@ -2853,14 +3063,14 @@ Special Thanks:
             shutil.rmtree(game_mod_path)
         
         self.set_status(f"Uninstalled mod: {mod['title']}")
-
     # enables selected mods
     def enable_mod(self):
         if not self.check_setup():
             return
-        if selected := self.installed_listbox.curselection():
+        selected_indices = self.get_selected_installed_mod_indices()
+        if selected_indices:
             enabled_count = 0
-            for index in selected:
+            for index in selected_indices:
                 mod = self.installed_mods[index]
                 if not mod.get('enabled', True):
                     mod['enabled'] = True
@@ -2880,15 +3090,16 @@ Special Thanks:
     def disable_mod(self):
         if not self.check_setup():
             return
-        if selected := self.installed_listbox.curselection():
-            for index in selected:
+        selected_indices = self.get_selected_installed_mod_indices()
+        if selected_indices:
+            for index in selected_indices:
                 mod = self.installed_mods[index]
                 mod['enabled'] = False
                 self.update_mod_status_in_listbox(mod)
                 self.save_mod_status(mod)
                 self.remove_mod_from_game(mod)
             self.refresh_mod_lists()
-            self.set_status(f"Disabled {len(selected)} mod(s)")
+            self.set_status(f"Disabled {len(selected_indices)} mod(s)")
 
     # creates a mod.json file for imported mods
     def create_mod_json(self, mod_folder, mod_name):
@@ -2917,6 +3128,77 @@ Special Thanks:
         third_party = "[3rd] " if mod.get('third_party', False) else "" 
         self.installed_listbox.delete(index)
         self.installed_listbox.insert(index, f"{status} {third_party}{mod['title']}".strip())
+    def show_version_selection(self):
+        selected_indices = self.get_selected_installed_mod_indices()
+        if not selected_indices:
+            messagebox.showerror("Error", "Please select a mod to change version")
+            return
+            
+        selected_mod = self.installed_mods[selected_indices[0]]
+        versions = self.get_mod_versions(selected_mod)
+        
+        if not versions:
+            messagebox.showerror("Error", "No other versions available for this mod")
+            return
+            
+        # Create version selection dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Select Version")
+        dialog.geometry("300x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Load and display icon
+        try:
+            if getattr(sys, 'frozen', False):
+                # running as compiled executable
+                bundle_dir = sys._MEIPASS
+            else:
+                # running in a normal python environment
+                bundle_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            icon_path = os.path.join(bundle_dir, 'icon.ico')
+            if os.path.exists(icon_path):
+                dialog.iconbitmap(icon_path)
+        except Exception as e:
+            logging.error(f"Error loading icon: {e}")
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (height // 2)
+        dialog.geometry(f'{width}x{height}+{x}+{y}')
+        
+        # Create and pack widgets
+        ttk.Label(dialog, text="Select version to install:").pack(pady=10, padx=10)
+        
+        # Create listbox for versions
+        version_listbox = tk.Listbox(dialog, width=40, height=15)
+        version_listbox.pack(pady=5, padx=10, fill=tk.BOTH, expand=True)
+        
+        # Add versions to listbox
+        current_version = selected_mod.get('version', 'Unknown')
+        for version in versions:
+            version_number = version['version_number']
+            display_text = f"{selected_mod['title']} (v{version_number})"
+            if version_number == current_version:
+                display_text += " (Current)"
+            version_listbox.insert(tk.END, display_text)
+        
+        def on_select():
+            selection = version_listbox.curselection()
+            if selection:
+                selected_version = versions[selection[0]]
+                dialog.destroy()
+                self.install_specific_version(selected_mod, selected_version)
+        
+        # Add buttons
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(pady=10, padx=10, fill=tk.X)
+        ttk.Button(button_frame, text="Install", command=on_select).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
 
     # shows a prompt to join the discord community
     def show_discord_prompt(self):
@@ -2974,134 +3256,180 @@ Special Thanks:
             self.mod_cache = {}  # set to empty dict in case of error
     # updates the mod details display when a mod is selected
     def update_mod_details(self, event):
-        selected_listbox = event.widget
-        selected = selected_listbox.curselection()
-        if not selected:
-            return
-
-        index = selected[0]
-        display_title = selected_listbox.get(index)
-
-        # clear previous details and widgets
-        self.mod_details.config(state='normal')
-        self.mod_details.delete('1.0', tk.END)
-        
-        # remove any existing buttons
-        for widget in self.mod_details_frame.winfo_children():
-            if isinstance(widget, ttk.Button):
-                widget.destroy()
-
-        # handle category headers
-        if display_title.startswith('-- '):
-            self._show_category_details(display_title)
-            return
         try:
-            # clean title and get mod info
-            clean_title = display_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
-            backend_title = self.get_backend_name(clean_title)
-            mod_list = self.available_mods if selected_listbox == self.available_listbox else self.installed_mods
-            mod = next((m for m in mod_list if m['title'].strip() == backend_title), None)
+            listbox = event.widget
+            selection = listbox.curselection()
+            if not selection:
+                return
+                
+            selected_title = listbox.get(selection[0])
+            selected_title = re.sub(r'^[✅❌]\s*(?:\[3rd\]\s*)?', '', selected_title) # Remove status indicators
+            
+            # Skip category headers
+            if selected_title.startswith('--'):
+                self._show_category_details(selected_title)
+                return
+                
+            # Convert display title to backend format before searching
+            backend_title = self.get_backend_name(selected_title)
+            mod = self.find_mod_by_title(backend_title)
+            
+            # clear previous details and widgets
+            self.mod_details.config(state='normal')
+            self.mod_details.delete('1.0', tk.END)
+            
+            # remove any existing buttons
+            for widget in self.mod_details_frame.winfo_children():
+                if isinstance(widget, ttk.Button):
+                    widget.destroy()
 
-            if not mod:
-                raise ValueError(f"no mod found with title: {backend_title}")
+            # Check if this is an installed mod
+            is_installed = listbox == self.installed_listbox
 
             # title section with status indicators
-            display_title = self.get_display_name(mod['title'])
-            title_text = f"{display_title} v{mod.get('version', '?')}\n"
+            title_text = f"{self.get_display_name(mod['title'])} v{mod.get('version', '?')}\n"
             title_text += f"by {mod.get('author', 'Unknown')}\n\n"
             self.mod_details.insert(tk.END, title_text, "header")
             self.mod_details.tag_config("header", font=("TkDefaultFont", 10, "bold"))
 
-            # stats section
-            stats = []
-            if 'last_updated' in mod:
-                updated = self._format_timestamp(mod['last_updated'])
-                if updated:
-                    stats.append(f"📅 Updated {updated}")
-            if 'downloads' in mod:
-                stats.append(f"🌐 {mod['downloads']:,} downloads")
-            if 'likes' in mod:
-                stats.append(f"👍 {mod['likes']:,} likes")
-            if stats:
-                self.mod_details.insert(tk.END, " • ".join(stats) + "\n")
-            # categories section (use single character emojis or it breaks)
-            if categories := mod.get('categories', []):
-                category_display = []
-                category_emojis = {
-                    'Mods': '🎯',
-                    'Cosmetics': '🎨',
-                    'Tools': '🔨',
-                    'Libraries': '📖',
-                    'Misc': '📦',
-                    'Client Side': '💻',
-                    'Server Side': '🖥',
-                    'Fish': '🐟',
-                    'Species': '🦈',
-                    'Maps': '🗺'
-                }
-                for category in categories:
-                    emoji = category_emojis.get(category, '📦')  # default emoji if category not found
-                    category_display.append(f"{emoji} {category}")
-                self.mod_details.insert(tk.END, " • ".join(category_display) + "\n")
-
-            # content warnings section
-            warnings = []
-            if mod.get('has_nsfw_content', False):
-                warnings.append("🔞 NSFW")
-            if mod.get('is_deprecated', False):
-                warnings.append("⚠️ Deprecated")
-            if mod.get('third_party', False):
-                warnings.append("⚠️ Third Party Mod")
-            if warnings:
-                self.mod_details.insert(tk.END, " • ".join(warnings) + "\n\n")
-            elif stats or categories:
-                self.mod_details.insert(tk.END, "\n")
-
-            # description
-            if mod.get('third_party', False):
-                self.mod_details.insert(tk.END, "Description:\n", "subheader")
-                if mod.get('description'):
-                    self.mod_details.insert(tk.END, f"{mod['description']}\n\n")
-                else:
-                    self.mod_details.insert(tk.END, f"We don't know much about the 3rd party mod {display_title}, but we're sure it's great!\n\n")
-            elif mod.get('description'):
-                desc = strip_tags(mod['description']) or mod['description']
-                self.mod_details.insert(tk.END, "Description:\n", "subheader")
-                self.mod_details.insert(tk.END, f"{desc}\n\n")
-
-            # dependencies section
-            if deps := mod.get('dependencies', []):
-                self.mod_details.insert(tk.END, "Dependencies:\n", "subheader")
-                self.mod_details.tag_config("subheader", font=("TkDefaultFont", 9, "bold"))
-                for dep in deps:
-                    # parse creator-title-version format
-                    parts = dep.split('-')
-                    if len(parts) == 3:
-                        creator, title, version = parts
-                        formatted_dep = f"{title} ({version}) by {creator}"
-                        self.mod_details.insert(tk.END, f"• {formatted_dep}\n")
+            if is_installed:
+                # Installed mod view
+                if 'updated_on' in mod:
+                    updated = datetime.fromtimestamp(mod['updated_on'])
+                    time_diff = datetime.now() - updated
+                    if time_diff.days > 0:
+                        time_str = f"{time_diff.days} days ago"
+                    elif time_diff.seconds // 3600 > 0:
+                        time_str = f"{time_diff.seconds // 3600} hours ago"
                     else:
-                        self.mod_details.insert(tk.END, f"• {dep}\n")
-                self.mod_details.insert(tk.END, "\n")
+                        time_str = f"{time_diff.seconds // 60} minutes ago"
+                    self.mod_details.insert(tk.END, f"📅 Installed {time_str}\n")
 
-            # create button frame using grid
-            button_frame = ttk.Frame(self.mod_details_frame)
-            button_frame.grid(row=1, column=0, columnspan=2, sticky="w", padx=5, pady=5)
+                # categories section
+                if categories := mod.get('categories', []):
+                    category_display = []
+                    category_emojis = {
+                        'Mods': '🎯',
+                        'Cosmetics': '🎨',
+                        'Tools': '🔨',
+                        'Libraries': '📖',
+                        'Misc': '📦',
+                        'Client Side': '💻',
+                        'Server Side': '🖥',
+                        'Fish': '🐟',
+                        'Species': '🦈',
+                        'Maps': '🗺'
+                    }
+                    for category in categories:
+                        emoji = category_emojis.get(category, '📦')  # default emoji if category not found
+                        category_display.append(f"{emoji} {category}")
+                    self.mod_details.insert(tk.END, " • ".join(category_display) + "\n")
 
-            # always construct thunderstore url from thunderstore_id
-            if mod.get('thunderstore_id'):
-                creator, mod_name = mod['thunderstore_id'].split('-', 1)
-                url = f"https://thunderstore.io/c/webfishing/p/{creator}/{mod_name}/"
-                ttk.Button(
-                    button_frame,
-                    text="View More Information on Thunderstore",
-                    command=lambda url=url: webbrowser.open(url)
-                ).grid(row=0, column=0, padx=2)
+                # todo: implement dependencies again - removed because very buggy for installed mods
+
+                # description
+                if mod.get('description'):
+                    self.mod_details.insert(tk.END, "\n📝 Description\n", "subheader")
+                    desc = strip_tags(mod['description']) or mod['description']
+                    self.mod_details.insert(tk.END, f"{desc}\n")
+
+            else:
+                # stats section
+                stats = []
+                if 'last_updated' in mod:
+                    updated = self._format_timestamp(mod['last_updated'])
+                    if updated:
+                        stats.append(f"📅 Updated {updated}")
+                if 'downloads' in mod:
+                    stats.append(f"🌐 {mod['downloads']:,} downloads")
+                if 'likes' in mod:
+                    stats.append(f"👍 {mod['likes']:,} likes")
+                if stats:
+                    self.mod_details.insert(tk.END, " • ".join(stats) + "\n")
+
+                # categories section (use single character emojis or it breaks)
+                if categories := mod.get('categories', []):
+                    category_display = []
+                    category_emojis = {
+                        'Mods': '🎯',
+                        'Cosmetics': '🎨',
+                        'Tools': '🔨',
+                        'Libraries': '📖',
+                        'Misc': '📦',
+                        'Client Side': '💻',
+                        'Server Side': '🖥',
+                        'Fish': '🐟',
+                        'Species': '🦈',
+                        'Maps': '🗺'
+                    }
+                    for category in categories:
+                        emoji = category_emojis.get(category, '📦')  # default emoji if category not found
+                        category_display.append(f"{emoji} {category}")
+                    self.mod_details.insert(tk.END, " • ".join(category_display) + "\n")
+
+                # content warnings section
+                warnings = []
+                if mod.get('has_nsfw_content', False):
+                    warnings.append("🔞 NSFW")
+                if mod.get('is_deprecated', False):
+                    warnings.append("⚠️ Deprecated")
+                if mod.get('third_party', False):
+                    warnings.append("⚠️ Third Party Mod")
+                if warnings:
+                    self.mod_details.insert(tk.END, " • ".join(warnings) + "\n\n")
+                elif stats or categories:
+                    self.mod_details.insert(tk.END, "\n")
+
+                # description
+                if mod.get('third_party', False):
+                    self.mod_details.insert(tk.END, "📝 Description\n", "subheader")
+                    if mod.get('description'):
+                        self.mod_details.insert(tk.END, f"{mod['description']}\n\n")
+                    else:
+                        self.mod_details.insert(tk.END, f"We don't know much about the 3rd party mod {selected_title}, but we're sure it's great!\n\n")
+                elif mod.get('description'):
+                    desc = strip_tags(mod['description']) or mod['description']
+                    self.mod_details.insert(tk.END, "📝 Description\n", "subheader")
+                    self.mod_details.insert(tk.END, f"{desc}\n\n")
+                # dependencies section
+                if deps := mod.get('dependencies', []):
+                    # filter out gdweave because it's pointless because ppl have it installed lmao
+                    visible_deps = [dep for dep in deps if not dep.startswith('NotNet-GDWeave')]
+                    if visible_deps:
+                        self.mod_details.insert(tk.END, "🔗 Dependencies\n", "subheader")
+                        self.mod_details.tag_config("subheader", font=("TkDefaultFont", 9, "bold"))
+                        for dep in visible_deps:
+                            # parse creator-title-version format
+                            parts = dep.split('-') if dep else []
+                            if len(parts) == 3:
+                                creator, title, version = parts
+                                formatted_dep = f"{title} ({version}) by {creator}"
+                                self.mod_details.insert(tk.END, f"• {formatted_dep}\n")
+                            else:
+                                self.mod_details.insert(tk.END, f"• {dep}\n")
+                        self.mod_details.insert(tk.END, "\n")
+
+                # create button frame using grid
+                button_frame = ttk.Frame(self.mod_details_frame)
+                button_frame.grid(row=1, column=0, columnspan=2, sticky="w", padx=5, pady=5)
+
+                # always construct thunderstore url from thunderstore_id
+                if mod.get('thunderstore_id'):
+                    creator, mod_name = mod['thunderstore_id'].split('-', 1)
+                    url = f"https://thunderstore.io/c/webfishing/p/{creator}/{mod_name}/"
+                    ttk.Button(
+                        button_frame,
+                        text="View More Information on Thunderstore",
+                        command=lambda url=url: webbrowser.open(url)
+                    ).grid(row=0, column=0, padx=2)
 
         except Exception as e:
-            error_msg = f"Error: Unable to find mod details for '{display_title}'. Error: {str(e)}"
+            error_msg = f"Error: Unable to find mod details for '{selected_title}'. Error: {str(e)}"
+            self.mod_details.config(state='normal')
+            self.mod_details.delete('1.0', tk.END)
             self.mod_details.insert(tk.END, error_msg)
             logging.error(f"Error in update_mod_details: {error_msg}")
+            self.mod_details.config(state='disabled')
 
         self.mod_details.config(state='disabled')
 
@@ -3205,7 +3533,7 @@ Special Thanks:
 
         self.installed_mods = self.get_installed_mods()
         
-        # something here is seriously fucked up and i give up, i'll fix in 1.1.7, edit: i'll fix in 1.2.1
+        # something here is seriously fucked up and i give up, i'll fix in 1.1.7, edit: i'll fix in 1.2.1, edit: i'll fix in 1.2.2, edit: i'll fix in 1.2.3
         if hasattr(self, 'installed_listbox'):
             self.installed_listbox.delete(0, tk.END)
             for mod in self.installed_mods:
@@ -3363,7 +3691,16 @@ Special Thanks:
                 'description': manifest.get('Description', mod['description']),
                 'version': manifest.get('Version', mod['version']),
                 'enabled': True,
-                'thunderstore_id': mod['thunderstore_id']
+                'thunderstore_id': mod['thunderstore_id'],
+                'categories': mod.get('categories', []),
+                'downloads': mod.get('downloads', 0),
+                'likes': mod.get('likes', 0),
+                'last_updated': mod.get('last_updated', ''),
+                'is_deprecated': mod.get('is_deprecated', False),
+                'has_nsfw_content': mod.get('has_nsfw_content', False),
+                'website': mod.get('website', ''),
+                'updated_on': int(time.time()),
+                'dependencies': manifest.get('Dependencies', [])
             }
             
             try:
@@ -3507,7 +3844,25 @@ Special Thanks:
     # checks for updates to the program mods and gdweave
     def check_for_updates(self, silent=False):
         try:
-            program_updated = self.check_for_program_updates()
+            # check for program update first
+            response = requests.get("https://hooklinesinker.lol/download/version.json")
+            version_data = response.json()
+            remote_version = version_data['version']
+            update_message = version_data.get('message', '')
+            local_version = get_version()
+
+            if remote_version != local_version:
+                message = f"A new version ({remote_version}) is available. You are currently on version {local_version}."
+                if update_message:
+                    message += f"\n\n{update_message}"
+                message += "\n\nWould you like to download the update?"
+                
+                if messagebox.askyesno("Update Available", message):
+                    webbrowser.open(f"https://hooklinesinker.lol/download/{remote_version}")
+                    self.root.destroy()
+                    sys.exit(0)
+                    return
+
             # check for mod updates
             self.set_status_safe("Checking for mod and GDWeave updates...")
             updates_available = False
@@ -3563,8 +3918,8 @@ Special Thanks:
                 else:
                     self.set_status_safe("GDWeave update skipped by user.")
 
-            if not silent and not program_updated and not updates_available:
-                messagebox.showinfo("Up to Date", "Your mods, GDWeave, and HLS are up to date!")
+            if not silent and not updates_available:
+                messagebox.showinfo("Up to Date", "Your mods and GDWeave are up to date!")
                 self.set_status_safe("No updates available.")
             elif not updates_available:
                 self.set_status_safe("No updates available.")

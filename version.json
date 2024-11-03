@@ -1,17 +1,17 @@
 {
-    "version": "1.2.1",
-    "message": "The QOL UpdateTM\n\nTo update, just press 'Yes' and it should open the installer! If it doesn't, download via the website or Discord.\n\nThis update focuses on quality-of-life improvements, better mod management, and various fixes to make the experience smoother.",
+    "version": "1.2.2",
+    "message": "The QOL Update Part 2 TM\n\nIMPORTANT: After updating, please restart Hook, Line, & Sinker to avoid any update loops. If you experience issues, you can always download manually from hooklinesinker.lol\n\nThis update focuses on performance improvements, better mod management, and various quality-of-life enhancements.",
     "changelog": [
-        "Added expanded category filters and Hide 3rd Party filter for Installed Mods",
-        "Improved search functionality and fixed config-related issues",
-        "Fixed startup lag and crashes with Show NSFW/Deprecated buttons",
-        "Added 'Install Version' button for downgrading/upgrading mods",
-        "Added Restore to Defaults option in Config Editor",
-        "Removed Thunderstore migration prompt",
-        "Fixed program updating even when 'No' was clicked",
-        "Added better troubleshooting settings",
-        "Fixed setup displaying wrong version",
-        "Window now centers on launch",
-        "Reverted maximized-by-default setting"
+        "Major performance improvements and memory usage optimizations",
+        "Added Version button for easy mod version management",
+        "Improved mod filtering and sorting for both Available and Installed tabs",
+        "Installed mods now automatically hide from Available Mods tab",
+        "Increased simultaneous mod download limit to 10 (with warning above 3)",
+        "Fixed various freezing and lag issues",
+        "Updated program credits",
+        "Added expanded category filters",
+        "Improved search functionality",
+        "Better mod download queue handling",
+        "Various UI and stability improvements"
     ]
 }

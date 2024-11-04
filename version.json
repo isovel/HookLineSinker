@@ -1,18 +1,11 @@
 {
-    "version": "1.2.3",
-    "message": "The QOL Update Part 3 TM\n\nIMPORTANT: After updating, please restart Hook, Line, & Sinker to avoid any update loops. If you experience issues, you can always download manually from hooklinesinker.lol\n\nThis update focuses on performance improvements, better mod management, and various quality-of-life enhancements.",
+    "version": "1.2.4",
+    "message": "The Dark Mode UpdateTM\n\nIMPORTANT: If you experience issues, you can always download manually from hooklinesinker.lol\n\nThis update adds several major features and fixes various bugs.",
     "changelog": [
-        "Fixed crash during HLS Setup",
-        "Major performance improvements and memory usage optimizations",
-        "Added Version button for easy mod version management",
-        "Improved mod filtering and sorting for both Available and Installed tabs",
-        "Installed mods now automatically hide from Available Mods tab",
-        "Increased simultaneous mod download limit to 10 (with warning above 3)",
-        "Fixed various freezing and lag issues",
-        "Updated program credits",
-        "Added expanded category filters",
-        "Improved search functionality",
-        "Better mod download queue handling",
+        "Fixed several critical bugs and crashes",
+        "Added automatic backup system for saves",
+        "Added experimental Dark Mode support",
+        "Added Modpacks feature (beta)",
         "Various UI and stability improvements"
     ]
 }

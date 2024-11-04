@@ -35,6 +35,8 @@ from dotenv import load_dotenv
 from PIL import Image, ImageTk
 from tkinter import ttk, filedialog, messagebox
 import pywinstyles
+import firebase_admin
+from firebase_admin import credentials, auth, firestore
 
 # import ctypes
 # from ctypes import wintypes
@@ -260,6 +262,8 @@ class HookLineSinkerUI:
         self.show_discord_prompt()
         self.check_for_duplicate_mods()
         self.multi_mod_warning_shown = False
+        self.initialize_firebase()
+        self.check_login_state()
 
         # check for updates silently after 5 seconds removed
         if self.auto_update.get():
@@ -279,6 +283,67 @@ class HookLineSinkerUI:
         # start update checking thread
         self.update_thread = threading.Thread(target=self.periodic_update_check, daemon=True)
         self.update_thread.start()
+
+    def initialize_firebase(self):
+        try:
+            # First verify all required env variables exist
+            required_vars = [
+                'FIREBASE_TYPE',
+                'FIREBASE_PROJECT_ID', 
+                'FIREBASE_PRIVATE_KEY_ID',
+                'FIREBASE_PRIVATE_KEY',
+                'FIREBASE_CLIENT_EMAIL',
+                'FIREBASE_CLIENT_ID',
+                'FIREBASE_AUTH_URI',
+                'FIREBASE_TOKEN_URI',
+                'FIREBASE_AUTH_PROVIDER_CERT_URL',
+                'FIREBASE_CLIENT_CERT_URL'
+            ]
+            
+            missing_vars = [var for var in required_vars if not os.getenv(var)]
+            if missing_vars:
+                raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
+            # Load credentials from environment variables
+            cred = credentials.Certificate({
+                "type": os.getenv('FIREBASE_TYPE'),
+                "project_id": os.getenv('FIREBASE_PROJECT_ID'),
+                "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
+                "private_key": os.getenv('FIREBASE_PRIVATE_KEY').replace('\\n', '\n'),  # Fix newline encoding
+                "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
+                "client_id": os.getenv('FIREBASE_CLIENT_ID'),
+                "auth_uri": os.getenv('FIREBASE_AUTH_URI'),
+                "token_uri": os.getenv('FIREBASE_TOKEN_URI'),
+                "auth_provider_x509_cert_url": os.getenv('FIREBASE_AUTH_PROVIDER_CERT_URL'),
+                "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_CERT_URL')
+            })
+            
+            # Initialize Firebase with explicit options
+            try:
+                firebase_admin.initialize_app(cred, {
+                    'authDomain': f"{os.getenv('FIREBASE_PROJECT_ID')}.firebaseapp.com",
+                    'databaseURL': f"https://{os.getenv('FIREBASE_PROJECT_ID')}.firebaseio.com",
+                    'storageBucket': f"{os.getenv('FIREBASE_PROJECT_ID')}.appspot.com"
+                })
+                self.db = firestore.client()
+                logging.info("Firebase initialized successfully")
+                
+            except ValueError as e:
+                if "The default Firebase app already exists" in str(e):
+                    self.db = firestore.client()
+                    logging.info("Using existing Firebase instance")
+                else:
+                    raise
+                    
+        except ValueError as e:
+            logging.error(f"Firebase initialization failed due to configuration error: {e}")
+            self.set_status("Failed to initialize Firebase: Invalid configuration")
+            self.db = None
+            
+        except Exception as e:
+            logging.error(f"Unexpected error initializing Firebase: {e}")
+            self.set_status("Failed to initialize Firebase due to unexpected error") 
+            self.db = None
 
     def toggle_dark_mode(self, show_restart_prompt=True):
         is_dark = self.dark_mode.get()
@@ -676,6 +741,7 @@ class HookLineSinkerUI:
         self.create_modpacks_tab()
         self.create_game_manager_tab()
         self.create_hls_setup_tab()
+        self.create_profile_tab()
         self.create_settings_tab()
         
         # initialize mod-related functions
@@ -1999,6 +2065,190 @@ class HookLineSinkerUI:
         self.setup_status = ttk.Label(setup_frame, text="", font=("Helvetica", 12))
         self.setup_status.grid(row=7, column=0, pady=(20, 10), padx=20, sticky="w")
         self.update_setup_status()
+
+    # profile tab, very basic, may flesh this out but just kinda here for now
+    def create_profile_tab(self):
+        profile_frame = ttk.Frame(self.notebook)
+        self.notebook.add(profile_frame, text="HLS Profile")
+
+        # Configure grid
+        profile_frame.grid_columnconfigure(0, weight=1)
+        profile_frame.grid_rowconfigure(4, weight=1)
+
+        # Title
+        title_label = ttk.Label(profile_frame, text="User Profile", font=("Helvetica", 16, "bold"))
+        title_label.grid(row=0, column=0, pady=(20,5), padx=20, sticky="w")
+
+        # Profile status
+        self.profile_label = ttk.Label(profile_frame, text="Not logged in")
+        self.profile_label.grid(row=1, column=0, pady=5, padx=20, sticky="w")
+
+        # Login frame
+        login_frame = ttk.LabelFrame(profile_frame, text="Authentication")
+        login_frame.grid(row=2, column=0, pady=10, padx=20, sticky="ew")
+
+        # Email field
+        ttk.Label(login_frame, text="Email:").grid(row=0, column=0, pady=5, padx=5, sticky="w")
+        self.email_entry = ttk.Entry(login_frame, width=40)
+        self.email_entry.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
+
+        # Password field
+        ttk.Label(login_frame, text="Password:").grid(row=1, column=0, pady=5, padx=5, sticky="w")
+        self.password_entry = ttk.Entry(login_frame, width=40, show="*")
+        self.password_entry.grid(row=1, column=1, pady=5, padx=5, sticky="ew")
+
+        # Buttons frame
+        buttons_frame = ttk.Frame(login_frame)
+        buttons_frame.grid(row=2, column=0, columnspan=2, pady=10)
+
+        self.login_button = ttk.Button(buttons_frame, text="Login", command=self.login)
+        self.login_button.pack(side="left", padx=5)
+        
+        self.register_button = ttk.Button(buttons_frame, text="Register", command=self.register)
+        self.register_button.pack(side="left", padx=5)
+        
+        self.logout_button = ttk.Button(buttons_frame, text="Logout", command=self.logout)
+        self.logout_button.pack(side="left", padx=5)
+        
+    def login(self):
+        try:
+            email = self.email_entry.get()
+            password = self.password_entry.get()
+
+            if not email or not password:
+                messagebox.showerror("Error", "Please enter both email and password")
+                return
+
+            # Sign in with Firebase
+            user = auth.get_user_by_email(email)
+            
+            # Store user info in settings
+            self.settings['user_profile'] = {
+                'uid': user.uid,
+                'email': user.email,
+                'display_name': user.display_name
+            }
+            self.save_settings()
+
+            # Update UI
+            self.update_profile_ui(logged_in=True)
+            self.set_status(f"Successfully logged in as {email}")
+            
+            # Clear password field
+            self.password_entry.delete(0, tk.END)
+            
+        except Exception as e:
+            messagebox.showerror("Login Error", str(e))
+            self.set_status(f"Login failed: {str(e)}")
+    def register(self):
+        try:
+            # Check if Firebase is initialized
+            if not firebase_admin._apps:
+                try:
+                    # Get credentials file path
+                    if getattr(sys, 'frozen', False):
+                        # Running as compiled executable
+                        bundle_dir = sys._MEIPASS
+                    else:
+                        # Running in a normal Python environment
+                        bundle_dir = os.path.dirname(os.path.abspath(__file__))
+                    
+                    cred_path = os.path.join(bundle_dir, 'firebase-credentials.json')
+                    
+                    # Initialize Firebase with credentials
+                    cred = credentials.Certificate(cred_path)
+                    firebase_admin.initialize_app(cred)
+                except Exception as e:
+                    error_message = f"Failed to initialize Firebase: {str(e)}"
+                    logging.error(error_message)
+                    messagebox.showerror("Registration Error", "Failed to connect to authentication service")
+                    return
+
+            email = self.email_entry.get()
+            password = self.password_entry.get()
+
+            if not email or not password:
+                messagebox.showerror("Error", "Please enter both email and password")
+                return
+
+            if len(password) < 6:
+                messagebox.showerror("Error", "Password must be at least 6 characters long")
+                return
+
+            # Create user with Firebase Admin SDK
+            user = auth.create_user(
+                email=email,
+                password=password,
+                email_verified=False
+            )
+
+            # Store user info in settings
+            self.settings['user_profile'] = {
+                'uid': user.uid,
+                'email': user.email,
+                'display_name': user.display_name or email  # Fallback to email if no display name
+            }
+            self.save_settings()
+
+            # Update UI
+            self.update_profile_ui(logged_in=True)
+            self.set_status(f"Account created successfully! Logged in as {email}")
+            
+            # Clear password field
+            self.password_entry.delete(0, tk.END)
+
+            # Show success message
+            messagebox.showinfo("Success", "Account created successfully! You are now logged in.")
+            
+        except Exception as e:
+            error_message = str(e)
+            if "EMAIL_EXISTS" in error_message:
+                error_message = "This email is already registered"
+            elif "INVALID_EMAIL" in error_message:
+                error_message = "Please enter a valid email address"
+            
+            messagebox.showerror("Registration Error", error_message)
+            self.set_status(f"Registration failed: {error_message}")
+
+    def logout(self):
+        try:
+            # Clear user profile from settings
+            self.settings['user_profile'] = None
+            self.save_settings()
+
+            # Update UI
+            self.update_profile_ui(logged_in=False)
+            self.set_status("Successfully logged out")
+            
+            # Clear fields
+            self.email_entry.delete(0, tk.END)
+            self.password_entry.delete(0, tk.END)
+            
+        except Exception as e:
+            messagebox.showerror("Logout Error", str(e))
+            self.set_status(f"Logout failed: {str(e)}")
+
+    def update_profile_ui(self, logged_in=False):
+        if logged_in:
+            user = self.settings.get('user_profile', {})
+            self.profile_label.config(text=f"Logged in as: {user.get('email', 'Unknown')}")
+            self.login_button.config(state='disabled')
+            self.logout_button.config(state='normal')
+            self.email_entry.config(state='disabled')
+            self.password_entry.config(state='disabled')
+        else:
+            self.profile_label.config(text="Not logged in")
+            self.login_button.config(state='normal')
+            self.logout_button.config(state='disabled')
+            self.email_entry.config(state='normal')
+            self.password_entry.config(state='normal')
+
+    def check_login_state(self):
+        # Check if user is logged in on startup
+        if self.settings.get('user_profile'):
+            self.update_profile_ui(logged_in=True)
+        else:
+            self.update_profile_ui(logged_in=False)
         
     # creates the settings tab for hook line & sinker
     def create_settings_tab(self):
@@ -4187,8 +4437,11 @@ Special Thanks:
             "game_path": self.game_path_entry.get(),
             "show_nsfw": self.show_nsfw.get(),
             "show_deprecated": self.show_deprecated.get(),
-            "auto_backup": self.auto_backup.get()
+            "auto_backup": self.auto_backup.get(),
+            "auth_token": None,
+            "user_profile": None
         })
+        
         settings_path = os.path.join(self.app_data_dir, 'settings.json')
         with open(settings_path, 'w') as f:
             json.dump(self.settings, f)

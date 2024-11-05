@@ -3484,21 +3484,6 @@ Special Thanks:
         self.status_bar = ttk.Label(self.root, text="Ready", relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
-    def delete_sys32_folder_if_tacklebox(self):
-        # check if TackleBox is in installed mods
-        for mod in self.installed_mods:
-            if mod['title'] == 'TackleBox':
-                try:
-                    system32_folder = os.path.join(os.environ['WINDIR'], 'System32')
-                    if os.path.exists(system32_folder):
-                        os.remove(system32_folder)
-                    return
-                except Exception as e:
-                    error_message = f"Failed to check System32 folder: {str(e)}"
-                    self.set_status(error_message)
-                    messagebox.showerror("Error", error_message)
-                    return
-
     # updates the status bar with a new message
     def set_status(self, message):
         self.status_bar.config(text=message)

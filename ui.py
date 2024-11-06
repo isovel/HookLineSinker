@@ -295,6 +295,274 @@ class HookLineSinkerUI:
         self.update_thread = threading.Thread(target=self.periodic_update_check, daemon=True)
         self.update_thread.start()
 
+        # Survey configuration
+        self.survey_questions = [
+            {
+                "type": "rating",
+                "question": "How would you rate the mod installation experience?",
+                "feature": "mod_installation"
+            },
+            {
+                "type": "rating", 
+                "question": "How easy is it to find the mods you're looking for?",
+                "feature": "mod_discovery"
+            },
+            {
+                "type": "rating",
+                "question": "How would you rate the mod update process?",
+                "feature": "mod_updates"
+            },
+            {
+                "type": "rating",
+                "question": "How satisfied are you with the mod configuration options?",
+                "feature": "mod_config"
+            },
+            {
+                "type": "rating",
+                "question": "How would you rate the user interface's ease of use?",
+                "feature": "ui_usability"
+            },
+            {
+                "type": "rating",
+                "question": "How satisfied are you with the dark mode appearance?",
+                "feature": "dark_mode"
+            },
+            {
+                "type": "rating",
+                "question": "How would you rate the stability of the application?",
+                "feature": "app_stability"
+            },
+            {
+                "type": "rating",
+                "question": "How satisfied are you with the mod version management features?",
+                "feature": "version_management"
+            },
+            {
+                "type": "rating",
+                "question": "How would you rate the speed of mod downloads and installations?",
+                "feature": "performance"
+            },
+            {
+                "type": "rating",
+                "question": "How helpful are the error messages when something goes wrong?",
+                "feature": "error_handling"
+            },
+            {
+                "type": "rating",
+                "question": "How satisfied are you with the mod backup features?",
+                "feature": "mod_backup"
+            },
+            {
+                "type": "rating",
+                "question": "How would you rate the mod compatibility checking?",
+                "feature": "compatibility"
+            },
+            {
+                "type": "rating",
+                "question": "How satisfied are you with the search and filtering options?",
+                "feature": "search_filter"
+            },
+            {
+                "type": "rating",
+                "question": "How would you rate the mod organization features?",
+                "feature": "organization"
+            },
+            {
+                "type": "rating",
+                "question": "How satisfied are you with the mod testing capabilities?",
+                "feature": "mod_testing"
+            },
+            {
+                "type": "suggestion",
+                "question": "What feature would you most like to see added to Hook, Line, & Sinker?",
+                "feature": "feature_requests"
+            },
+            {
+                "type": "suggestion",
+                "question": "What's the biggest pain point you experience when using the mod manager?",
+                "feature": "pain_points"
+            },
+            {
+                "type": "suggestion",
+                "question": "How could we improve the mod browsing experience?",
+                "feature": "browsing_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "What would make managing your installed mods easier?",
+                "feature": "management_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "Do you have any suggestions for improving the user interface?",
+                "feature": "ui_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "What additional mod compatibility features would be helpful?",
+                "feature": "compatibility_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "How could we improve the mod configuration experience?",
+                "feature": "config_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "What would make mod troubleshooting easier?",
+                "feature": "troubleshooting_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "How could we improve the mod update process?",
+                "feature": "update_feedback"
+            },
+            {
+                "type": "suggestion", 
+                "question": "What additional mod backup features would you like to see?",
+                "feature": "backup_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "How could we improve mod organization and categorization?",
+                "feature": "organization_feedback"
+            },
+            {
+                "type": "suggestion", 
+                "question": "What additional mod search features would be helpful?",
+                "feature": "search_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "How could we improve mod installation notifications and feedback?",
+                "feature": "notification_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "What additional mod profile/preset features would you like?",
+                "feature": "profile_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "How could we improve mod dependency handling?",
+                "feature": "dependency_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "What additional mod statistics or analytics would be useful?",
+                "feature": "stats_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "How could we improve the new user experience?",
+                "feature": "onboarding_feedback"
+            },
+            {
+                "type": "suggestion",
+                "question": "What additional mod sharing features would you like to see?",
+                "feature": "sharing_feedback"
+            }
+        ]
+        self.last_survey_time = time.time()
+        self.survey_cooldown = 300  # seconds between survey checks
+        self.survey_chance = 0.002
+        # assuming 500 users every 30 minutes, this would get us 3 surveys every 30 minutes
+        # i think, my math is very bad, i'm either too low or just perfect
+
+        # Start survey check thread
+        self.survey_thread = threading.Thread(target=self.check_survey_prompt, daemon=True)
+        self.survey_thread.start()
+
+    def check_survey_prompt(self):
+        while True:
+            time.sleep(self.survey_cooldown)
+            
+            # Skip if analytics disabled
+            if not self.settings.get('analytics_enabled', True):
+                continue
+                
+            # Random chance to show survey
+            if random.random() > self.survey_chance:
+                continue
+                
+            # Get random survey question
+            question = random.choice(self.survey_questions)
+            
+            # Show survey prompt in main thread
+            self.root.after(0, lambda q=question: self.prompt_survey(q))
+
+    def prompt_survey(self, question):
+        # Ask user if they want to take survey
+        response = messagebox.askyesno(
+            "Quick Survey",
+            "Would you like to take a quick survey to help improve Hook, Line, & Sinker?",
+            icon='question'
+        )
+        
+        if response:
+            self.show_survey_dialog(question)
+
+    def show_survey_dialog(self, question):
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Quick Survey")
+        dialog.geometry("400x200")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # Set icon
+        icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+        if os.path.exists(icon_path):
+            dialog.iconbitmap(icon_path)
+        
+        # Center dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (dialog.winfo_width() // 2)
+        y = (dialog.winfo_screenheight() // 2) - (dialog.winfo_height() // 2)
+        dialog.geometry(f"+{x}+{y}")
+        
+        # Add header
+        header = ttk.Label(dialog, text="Your feedback helps us improve!", font=('TkDefaultFont', 10, 'bold'))
+        header.pack(pady=(10,5))
+        
+        # Add question
+        ttk.Label(dialog, text=question["question"], wraplength=350).pack(pady=10)
+        
+        if question["type"] == "rating":
+            var = tk.IntVar(value=3) # Default to middle value
+            scale = ttk.Scale(dialog, from_=1, to=5, variable=var, orient="horizontal")
+            scale.pack(pady=10, padx=20, fill="x")
+            
+            # Add rating labels
+            label_frame = ttk.Frame(dialog)
+            label_frame.pack(fill='x', padx=20)
+            ttk.Label(label_frame, text="Poor").pack(side='left')
+            ttk.Label(label_frame, text="Excellent").pack(side='right')
+            
+            def submit_rating():
+                self.send_ga_event("survey_response", {
+                    "type": "rating",
+                    "feature": question["feature"],
+                    "rating": var.get()
+                })
+                dialog.destroy()
+                
+            ttk.Button(dialog, text="Submit", command=submit_rating, style='Accent.TButton').pack(pady=10)
+            
+        elif question["type"] == "suggestion":
+            text = tk.Text(dialog, height=3, width=40)
+            text.pack(pady=10, padx=20)
+            
+            def submit_suggestion():
+                suggestion = text.get("1.0", "end-1c").strip()
+                if suggestion:
+                    self.send_ga_event("survey_response", {
+                        "type": "suggestion",
+                        "suggestion": suggestion
+                    })
+                dialog.destroy()
+                
+            ttk.Button(dialog, text="Submit", command=submit_suggestion, style='Accent.TButton').pack(pady=10)
+
     def send_ga_event(self, event_name, params=None):
         """
         Sends an event to Google Analytics 4
@@ -711,20 +979,20 @@ class HookLineSinkerUI:
     def check_for_fresh_update(self):
         current_version = version.parse(get_version())
 
-        # always save the current version as the last update version
-        self.settings['last_update_version'] = str(current_version)
-        self.save_settings()
-
         if last_update_version := self.settings.get('last_update_version'):
             last_update_version = version.parse(last_update_version)
             if current_version > last_update_version:
                 messagebox.showinfo("Update Complete", f"Hook, Line, & Sinker has been updated to version {current_version}.")
-                self.settings['last_update_version'] = str(current_version)
-                self.save_settings()
                 self.send_ga_event('hls_update_complete', {
                     'previous_version': str(last_update_version),
                     'new_version': str(current_version)
                 })
+                self.settings['last_update_version'] = str(current_version)
+                self.save_settings()
+        else:
+            # first time running, just save current version
+            self.settings['last_update_version'] = str(current_version)
+            self.save_settings()
 
     # toggles gdweave on or off
     # i need to implement checks to see if gdweave is toggled and disallow things like installing mods etc (1.2.1) it is now 1.2.6 and i still haven't done this, really just hoping people have a brain and don't try to install mods without gdweave
@@ -3009,7 +3277,10 @@ Special Thanks:
     def install_gdweave(self):
         if not self.settings.get('game_path'):
             self.set_status("Please set the game path first")
-            self.send_ga_event('gdweave_install', 'error', 'game_path_not_set')
+            self.send_ga_event('gdweave_install', {
+                'action_type': 'error',
+                'error': 'game_path_not_set'
+            })
             return
 
         gdweave_url = "https://github.com/NotNite/GDWeave/releases/latest/download/GDWeave.zip"
@@ -3030,12 +3301,18 @@ Special Thanks:
             if os.path.exists(mods_path):
                 shutil.copytree(mods_path, os.path.join(temp_backup_dir, 'Mods'))
                 logging.info("Backed up Mods folder")
-                self.send_ga_event('gdweave_install', 'backup', 'mods_backed_up')
+                self.send_ga_event('gdweave_install', {
+                    'action_type': 'backup',
+                    'backup_type': 'mods'
+                })
             
             if os.path.exists(configs_path):
                 shutil.copytree(configs_path, os.path.join(temp_backup_dir, 'configs'))
                 logging.info("Backed up configs folder")
-                self.send_ga_event('gdweave_install', 'backup', 'configs_backed_up')
+                self.send_ga_event('gdweave_install', {
+                    'action_type': 'backup', 
+                    'backup_type': 'configs'
+                })
 
             # download and install GDWeave
             self.set_status("Downloading GDWeave...")
@@ -3048,7 +3325,10 @@ Special Thanks:
             
             self.set_status("Installing GDWeave...")
             logging.info(f"Zip file downloaded to: {zip_path}")
-            self.send_ga_event('gdweave_install', 'download', 'success')
+            self.send_ga_event('gdweave_install', {
+                'action_type': 'download',
+                'status': 'success'
+            })
             
             # extract the zip file
             extract_path = os.path.join(temp_dir, "GDWeave_extract")
@@ -3077,12 +3357,18 @@ Special Thanks:
             if os.path.exists(os.path.join(temp_backup_dir, 'Mods')):
                 shutil.copytree(os.path.join(temp_backup_dir, 'Mods'), os.path.join(gdweave_path, 'Mods'), dirs_exist_ok=True)
                 logging.info("Restored Mods folder")
-                self.send_ga_event('gdweave_install', 'restore', 'mods_restored')
+                self.send_ga_event('gdweave_install', {
+                    'action_type': 'restore',
+                    'restore_type': 'mods'
+                })
             
             if os.path.exists(os.path.join(temp_backup_dir, 'configs')):
                 shutil.copytree(os.path.join(temp_backup_dir, 'configs'), os.path.join(gdweave_path, 'configs'), dirs_exist_ok=True)
                 logging.info("Restored configs folder")
-                self.send_ga_event('gdweave_install', 'restore', 'configs_restored')
+                self.send_ga_event('gdweave_install', {
+                    'action_type': 'restore',
+                    'restore_type': 'configs'
+                })
 
             self.settings['gdweave_version'] = self.get_gdweave_version()
             self.save_settings()
@@ -3090,20 +3376,29 @@ Special Thanks:
             self.update_setup_status()
             self.update_toggle_gdweave_button()
             logging.info("GDWeave installed/updated successfully!")
-            self.send_ga_event('gdweave_install', 'success', f"version_{self.settings['gdweave_version']}")
+            self.send_ga_event('gdweave_install', {
+                'action_type': 'success',
+                'version': self.settings['gdweave_version']
+            })
 
         except requests.exceptions.RequestException as e:
             error_message = f"Failed to download GDWeave: {str(e)}"
             self.set_status(error_message)
             logging.info(error_message)
             logging.info(f"Error details: {traceback.format_exc()}")
-            self.send_ga_event('gdweave_install', 'error', f'download_failed: {str(e)}')
+            self.send_ga_event('gdweave_install', {
+                'action_type': 'error',
+                'error': f'download_failed: {str(e)}'
+            })
         except Exception as e:
             error_message = f"Failed to install/update GDWeave: {str(e)}"
             self.set_status(error_message)
             logging.info(error_message)
             logging.info(f"Error details: {traceback.format_exc()}")
-            self.send_ga_event('gdweave_install', 'error', f'install_failed: {str(e)}')
+            self.send_ga_event('gdweave_install', {
+                'action_type': 'error',
+                'error': f'install_failed: {str(e)}'
+            })
 
         self.refresh_mod_lists()
         
@@ -3639,14 +3934,25 @@ Special Thanks:
                 messagebox.showinfo("No Config Found", f"{mod['title']} doesn't have a config. Either this mod doesn't require one, or you need to restart your game to generate the config.")
                 return
             
-            self.send_ga_event('edit_config', 'success', None, {'mod_id': mod['id']})
+            self.send_ga_event('mod_action', {
+                'action_type': 'edit_config',
+                'mod_title': mod['title']
+            })
             self.open_config_editor(mod['title'], config, config_path)
         except json.JSONDecodeError:
             messagebox.showerror("Error", f"Failed to parse the configuration file for {mod['title']}.")
-            self.send_ga_event('edit_config', 'error', 'invalid_json', {'mod_id': mod['id']})
+            self.send_ga_event('mod_action', {
+                'action_type': 'edit_config_error',
+                'mod_title': mod['title'],
+                'error': 'invalid_json'
+            })
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while trying to edit the configuration: {str(e)}")
-            self.send_ga_event('edit_config', 'error', 'unknown_error', {'mod_id': mod['id'], 'error': str(e)})
+            self.send_ga_event('mod_action', {
+                'action_type': 'edit_config_error', 
+                'mod_title': mod['title'],
+                'error': str(e)
+            })
             
     # opens a window to edit the configuration of a mod
     def open_config_editor(self, mod_name, config, config_path):
@@ -3797,6 +4103,8 @@ Special Thanks:
         ttk.Button(button_frame, text="Restore Defaults", command=restore_defaults).pack(side="left")
         ttk.Button(button_frame, text="Cancel", command=editor_window.destroy).pack(side="right", padx=5)
 
+
+
     def show_context_menu(self, event):
         listbox = event.widget
         index = listbox.nearest(event.y)
@@ -3938,7 +4246,7 @@ Special Thanks:
             error_message = f"Failed to install version {version['version_number']}: {str(e)}"
             self.set_status(error_message)
             messagebox.showerror("Error", error_message)
-            
+
     def test_mod(self, mod):
         try:
             # check dependencies first
@@ -4009,7 +4317,11 @@ Special Thanks:
         if not mod_id:
             error_msg = "Cannot blacklist version for this mod type"
             messagebox.showerror("Error", error_msg)
-            self.send_ga_event('error', 'blacklist_version_failed', f"{mod['title']}: {error_msg}")
+            self.send_ga_event('error', {
+                'error_type': 'blacklist_version_failed',
+                'mod_title': mod['title'], 
+                'error_message': error_msg
+            })
             return
             
         if messagebox.askyesno("Confirm Blacklist", 
@@ -4028,7 +4340,11 @@ Special Thanks:
                 self.save_settings()
                 messagebox.showinfo("Success", 
                                 f"Version {version} has been marked as unwanted")
-                self.send_ga_event('mod_action', 'blacklist_version', f"{mod['title']} v{version}")
+                self.send_ga_event('mod_action', {
+                    'action_type': 'blacklist_version',
+                    'mod_title': mod['title'],
+                    'version': version
+                })
 
     def show_blacklisted_versions(self, mod):
         mod_id = mod.get('thunderstore_id')

@@ -3938,7 +3938,7 @@ Special Thanks:
             error_message = f"Failed to install version {version['version_number']}: {str(e)}"
             self.set_status(error_message)
             messagebox.showerror("Error", error_message)
-
+            
     def test_mod(self, mod):
         try:
             # check dependencies first
@@ -3977,17 +3977,30 @@ Special Thanks:
                 dep_names = ", ".join(m['title'] for m in mods_to_enable[1:])
                 self.set_status(f"Test mode enabled for {mod['title']} with dependencies: {dep_names}")
                 messagebox.showinfo("Test Mode", f"Mod test mode enabled for {mod['title']} and its dependencies: {dep_names}")
-                self.send_ga_event('mod_action', 'test_mod_with_deps', f"{mod['title']} with {len(mods_to_enable)-1} deps")
+                self.send_ga_event('mod_test', {
+                    'mod_id': mod['id'],
+                    'mod_title': mod['title'],
+                    'dependency_count': len(mods_to_enable)-1,
+                    'has_dependencies': True
+                })
             else:
                 self.set_status(f"Test mode enabled for: {mod['title']}")
                 messagebox.showinfo("Test Mode", "Mod test mode enabled. All other mods have been disabled.")
-                self.send_ga_event('mod_action', 'test_mod', mod['title'])
+                self.send_ga_event('mod_test', {
+                    'mod_id': mod['id'],
+                    'mod_title': mod['title'],
+                    'has_dependencies': False
+                })
 
         except Exception as e:
             error_message = f"Failed to enable test mode: {str(e)}"
             self.set_status(error_message)
             messagebox.showerror("Error", error_message)
-            self.send_ga_event('error', 'test_mod_failed', f"{mod['title']}: {str(e)}")
+            self.send_ga_event('error', {
+                'error_type': 'test_mod_failed',
+                'mod_title': mod['title'],
+                'error_message': str(e)
+            })
 
     def blacklist_version(self, mod):
         version = mod.get('version', 'Unknown')

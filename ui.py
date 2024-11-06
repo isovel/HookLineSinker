@@ -242,6 +242,7 @@ class HookLineSinkerUI:
         self.show_nsfw = tk.BooleanVar(value=self.settings.get('show_nsfw', False))
         self.show_deprecated = tk.BooleanVar(value=self.settings.get('show_deprecated', False))
         self.game_path_entry = tk.StringVar(value=self.settings.get('game_path', ''))
+        self.analytics_enabled = tk.BooleanVar(value=self.settings.get('analytics_enabled', True))
 
         logging.info(f"Initial game path: {self.game_path_entry.get()}")
 
@@ -270,8 +271,10 @@ class HookLineSinkerUI:
         # check for updates on startup and show discord prompt
         self.check_for_fresh_update()
         self.show_discord_prompt()
+        self.show_analytics_prompt()
         self.check_for_duplicate_mods()
         self.multi_mod_warning_shown = False
+        self.send_ga_event("app_launch", {"version": get_version(), "platform": sys.platform})
 
         # check for updates silently after 5 seconds removed
         if self.auto_update.get():
@@ -291,6 +294,82 @@ class HookLineSinkerUI:
         # start update checking thread
         self.update_thread = threading.Thread(target=self.periodic_update_check, daemon=True)
         self.update_thread.start()
+
+    def send_ga_event(self, event_name, params=None):
+        """
+        Sends an event to Google Analytics 4
+        Uses the Measurement Protocol for GA4
+        """
+
+        # it's a setting so no one can get mad at me :3
+        if not self.settings.get('analytics_enabled', True):
+            return
+        
+        try:
+            # this is to not spam the logs with ga4 requests
+            logging.getLogger('urllib3').setLevel(logging.WARNING)
+            requests.packages.urllib3.disable_warnings()
+
+            # get path to secrets file
+            if getattr(sys, 'frozen', False):
+                # running as compiled executable
+                bundle_dir = sys._MEIPASS
+            else:
+                # running in normal python environment
+                bundle_dir = os.path.dirname(os.path.abspath(__file__))
+                
+            secrets_path = os.path.join(bundle_dir, 'GASecret.txt')
+            
+            # load GA configuration
+            try:
+                with open(secrets_path, 'r') as f:
+                    ga_config = json.load(f)
+                    MEASUREMENT_ID = ga_config['mid']
+                    API_SECRET = ga_config['key']
+            except Exception as e:
+                logging.error(f"Failed to load GA secrets: {str(e)}")
+                return
+
+            # client id is a random session id
+            client_id = str(random.randint(1000000000, 9999999999))
+            
+            # base payload required for GA4
+            payload = {
+                "client_id": client_id,
+                "non_personalized_ads": True,
+                "events": [{
+                    "name": event_name,
+                    "params": {
+                        "engagement_time_msec": "100",
+                        "session_id": str(int(time.time())),
+                        "app_version": get_version(),
+                        "platform": sys.platform,
+                        "client_id": client_id # i don't THINK this is needed but it's harmless and slightly easier for my dumbass
+                    }
+                }]
+            }
+
+            # add custom parameters if provided
+            if params:
+                payload["events"][0]["params"].update(params)
+
+            # send to GA4 endpoint asynchronously
+            def send_request():
+                try:
+                    response = requests.post(
+                        f"https://www.google-analytics.com/mp/collect?measurement_id={MEASUREMENT_ID}&api_secret={API_SECRET}",
+                        json=payload,
+                        timeout=5
+                    )
+                    if response.status_code != 204:
+                        logging.error(f"GA request failed with status {response.status_code}: {response.text}")
+                except Exception as e:
+                    logging.error(f"Failed to send GA request: {str(e)}")
+
+            threading.Thread(target=send_request, daemon=True).start()
+
+        except Exception as e:
+            logging.error(f"Failed to send GA event: {str(e)}")
 
     def handle_keypress(self, event):
         current_time = time.time()
@@ -631,15 +710,24 @@ class HookLineSinkerUI:
     # checks for a fresh update and shows a message if one is found
     def check_for_fresh_update(self):
         current_version = version.parse(get_version())
+
+        # always save the current version as the last update version
+        self.settings['last_update_version'] = str(current_version)
+        self.save_settings()
+
         if last_update_version := self.settings.get('last_update_version'):
             last_update_version = version.parse(last_update_version)
             if current_version > last_update_version:
                 messagebox.showinfo("Update Complete", f"Hook, Line, & Sinker has been updated to version {current_version}.")
                 self.settings['last_update_version'] = str(current_version)
                 self.save_settings()
+                self.send_ga_event('hls_update_complete', {
+                    'previous_version': str(last_update_version),
+                    'new_version': str(current_version)
+                })
 
     # toggles gdweave on or off
-    # i need to implement checks to see if gdweave is toggled and disallow things like installing mods etc (1.2.1)
+    # i need to implement checks to see if gdweave is toggled and disallow things like installing mods etc (1.2.1) it is now 1.2.6 and i still haven't done this, really just hoping people have a brain and don't try to install mods without gdweave
     def toggle_gdweave(self):
         if not self.settings.get('game_path'):
             messagebox.showerror("Error", "Game path not set. Please set the game path first.")
@@ -661,8 +749,11 @@ class HookLineSinkerUI:
                     shutil.move(winmm_game_path, winmm_backup_path)
                 messagebox.showinfo("Success", "GDWeave has been disabled and backed up.")
                 self.set_status("GDWeave disabled and backed up")
+                self.send_ga_event('gdweave_toggle', 'success', 'disabled')
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to disable GDWeave: {str(e)}")
+                error_msg = f"Failed to disable GDWeave: {str(e)}"
+                messagebox.showerror("Error", error_msg)
+                self.send_ga_event('gdweave_toggle', 'error', f'disable_failed: {str(e)}')
                 return
         else:
             # gdweave is not in the game folder let's restore it from backup
@@ -673,8 +764,11 @@ class HookLineSinkerUI:
                     shutil.move(winmm_backup_path, winmm_game_path)
                 messagebox.showinfo("Success", "GDWeave has been enabled and restored.")
                 self.set_status("GDWeave enabled and restored")
+                self.send_ga_event('gdweave_toggle', 'success', 'enabled')
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to enable GDWeave: {str(e)}")
+                error_msg = f"Failed to enable GDWeave: {str(e)}"
+                messagebox.showerror("Error", error_msg)
+                self.send_ga_event('gdweave_toggle', 'error', f'enable_failed: {str(e)}')
                 return
 
         self.update_toggle_gdweave_button()
@@ -2125,6 +2219,11 @@ class HookLineSinkerUI:
                        variable=self.suppress_mod_warning,
                        command=self.save_settings).grid(row=1, column=0, pady=2, sticky="w")
 
+        self.analytics_enabled = tk.BooleanVar(value=self.settings.get('analytics_enabled', True))
+        ttk.Checkbutton(right_frame, text="Enable Analytics",
+                       variable=self.analytics_enabled,
+                       command=self.save_settings).grid(row=2, column=0, pady=2, sticky="w")
+
         update_frame = ttk.Frame(general_frame)
         update_frame.grid(row=4, column=0, columnspan=2, pady=5, padx=5, sticky="w")
         update_frame.grid_columnconfigure(1, weight=1)
@@ -2910,6 +3009,7 @@ Special Thanks:
     def install_gdweave(self):
         if not self.settings.get('game_path'):
             self.set_status("Please set the game path first")
+            self.send_ga_event('gdweave_install', 'error', 'game_path_not_set')
             return
 
         gdweave_url = "https://github.com/NotNite/GDWeave/releases/latest/download/GDWeave.zip"
@@ -2930,10 +3030,12 @@ Special Thanks:
             if os.path.exists(mods_path):
                 shutil.copytree(mods_path, os.path.join(temp_backup_dir, 'Mods'))
                 logging.info("Backed up Mods folder")
+                self.send_ga_event('gdweave_install', 'backup', 'mods_backed_up')
             
             if os.path.exists(configs_path):
                 shutil.copytree(configs_path, os.path.join(temp_backup_dir, 'configs'))
                 logging.info("Backed up configs folder")
+                self.send_ga_event('gdweave_install', 'backup', 'configs_backed_up')
 
             # download and install GDWeave
             self.set_status("Downloading GDWeave...")
@@ -2946,6 +3048,7 @@ Special Thanks:
             
             self.set_status("Installing GDWeave...")
             logging.info(f"Zip file downloaded to: {zip_path}")
+            self.send_ga_event('gdweave_install', 'download', 'success')
             
             # extract the zip file
             extract_path = os.path.join(temp_dir, "GDWeave_extract")
@@ -2974,10 +3077,12 @@ Special Thanks:
             if os.path.exists(os.path.join(temp_backup_dir, 'Mods')):
                 shutil.copytree(os.path.join(temp_backup_dir, 'Mods'), os.path.join(gdweave_path, 'Mods'), dirs_exist_ok=True)
                 logging.info("Restored Mods folder")
+                self.send_ga_event('gdweave_install', 'restore', 'mods_restored')
             
             if os.path.exists(os.path.join(temp_backup_dir, 'configs')):
                 shutil.copytree(os.path.join(temp_backup_dir, 'configs'), os.path.join(gdweave_path, 'configs'), dirs_exist_ok=True)
                 logging.info("Restored configs folder")
+                self.send_ga_event('gdweave_install', 'restore', 'configs_restored')
 
             self.settings['gdweave_version'] = self.get_gdweave_version()
             self.save_settings()
@@ -2985,14 +3090,23 @@ Special Thanks:
             self.update_setup_status()
             self.update_toggle_gdweave_button()
             logging.info("GDWeave installed/updated successfully!")
+            self.send_ga_event('gdweave_install', 'success', f"version_{self.settings['gdweave_version']}")
 
+        except requests.exceptions.RequestException as e:
+            error_message = f"Failed to download GDWeave: {str(e)}"
+            self.set_status(error_message)
+            logging.info(error_message)
+            logging.info(f"Error details: {traceback.format_exc()}")
+            self.send_ga_event('gdweave_install', 'error', f'download_failed: {str(e)}')
         except Exception as e:
             error_message = f"Failed to install/update GDWeave: {str(e)}"
             self.set_status(error_message)
             logging.info(error_message)
             logging.info(f"Error details: {traceback.format_exc()}")
+            self.send_ga_event('gdweave_install', 'error', f'install_failed: {str(e)}')
 
         self.refresh_mod_lists()
+        
     # updates the UI to reflect the current setup status
     def update_setup_status(self):
         # update step statuses
@@ -3525,11 +3639,15 @@ Special Thanks:
                 messagebox.showinfo("No Config Found", f"{mod['title']} doesn't have a config. Either this mod doesn't require one, or you need to restart your game to generate the config.")
                 return
             
+            self.send_ga_event('edit_config', 'success', None, {'mod_id': mod['id']})
             self.open_config_editor(mod['title'], config, config_path)
         except json.JSONDecodeError:
             messagebox.showerror("Error", f"Failed to parse the configuration file for {mod['title']}.")
+            self.send_ga_event('edit_config', 'error', 'invalid_json', {'mod_id': mod['id']})
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while trying to edit the configuration: {str(e)}")
+            self.send_ga_event('edit_config', 'error', 'unknown_error', {'mod_id': mod['id'], 'error': str(e)})
+            
     # opens a window to edit the configuration of a mod
     def open_config_editor(self, mod_name, config, config_path):
         if not config:  # if the config is empty treat it as if there's no file
@@ -3859,21 +3977,26 @@ Special Thanks:
                 dep_names = ", ".join(m['title'] for m in mods_to_enable[1:])
                 self.set_status(f"Test mode enabled for {mod['title']} with dependencies: {dep_names}")
                 messagebox.showinfo("Test Mode", f"Mod test mode enabled for {mod['title']} and its dependencies: {dep_names}")
+                self.send_ga_event('mod_action', 'test_mod_with_deps', f"{mod['title']} with {len(mods_to_enable)-1} deps")
             else:
                 self.set_status(f"Test mode enabled for: {mod['title']}")
                 messagebox.showinfo("Test Mode", "Mod test mode enabled. All other mods have been disabled.")
+                self.send_ga_event('mod_action', 'test_mod', mod['title'])
 
         except Exception as e:
             error_message = f"Failed to enable test mode: {str(e)}"
             self.set_status(error_message)
             messagebox.showerror("Error", error_message)
+            self.send_ga_event('error', 'test_mod_failed', f"{mod['title']}: {str(e)}")
 
     def blacklist_version(self, mod):
         version = mod.get('version', 'Unknown')
         mod_id = mod.get('thunderstore_id')
         
         if not mod_id:
-            messagebox.showerror("Error", "Cannot blacklist version for this mod type")
+            error_msg = "Cannot blacklist version for this mod type"
+            messagebox.showerror("Error", error_msg)
+            self.send_ga_event('error', 'blacklist_version_failed', f"{mod['title']}: {error_msg}")
             return
             
         if messagebox.askyesno("Confirm Blacklist", 
@@ -3892,6 +4015,7 @@ Special Thanks:
                 self.save_settings()
                 messagebox.showinfo("Success", 
                                 f"Version {version} has been marked as unwanted")
+                self.send_ga_event('mod_action', 'blacklist_version', f"{mod['title']} v{version}")
 
     def show_blacklisted_versions(self, mod):
         mod_id = mod.get('thunderstore_id')
@@ -3970,15 +4094,35 @@ Special Thanks:
         if not self.check_setup():
             return
         if selected := self.installed_listbox.curselection():
-            for index in selected:
-                mod = self.installed_mods[index]
-                mod['enabled'] = True
-                self.update_mod_status_in_listbox(mod)
-                self.save_mod_status(mod)
-                self.copy_mod_to_game(mod)
-                logging.info(f"Enabled mod: {mod['title']} (ID: {mod['id']}, Third Party: {mod.get('third_party', False)})")
-            self.refresh_mod_lists()
-            self.set_status(f"Enabled {len(selected)} mod(s)")
+            try:
+                for index in selected:
+                    mod = self.installed_mods[index]
+                    mod['enabled'] = True
+                    self.update_mod_status_in_listbox(mod)
+                    self.save_mod_status(mod)
+                    self.copy_mod_to_game(mod)
+                    logging.info(f"Enabled mod: {mod['title']} (ID: {mod['id']}, Third Party: {mod.get('third_party', False)})")
+                    
+                    # Log successful enable
+                    self.send_ga_event('mod_enable', {
+                        'mod_id': mod['id'],
+                        'mod_title': mod['title'],
+                        'third_party': mod.get('third_party', False)
+                    })
+                    
+                self.refresh_mod_lists()
+                self.set_status(f"Enabled {len(selected)} mod(s)")
+                
+            except Exception as e:
+                error_msg = f"Failed to enable mod: {str(e)}"
+                logging.error(error_msg)
+                self.set_status(error_msg)
+                
+                # Log enable error
+                self.send_ga_event('mod_enable_error', {
+                    'mod_id': mod['id'],
+                    'error': str(e)
+                })
                 
     # copies a third-party mod to the game directory
     def copy_third_party_mod_to_game(self, mod):
@@ -3997,9 +4141,20 @@ Special Thanks:
                 self.set_status(f"Uninstalling mod: {mod['title']}")
                 try:
                     self.uninstall_mod_files(mod)
+                    # Log successful uninstall
+                    self.send_ga_event('mod_uninstall_success', {
+                        'mod_id': mod['id'],
+                        'mod_title': mod['title'],
+                        'version': mod.get('version', 'Unknown')
+                    })
                 except Exception as e:
                     error_message = f"Failed to uninstall mod {mod['title']}: {str(e)}"
                     self.set_status(error_message)
+                    # Log uninstall error
+                    self.send_ga_event('mod_uninstall_error', {
+                        'mod_id': mod['id'],
+                        'error': str(e)
+                    })
             self.refresh_mod_lists()
 
     # removes mod files from the system
@@ -4047,14 +4202,33 @@ Special Thanks:
             return
         selected_indices = self.get_selected_installed_mod_indices()
         if selected_indices:
+            disabled_count = 0
             for index in selected_indices:
                 mod = self.installed_mods[index]
-                mod['enabled'] = False
-                self.update_mod_status_in_listbox(mod)
-                self.save_mod_status(mod)
-                self.remove_mod_from_game(mod)
+                try:
+                    mod['enabled'] = False
+                    self.update_mod_status_in_listbox(mod)
+                    self.save_mod_status(mod)
+                    self.remove_mod_from_game(mod)
+                    disabled_count += 1
+                    self.send_ga_event('mod_disable_success', {
+                        'mod_id': mod.get('id'),
+                        'mod_title': mod.get('title'),
+                        'version': mod.get('version')
+                    })
+                except Exception as e:
+                    error_message = f"Failed to disable mod {mod.get('title')}: {str(e)}"
+                    logging.error(error_message)
+                    self.send_ga_event('mod_disable_error', {
+                        'mod_id': mod.get('id'),
+                        'error': str(e)
+                    })
+
             self.refresh_mod_lists()
-            self.set_status(f"Disabled {len(selected_indices)} mod(s)")
+            self.set_status(f"Disabled {disabled_count} mod(s)")
+            self.send_ga_event('mods_disabled', {
+                'count': disabled_count
+            })
 
     # creates a mod.json file for imported mods
     def create_mod_json(self, mod_folder, mod_name):
@@ -4171,6 +4345,18 @@ Special Thanks:
                 webbrowser.open("https://discord.gg/HzhCPxeCKY")
 
             self.settings['discord_prompt_shown'] = True
+            self.save_settings()
+
+    def show_analytics_prompt(self):
+        if not self.settings.get('analytics_prompt_shown', False):
+            message = "Higher numbers make us happy! Would you help us improve Hook, Line, & Sinker?\n\nWe collect anonymous usage data including system info, feature usage patterns, error reports and mod installation statistics. No personal information is collected, and you can disable this anytime in Settings.\n\nWould you like to enable analytics?"
+            
+            if not messagebox.askyesno("Analytics Consent", message):
+                self.analytics_enabled.set(False)
+                self.settings['analytics_enabled'] = False
+                self.save_settings()
+                
+            self.settings['analytics_prompt_shown'] = True
             self.save_settings()
 
     # saves the status of a mod to its mod_info.json file
@@ -4447,6 +4633,8 @@ Special Thanks:
             'show_nsfw': False,
             'show_deprecated': False,
             'discord_prompt_shown': False,
+            'analytics_prompt_shown': False,
+            'analytics_enabled': True,
             'no_logging': False,
             'error_reporting_prompted': False,
             'auto_backup': True,
@@ -4501,7 +4689,8 @@ Special Thanks:
             "show_nsfw": self.show_nsfw.get(),
             "show_deprecated": self.show_deprecated.get(),
             "auto_backup": self.auto_backup.get(),
-            "suppress_mod_warning": self.suppress_mod_warning.get()
+            "suppress_mod_warning": self.suppress_mod_warning.get(),
+            "analytics_enabled": self.analytics_enabled.get()
         })
         
         settings_path = os.path.join(self.app_data_dir, 'settings.json')
@@ -4578,7 +4767,7 @@ Special Thanks:
 
     # downloads and installs a mod
     def download_and_install_mod(self, mod, install=True):
-        # Create a thread to handle the download and installation
+        # create thy thread to handle the download and installation
         thread = threading.Thread(
             target=self._download_and_install_mod_thread,
             args=(mod, install)
@@ -4603,16 +4792,47 @@ Special Thanks:
             # download the mod file with error handling and size check
             try:
                 # first try head request to check file size
-                response = requests.head(mod['download'], timeout=30)
-                file_size = int(response.headers.get('content-length', 0))
+                max_retries = 3
+                retry_count = 0
+                while True:
+                    try:
+                        response = requests.head(mod['download'], timeout=30)
+                        file_size = int(response.headers.get('content-length', 0))
 
-                # if head request returns 0 size, try get request with stream=true
-                if file_size == 0:
-                    response = requests.get(mod['download'], stream=True, timeout=30)
-                    file_size = int(response.headers.get('content-length', 0))
+                        # if head request returns 0 size, try get request with stream=true
+                        if file_size == 0:
+                            response = requests.get(mod['download'], stream=True, timeout=30)
+                            file_size = int(response.headers.get('content-length', 0))
+                        break
+                    except Exception as e:
+                        if ('ConnectionResetError' in str(e) or '10054' in str(e)):
+                            retry_count += 1
+                            self.send_ga_event('mod_download_retry', {
+                                'mod_id': mod['id'],
+                                'retry_count': retry_count,
+                                'error': str(e),
+                                'request_type': 'head'
+                            })
+                            if retry_count >= max_retries:
+                                self.send_ga_event('mod_download_error', {
+                                    'mod_id': mod['id'],
+                                    'error': 'max_retries_exceeded',
+                                    'final_error': str(e)
+                                })
+                                self.root.after(0, lambda: messagebox.showerror("Download Error", 
+                                    "Thunderstore appears to be having issues. Please try again in a few minutes."))
+                                raise ValueError("Thunderstore connection issues - please try again later")
+                            time.sleep(1)  # wait a second before retrying
+                            continue
+                        raise  # re-raise if it's a different error
 
                 # log the mod size
                 logging.info(f"Downloading mod {mod['title']} ({file_size / 1024 / 1024:.1f}MB)")
+                self.send_ga_event('mod_download_start', {
+                    'mod_id': mod['id'],
+                    'mod_title': mod['title'],
+                    'file_size_mb': round(file_size / 1024 / 1024, 1)
+                })
 
                 # check if file is over 50mb (50 * 1024 * 1024 bytes)
                 if file_size > 52428800:  # 50MB in bytes
@@ -4626,14 +4846,53 @@ Special Thanks:
                         "Do you want to continue anyway?"
                     )
                     if not messagebox.askyesno("Excessive File Size", warning_msg, icon='warning'):
+                        self.send_ga_event('mod_download_cancelled', {
+                            'mod_id': mod['id'],
+                            'reason': 'file_too_large',
+                            'file_size_mb': round(file_size / 1024 / 1024, 1)
+                        })
                         raise ValueError("Download cancelled - file too large")
 
                 # proceed with download
-                response = requests.get(mod['download'], timeout=30)
-                response.raise_for_status()
+                retry_count = 0
+                while True:
+                    try:
+                        response = requests.get(mod['download'], timeout=30)
+                        response.raise_for_status()
+                        break
+                    except Exception as e:
+                        if ('ConnectionResetError' in str(e) or '10054' in str(e)):
+                            retry_count += 1
+                            self.send_ga_event('mod_download_retry', {
+                                'mod_id': mod['id'],
+                                'retry_count': retry_count,
+                                'error': str(e),
+                                'request_type': 'get'
+                            })
+                            if retry_count >= max_retries:
+                                self.send_ga_event('mod_download_error', {
+                                    'mod_id': mod['id'],
+                                    'error': 'max_retries_exceeded',
+                                    'final_error': str(e)
+                                })
+                                self.root.after(0, lambda: messagebox.showerror("Download Error", 
+                                    "Thunderstore appears to be having issues. Please try again in a few minutes."))
+                                raise ValueError("Thunderstore connection issues - please try again later")
+                            time.sleep(1)  # wait a second before retrying
+                            continue
+                        raise  # re-raise if it's a different error
+
             except requests.Timeout:
+                self.send_ga_event('mod_download_error', {
+                    'mod_id': mod['id'],
+                    'error': 'timeout'
+                })
                 raise ValueError("Download timed out - please try again")
             except requests.RequestException as e:
+                self.send_ga_event('mod_download_error', {
+                    'mod_id': mod['id'],
+                    'error': str(e)
+                })
                 raise ValueError(f"Download failed: {str(e)}")
             
             zip_path = os.path.join(download_temp_dir, f"{mod['id']}.zip")
@@ -4641,6 +4900,10 @@ Special Thanks:
                 with open(zip_path, 'wb') as f:
                     f.write(response.content)
             except IOError as e:
+                self.send_ga_event('mod_download_error', {
+                    'mod_id': mod['id'],
+                    'error': f'save_failed: {str(e)}'
+                })
                 raise ValueError(f"Failed to save downloaded file: {str(e)}")
                 
             # extract the zip
@@ -4651,8 +4914,16 @@ Special Thanks:
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     zip_ref.extractall(extract_dir)
             except zipfile.BadZipFile:
+                self.send_ga_event('mod_install_error', {
+                    'mod_id': mod['id'],
+                    'error': 'invalid_zip'
+                })
                 raise ValueError("Downloaded file is not a valid zip archive")
             except Exception as e:
+                self.send_ga_event('mod_install_error', {
+                    'mod_id': mod['id'],
+                    'error': f'extract_failed: {str(e)}'
+                })
                 raise ValueError(f"Failed to extract zip file: {str(e)}")
                 
             # find manifest.json with valid id field
@@ -4673,11 +4944,19 @@ Special Thanks:
                         continue
                         
             if not manifest_path or not manifest:
+                self.send_ga_event('mod_install_error', {
+                    'mod_id': mod['id'],
+                    'error': 'missing_manifest'
+                })
                 raise ValueError(f"{mod['title']} is likely not an installable mod!")
                 
             # get the mod id from manifest
             mod_id = manifest.get('Id')
             if not mod_id:
+                self.send_ga_event('mod_install_error', {
+                    'mod_id': mod['id'],
+                    'error': 'invalid_manifest'
+                })
                 raise ValueError(f"{mod['title']} is likely not an installable mod!")
                 
             # create the final mod directory
@@ -4686,6 +4965,10 @@ Special Thanks:
                 try:
                     shutil.rmtree(mod_dir)
                 except Exception as e:
+                    self.send_ga_event('mod_install_error', {
+                        'mod_id': mod['id'],
+                        'error': f'remove_existing_failed: {str(e)}'
+                    })
                     raise ValueError(f"Failed to remove existing mod directory: {str(e)}")
                 
             # move the mod files
@@ -4696,6 +4979,10 @@ Special Thanks:
                 else:
                     shutil.move(extract_dir, mod_dir)
             except Exception as e:
+                self.send_ga_event('mod_install_error', {
+                    'mod_id': mod['id'],
+                    'error': f'move_files_failed: {str(e)}'
+                })
                 raise ValueError(f"Failed to move mod files: {str(e)}")
                 
             # create mod_info.json
@@ -4723,6 +5010,10 @@ Special Thanks:
                 with open(mod_info_path, 'w') as f:
                     json.dump(mod_info, f, indent=2)
             except Exception as e:
+                self.send_ga_event('mod_install_error', {
+                    'mod_id': mod['id'],
+                    'error': f'create_info_failed: {str(e)}'
+                })
                 raise ValueError(f"Failed to create mod_info.json: {str(e)}")
                 
             # add to installed mods
@@ -4733,10 +5024,19 @@ Special Thanks:
                 try:
                     self.copy_mod_to_game(mod_info)
                 except Exception as e:
+                    self.send_ga_event('mod_install_error', {
+                        'mod_id': mod['id'],
+                        'error': f'copy_to_game_failed: {str(e)}'
+                    })
                     raise ValueError(f"Failed to copy mod to game directory: {str(e)}")
                 
             self.set_status_safe(f"Successfully installed {mod['title']}")
             logging.info(f"Installed mod: {mod['title']} (ID: {mod_id})")
+            self.send_ga_event('mod_install_success', {
+                'mod_id': mod['id'],
+                'mod_title': mod['title'],
+                'version': mod_info['version']
+            })
 
             if install:
                 self.root.after(0, self.installation_complete, mod_info)
@@ -4856,6 +5156,7 @@ Special Thanks:
                 'version': "Unknown",
                 'published_at': None
             }
+        
     # checks for updates to the program mods and gdweave
     def check_for_updates(self, silent=False):
         try:
@@ -4873,10 +5174,19 @@ Special Thanks:
                 message += "\n\nWould you like to download the update?"
                 
                 if messagebox.askyesno("Update Available", message):
+                    self.send_ga_event("update_program_accepted", {
+                        "from_version": local_version,
+                        "to_version": remote_version
+                    })
                     webbrowser.open(f"https://hooklinesinker.lol/download/{remote_version}")
                     self.root.destroy()
                     sys.exit(0)
                     return
+                else:
+                    self.send_ga_event("update_program_declined", {
+                        "from_version": local_version,
+                        "to_version": remote_version
+                    })
 
             # check for mod updates
             self.set_status_safe("Checking for mod and GDWeave updates...")
@@ -4914,8 +5224,15 @@ Special Thanks:
                     update_message += "Would you like to install all updates?"
 
                     if silent or messagebox.askyesno("Updates Available", update_message):
+                        self.send_ga_event("update_mods_accepted", {
+                            "mod_count": len(mods_to_update)
+                        })
                         for mod in mods_to_update:
                             self.download_and_install_mod(mod['available'])
+                    else:
+                        self.send_ga_event("update_mods_declined", {
+                            "mod_count": len(mods_to_update)
+                        })
 
             # check for gdweave update
             gdweave_version = self.get_gdweave_version()
@@ -4929,8 +5246,10 @@ Special Thanks:
                         "Update available for GDWeave. Do you want to update?",
                     )
                 ):
+                    self.send_ga_event("update_gdweave_accepted")
                     self.install_gdweave()
                 else:
+                    self.send_ga_event("update_gdweave_declined")
                     self.set_status_safe("GDWeave update skipped by user.")
 
             if not silent and not updates_available:
@@ -5295,6 +5614,7 @@ Special Thanks:
                         mod_info = json.load(f)
                         mod_info['third_party'] = True
                         self.available_mods.append(mod_info)
+
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -1,15 +1,11 @@
 {
-    "version": "1.2.5",
-    "message": "The Meow UpdateTM\n\nIMPORTANT: If you experience issues, you can always download manually from hooklinesinker.lol\n\nThis update brings major improvements to modding features and quality of life enhancements.",
+    "version": "1.2.6",
+    "message": "The ConnectionResetError UpdateTM\n\nThis update focuses on improving mod download reliability and adds opt-in analytics to help with development.",
     "changelog": [
-        "Added secret H + M easter egg",
-        "Improved modpacks system - now uses shareable codes instead of zip files",
-        "Completely overhauled the config editor",
-        "Added performance warning for 50+ mods",
-        "Improved settings UI with new Quick Support option",
-        "Added ability to blacklist specific mod versions from auto-updates",
-        "Added warning for mods larger than 50MB",
-        "Added Open Folder option in context menu for enabled mods",
-        "Temporarily removed third-party mods from modpacks"
+        "Added retry system for failed mod downloads",
+        "Improved error messages when downloads fail",
+        "Added opt-in Google Analytics tracking",
+        "Improved settings UI",
+        "Various bug fixes and stability improvements"
     ]
 }

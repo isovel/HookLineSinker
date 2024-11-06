@@ -3730,6 +3730,11 @@ Special Thanks:
                     menu.add_command(label="Disable", command=self.disable_mod)
                     menu.add_command(label="Uninstall", command=self.uninstall_mod)
                     
+                    # open folder option if mod is enabled
+                    if mod.get('enabled', True):
+                        menu.add_separator()
+                        menu.add_command(label="Open Folder", command=lambda: self.open_mod_folder(mod))
+                    
                     # Third-party mod options
                     if mod.get('third_party', False):
                         menu.add_separator()
@@ -3737,6 +3742,23 @@ Special Thanks:
                                        command=lambda: self.export_mod_as_zip(mod))
 
             menu.tk_popup(event.x_root, event.y_root)
+
+    def open_mod_folder(self, mod):
+        if not self.settings.get('game_path'):
+            messagebox.showerror("Error", "Game path not set")
+            return
+            
+        mod_path = os.path.join(self.settings['game_path'], 'GDWeave', 'Mods', mod['id'])
+        if not os.path.exists(mod_path):
+            messagebox.showerror("Error", "Mod folder not found. Make sure the mod is enabled and installed.")
+            return
+            
+        if sys.platform.startswith('win'):
+            os.startfile(mod_path)
+        elif sys.platform.startswith('linux'):
+            subprocess.Popen(['xdg-open', mod_path])
+        else:
+            messagebox.showerror("Error", "Unsupported operating system")
 
     def mod_has_config(self, mod):
         if not self.settings.get('game_path'):

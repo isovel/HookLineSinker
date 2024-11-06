@@ -1,11 +1,15 @@
 {
-    "version": "1.2.4",
-    "message": "The Dark Mode UpdateTM\n\nIMPORTANT: If you experience issues, you can always download manually from hooklinesinker.lol\n\nThis update adds several major features and fixes various bugs.",
+    "version": "1.2.5",
+    "message": "The Meow UpdateTM\n\nIMPORTANT: If you experience issues, you can always download manually from hooklinesinker.lol\n\nThis update brings major improvements to modding features and quality of life enhancements.",
     "changelog": [
-        "Fixed several critical bugs and crashes",
-        "Added automatic backup system for saves",
-        "Added experimental Dark Mode support",
-        "Added Modpacks feature (beta)",
-        "Various UI and stability improvements"
+        "Added secret H + M easter egg",
+        "Improved modpacks system - now uses shareable codes instead of zip files",
+        "Completely overhauled the config editor",
+        "Added performance warning for 50+ mods",
+        "Improved settings UI with new Quick Support option",
+        "Added ability to blacklist specific mod versions from auto-updates",
+        "Added warning for mods larger than 50MB",
+        "Added Open Folder option in context menu for enabled mods",
+        "Temporarily removed third-party mods from modpacks"
     ]
 }

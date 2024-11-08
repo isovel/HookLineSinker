@@ -257,6 +257,19 @@ class HookLineSinkerUI:
         self.last_key_time = 0
         self.root.bind('<KeyPress>', self.handle_keypress)
         self.root.bind('<KeyRelease>', self.handle_keyrelease)
+
+        self.start_time = time.time()
+        self.last_activity_time = time.time()
+        self.total_engagement_time = 0
+        
+        # bind activity tracking to root window
+        self.root.bind_all('<Key>', self.track_activity)
+        self.root.bind_all('<Button>', self.track_activity)
+        self.root.bind_all('<MouseWheel>', self.track_activity)
+        
+        # start engagement tracking thread
+        self.engagement_thread = threading.Thread(target=self.track_engagement_time, daemon=True)
+        self.engagement_thread.start()
         
         # track if mod limit is disabled
         self.mod_limit_disabled = False
@@ -473,6 +486,17 @@ class HookLineSinkerUI:
         self.survey_thread = threading.Thread(target=self.check_survey_prompt, daemon=True)
         self.survey_thread.start()
 
+    def track_activity(self, event):
+        self.last_activity_time = time.time()
+
+    def track_engagement_time(self):
+        while True:
+            time.sleep(1)  # check every second
+            current_time = time.time()
+            # consider user engaged if less than 30 seconds since last activity
+            if current_time - self.last_activity_time < 30:
+                self.total_engagement_time += 1
+
     def check_survey_prompt(self):
         while True:
             time.sleep(self.survey_cooldown)
@@ -563,6 +587,22 @@ class HookLineSinkerUI:
                 
             ttk.Button(dialog, text="Submit", command=submit_suggestion, style='Accent.TButton').pack(pady=10)
 
+    def get_user_id(self):
+        # check if user id exists in settings
+        user_id = self.settings.get('user_id')
+        if not user_id:
+            # generate new uuid if none exists
+            user_id = str(uuid.uuid4())
+            self.settings['user_id'] = user_id
+            # save only the settings dict, don't call full save_settings()
+            settings_path = os.path.join(self.app_data_dir, 'settings.json')
+            try:
+                with open(settings_path, 'w') as f:
+                    json.dump(self.settings, f, indent=4)
+            except Exception as e:
+                logging.error(f"Failed to save user ID: {e}")
+        return user_id
+
     def send_ga_event(self, event_name, params=None):
         """
         Sends an event to Google Analytics 4
@@ -578,41 +618,36 @@ class HookLineSinkerUI:
             logging.getLogger('urllib3').setLevel(logging.WARNING)
             requests.packages.urllib3.disable_warnings()
 
-            # get path to secrets file
-            if getattr(sys, 'frozen', False):
-                # running as compiled executable
-                bundle_dir = sys._MEIPASS
-            else:
-                # running in normal python environment
-                bundle_dir = os.path.dirname(os.path.abspath(__file__))
+            # get persistent user id
+            client_id = self.get_user_id()
+            
+            # generate session id if needed
+            if not hasattr(self, 'session_id'):
+                self.session_id = str(uuid.uuid4())
                 
-            secrets_path = os.path.join(bundle_dir, 'GASecret.txt')
+            # calculate engagement time in milliseconds
+            engagement_ms = int(self.total_engagement_time * 1000)
             
-            # load GA configuration
-            try:
-                with open(secrets_path, 'r') as f:
-                    ga_config = json.load(f)
-                    MEASUREMENT_ID = ga_config['mid']
-                    API_SECRET = ga_config['key']
-            except Exception as e:
-                logging.error(f"Failed to load GA secrets: {str(e)}")
-                return
-
-            # client id is a random session id
-            client_id = str(random.randint(1000000000, 9999999999))
-            
-            # base payload required for GA4
+            # base payload with improved parameters
             payload = {
                 "client_id": client_id,
+                "user_id": client_id,  # enable user-level reporting
                 "non_personalized_ads": True,
                 "events": [{
                     "name": event_name,
                     "params": {
-                        "engagement_time_msec": "100",
-                        "session_id": str(int(time.time())),
+                        "engagement_time_msec": str(engagement_ms),
+                        "session_id": self.session_id,
                         "app_version": get_version(),
                         "platform": sys.platform,
-                        "client_id": client_id # i don't THINK this is needed but it's harmless and slightly easier for my dumbass
+                        "screen_resolution": f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}",
+                        "window_size": f"{self.root.winfo_width()}x{self.root.winfo_height()}",
+                        "dark_mode": self.dark_mode.get(),
+                        "total_installed_mods": len(self.installed_mods),
+                        "session_duration": int(time.time() - self.start_time),
+                        "language": self.settings.get('language', 'en'),
+                        "os_version": platform.version(),
+                        "memory_usage_mb": int(psutil.Process().memory_info().rss / 1024 / 1024)
                     }
                 }]
             }
@@ -624,6 +659,21 @@ class HookLineSinkerUI:
             # send to GA4 endpoint asynchronously
             def send_request():
                 try:
+                    # get path to secrets file
+                    if getattr(sys, 'frozen', False):
+                        # running as compiled executable
+                        bundle_dir = sys._MEIPASS
+                    else:
+                        # running in normal python environment
+                        bundle_dir = os.path.dirname(os.path.abspath(__file__))
+                        
+                    secrets_path = os.path.join(bundle_dir, 'GASecret.txt')
+                    
+                    with open(secrets_path, 'r') as f:
+                        ga_config = json.load(f)
+                        MEASUREMENT_ID = ga_config['mid']
+                        API_SECRET = ga_config['key']
+                
                     response = requests.post(
                         f"https://www.google-analytics.com/mp/collect?measurement_id={MEASUREMENT_ID}&api_secret={API_SECRET}",
                         json=payload,
@@ -632,7 +682,7 @@ class HookLineSinkerUI:
                     if response.status_code != 204:
                         logging.error(f"GA request failed with status {response.status_code}: {response.text}")
                 except Exception as e:
-                    logging.error(f"Failed to send GA request: {str(e)}")
+                    logging.error(f"failed to send ga request: {str(e)}")
 
             threading.Thread(target=send_request, daemon=True).start()
 
@@ -1123,7 +1173,8 @@ class HookLineSinkerUI:
         mod_manager_frame.grid_rowconfigure(1, weight=1)
 
         # create left panel for available mods
-        available_frame = ttk.LabelFrame(mod_manager_frame, text="Available Mods")
+        available_frame = ttk.LabelFrame(mod_manager_frame, text="Available Mods (0)")
+        self.available_frame = available_frame
         available_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         available_frame.grid_columnconfigure(0, weight=1)
         available_frame.grid_rowconfigure(0, weight=0)  # Search frame
@@ -1232,7 +1283,8 @@ class HookLineSinkerUI:
         ttk.Button(help_frame, text="Dev Guide", command=lambda: webbrowser.open("https://github.com/BlueberryWolf/WEBFISHINGModdingGuide/blob/main/README.md")).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
 
         # create right panel for installed mods
-        installed_frame = ttk.LabelFrame(mod_manager_frame, text="Installed Mods")
+        installed_frame = ttk.LabelFrame(mod_manager_frame, text="Installed Mods (0)")
+        self.installed_frame = installed_frame
         installed_frame.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
 
         # create search frame
@@ -1252,17 +1304,15 @@ class HookLineSinkerUI:
                   command=self.toggle_installed_filters).grid(row=0, column=2, padx=5)
 
         # create advanced filter frame (hidden by default)
-        self.installed_filter_frame = ttk.LabelFrame(installed_frame, text="Filter Options")
+        self.installed_filter_frame = ttk.LabelFrame(installed_frame, text="Advanced Filters")
 
-        # create category frame
-        installed_category_frame = ttk.Frame(self.installed_filter_frame)
-        installed_category_frame.pack(fill="x", padx=5, pady=2)
+        # create filter dropdown frame
+        installed_filter_frame = ttk.Frame(self.installed_filter_frame)
+        installed_filter_frame.pack(fill="x", padx=5, pady=2)
 
-        ttk.Label(installed_category_frame, text="Status:").pack(side="left", padx=5)
-        self.installed_category = ttk.Combobox(installed_category_frame, 
-            values=["All", "Enabled", "Disabled"], state="readonly")
+        ttk.Label(installed_filter_frame, text="Category:").pack(side="left", padx=5)
+        self.installed_category = ttk.Combobox(installed_filter_frame, state="readonly")
         self.installed_category.pack(side="left", fill="x", expand=True, padx=5)
-        self.installed_category.set("All")
         self.installed_category.bind('<<ComboboxSelected>>', self.filter_installed_mods)
 
         # create sort frame
@@ -1313,63 +1363,62 @@ class HookLineSinkerUI:
         modpacks_frame = ttk.Frame(self.notebook)
         self.notebook.add(modpacks_frame, text="Modpacks")
 
-        # Create main vertical layout
-        main_container = ttk.Frame(modpacks_frame)
-        main_container.pack(fill="both", expand=True, padx=5, pady=5)
+        modpacks_frame.grid_columnconfigure(0, weight=1)
+        modpacks_frame.grid_rowconfigure(2, weight=1)
 
-        # Add warning message at top
-        warning_frame = ttk.Frame(main_container)
-        warning_frame.pack(fill="x", pady=5)
-        warning_label = ttk.Label(warning_frame, 
-            text="⚠️ WARNING: Modpacks are currently in BETA.\n" +
-                 "They may not work as intended and could potentially break your game or mods.\n" +
-                 "Only use this feature if you understand and accept these risks.",
-            foreground="red",
-            justify="center",
-            wraplength=600)
-        warning_label.pack()
+        title_label = ttk.Label(modpacks_frame, text="Modpacks", font=("Helvetica", 16, "bold"))
+        title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
 
-        # Create horizontal container for panels
-        panels_container = ttk.Frame(main_container)
-        panels_container.pack(fill="both", expand=True, pady=5)
+        subtitle_label = ttk.Label(modpacks_frame, text="Create, import, and manage mod collections", font=("Helvetica", 10, "italic"))
+        subtitle_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
-        # Create left panel for modpack list
+        panels_container = ttk.Frame(modpacks_frame)
+        panels_container.grid(row=2, column=0, sticky="nsew", pady=5)
+        panels_container.grid_columnconfigure(0, weight=1)
+        panels_container.grid_columnconfigure(1, weight=1)
+        panels_container.grid_rowconfigure(0, weight=1)
+
         left_frame = ttk.LabelFrame(panels_container, text="Available Modpacks")
-        left_frame.pack(side="left", fill="both", expand=True, padx=(0,2.5))
-        
-        # Create buttons frame
-        buttons_frame = ttk.Frame(left_frame)
-        buttons_frame.pack(fill="x", padx=5, pady=5)
-        
-        ttk.Button(buttons_frame, text="Create Modpack", command=self.create_modpack_window).pack(side="left", padx=2)
-        ttk.Button(buttons_frame, text="Import Modpack", command=self.import_modpack).pack(side="left", padx=2)
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=(5,2.5))
+        left_frame.grid_columnconfigure(0, weight=1)
+        left_frame.grid_rowconfigure(1, weight=1)
 
-        # Add Apply/Remove buttons
-        action_buttons_frame = ttk.Frame(left_frame)
-        action_buttons_frame.pack(fill="x", padx=5, pady=5)
-        
-        ttk.Button(action_buttons_frame, text="Apply Modpack", command=self.apply_modpack).pack(side="left", padx=2)
-        ttk.Button(action_buttons_frame, text="Delete Modpack", command=self.remove_modpack).pack(side="left", padx=2)
-        
-        # Create listbox for modpacks with increased width
+        # create listbox for modpacks with scrollbar
         self.modpacks_listbox = tk.Listbox(left_frame, width=45)
-        self.modpacks_listbox.pack(fill="both", expand=True, padx=5, pady=5)
+        modpacks_scrollbar = ttk.Scrollbar(left_frame, orient="vertical", command=self.modpacks_listbox.yview)
+        self.modpacks_listbox.configure(yscrollcommand=modpacks_scrollbar.set)
+        
+        self.modpacks_listbox.grid(row=1, column=0, sticky="nsew", padx=(5,0), pady=5)
+        modpacks_scrollbar.grid(row=1, column=1, sticky="ns", pady=5, padx=(0,5))
         self.modpacks_listbox.bind('<<ListboxSelect>>', self.on_modpack_select)
 
-        # Create right panel for modpack details
-        right_frame = ttk.LabelFrame(panels_container, text="Modpack Details")
-        right_frame.pack(side="left", fill="both", expand=True, padx=(2.5,0))
+        # buttons at bottom of left frame in 2x2 grid
+        buttons_frame = ttk.Frame(left_frame)
+        buttons_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
+        buttons_frame.grid_columnconfigure(0, weight=1)
+        buttons_frame.grid_columnconfigure(1, weight=1)
+        
+        ttk.Button(buttons_frame, text="Create", command=self.create_modpack_window).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
+        ttk.Button(buttons_frame, text="Import", command=self.import_modpack).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
+        ttk.Button(buttons_frame, text="Apply", command=self.apply_modpack).grid(row=1, column=0, padx=2, pady=2, sticky="ew")
+        ttk.Button(buttons_frame, text="Delete", command=self.remove_modpack).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
 
-        # Create text widget for modpack details
-        self.modpack_details = tk.Text(right_frame, wrap=tk.WORD, height=20)
-        self.modpack_details.pack(fill="both", expand=True, padx=5, pady=5)
+        right_frame = ttk.LabelFrame(panels_container, text="Modpack Details")
+        right_frame.grid(row=0, column=1, sticky="nsew", padx=(2.5,5))
+        right_frame.grid_columnconfigure(0, weight=1)
+        right_frame.grid_rowconfigure(0, weight=1)
+
+        self.modpack_details = tk.Text(right_frame, wrap=tk.WORD)
+        details_scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=self.modpack_details.yview)
+        self.modpack_details.configure(yscrollcommand=details_scrollbar.set)
+        
+        self.modpack_details.grid(row=0, column=0, sticky="nsew", padx=(5,0), pady=5)
+        details_scrollbar.grid(row=0, column=1, sticky="ns", pady=5, padx=(0,5))
         self.modpack_details.config(state='disabled')
 
-        # Initialize modpacks directory
         self.modpacks_dir = os.path.join(self.app_data_dir, "modpacks")
         os.makedirs(self.modpacks_dir, exist_ok=True)
 
-        # Load existing modpacks
         self.refresh_modpacks_list()
 
     def create_modpack_window(self):
@@ -1469,10 +1518,25 @@ class HookLineSinkerUI:
             }
 
             try:
-                # convert to JSON string
-                json_data = json.dumps(modpack_info, indent=2)
+                # Save modpack locally first without the paste_id
+                modpack_filename = f"{name}.json"
+                modpack_path = os.path.join(self.modpacks_dir, modpack_filename)
                 
-                # this is very insecure so if you're reading this, please don't steal my pastebin api key
+                # Check if modpack already exists and get existing paste_id if it does
+                existing_paste_id = None
+                if os.path.exists(modpack_path):
+                    if not messagebox.askyesno("Modpack Exists", 
+                        "A modpack with this name already exists. Do you want to overwrite it?"):
+                        return
+                    try:
+                        with open(modpack_path, 'r') as f:
+                            existing_data = json.load(f)
+                            existing_paste_id = existing_data.get('paste_id')
+                    except:
+                        pass
+
+                # Create Pastebin paste
+                json_data = json.dumps(modpack_info, indent=2)
                 api_dev_key = 'jOTm6BSYKBTKnFx1BUCzgFy1nIi-W9M1'
                 api_url = 'https://pastebin.com/api/api_post.php'
                 
@@ -1482,24 +1546,54 @@ class HookLineSinkerUI:
                     'api_paste_code': json_data,
                     'api_paste_name': f'HLS Modpack - {name}',
                     'api_paste_format': 'json',
-                    'api_paste_private': '0',  # 0=public, 1=unlisted, 2=private
-                    'api_paste_expire_date': 'N'  # Never expire
+                    'api_paste_private': '0',
+                    'api_paste_expire_date': 'N'
                 }
                 
                 response = requests.post(api_url, data=data)
                 if response.status_code == 200 and response.text.startswith('https://pastebin.com/'):
                     paste_id = response.text.split('/')[-1]
-                    messagebox.showinfo("Success", f"Modpack created successfully!\nShare this code with others: {paste_id}\nIt has also been copied to your clipboard.")
-                    # copy paste ID to clipboard
+                    
+                    # Add paste_id to modpack_info and save again
+                    modpack_info['paste_id'] = paste_id
+                    with open(modpack_path, 'w') as f:
+                        json.dump(modpack_info, f, indent=2)
+
+                    # Show success message
+                    if existing_paste_id:
+                        message = (f"Modpack updated successfully!\n"
+                                  f"Previous share code: {existing_paste_id}\n"
+                                  f"New share code: {paste_id}\n"
+                                  f"The new code has been copied to your clipboard.")
+                    else:
+                        message = (f"Modpack created successfully!\n"
+                                  f"Share this code with others: {paste_id}\n"
+                                  f"It has also been copied to your clipboard.")
+                    
+                    messagebox.showinfo("Success", message)
+                    
+                    # Copy new paste ID to clipboard
                     self.root.clipboard_clear()
                     self.root.clipboard_append(paste_id)
                     self.root.update()
+                    
+                    # Refresh and select in modpack list
+                    self.refresh_modpacks_list()
+                    for i in range(self.modpacks_listbox.size()):
+                        if self.modpacks_listbox.get(i) == name:
+                            self.modpacks_listbox.selection_clear(0, tk.END)
+                            self.modpacks_listbox.selection_set(i)
+                            self.modpacks_listbox.see(i)
+                            self.on_modpack_select(None)
+                            break
+                            
                     modpack_window.destroy()
                 else:
                     raise Exception(f"Failed to create paste: {response.text}")
 
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to create modpack: {str(e)}")
+                error_message = f"Failed to create modpack: {str(e)}"
+                messagebox.showerror("Error", error_message)
 
         # Create buttons frame
         buttons_frame = ttk.Frame(modpack_window)
@@ -1529,6 +1623,9 @@ class HookLineSinkerUI:
             required_fields = ['name', 'author', 'description', 'mods']
             if not all(field in modpack_info for field in required_fields):
                 raise Exception("Invalid modpack format")
+
+            # Add the paste_id to the modpack info
+            modpack_info['paste_id'] = paste_id
 
             # Save modpack locally
             modpack_filename = f"{modpack_info['name']}.json"
@@ -1573,15 +1670,14 @@ class HookLineSinkerUI:
                 self.modpacks_listbox.insert(tk.END, file[:-5])  # Remove .json extension
                 
     def on_modpack_select(self, event):
-        selection = self.modpacks_listbox.curselection()
-        if not selection:
+        selected = self.modpacks_listbox.curselection()
+        if not selected:
             return
 
-        modpack_name = self.modpacks_listbox.get(selection[0])
+        modpack_name = self.modpacks_listbox.get(selected[0])
         modpack_path = os.path.join(self.modpacks_dir, f"{modpack_name}.json")
 
         try:
-            # Read the JSON file directly
             with open(modpack_path, 'r') as f:
                 modpack_info = json.load(f)
 
@@ -1593,8 +1689,10 @@ class HookLineSinkerUI:
             self.modpack_details.insert(tk.END, f"Author: {modpack_info['author']}\n")
             created_date = datetime.fromisoformat(modpack_info['created'])
             formatted_date = created_date.strftime("%I:%M%p %d/%m/%Y")
-            self.modpack_details.insert(tk.END, f"Created: {formatted_date}\n\n")
-            self.modpack_details.insert(tk.END, f"Description:\n{modpack_info['description']}\n\n")
+            self.modpack_details.insert(tk.END, f"Created: {formatted_date}\n")
+            if 'paste_id' in modpack_info:
+                self.modpack_details.insert(tk.END, f"Share Code: {modpack_info['paste_id']}\n")
+            self.modpack_details.insert(tk.END, f"\nDescription:\n{modpack_info['description']}\n\n")
             
             self.modpack_details.insert(tk.END, "Included Mods:\n")
             for mod in modpack_info['mods']:
@@ -1999,6 +2097,22 @@ class HookLineSinkerUI:
         self.refresh_mod_lists()
         
     def filter_installed_mods(self, event=None):
+        if not hasattr(self, 'installed_listbox'):
+            return
+            
+        # Collect unique categories from installed mods
+        categories = set()
+        for mod in self.installed_mods:
+            categories.update(mod.get('categories', []))
+        
+        # Update category dropdown with "All", "Enabled", "Disabled" and mod categories
+        filter_values = ["All", "Enabled", "Disabled"] + sorted(list(categories))
+        self.installed_category['values'] = filter_values
+        
+        # Set default value if not already set
+        if not self.installed_category.get():
+            self.installed_category.set("All")
+            
         # check total number of installed mods
         if (len(self.installed_mods) > 50 and 
             not hasattr(self, 'large_mod_list_warning_shown') and 
@@ -2016,54 +2130,47 @@ class HookLineSinkerUI:
             
             self.large_mod_list_warning_shown = True
             
-        selected_filter = self.installed_category.get()
         search_text = self.installed_search_var.get().lower()
-        hide_third_party = self.hide_third_party.get()
-        sort_method = self.installed_sort_method.get()
+        selected_filter = self.installed_category.get()
         
-        # clear the listbox
+        # Clear current items
         self.installed_listbox.delete(0, tk.END)
         
-        # create a filtered list of mods with their original indices
         filtered_mods = []
-        for i, mod in enumerate(self.installed_mods):
-            # skip if hiding 3rd party and mod is 3rd party
-            if hide_third_party and mod.get('third_party', False):
+        for mod in self.installed_mods:
+            # Skip if hiding third party mods
+            if self.hide_third_party.get() and mod.get('third_party', False):
                 continue
                 
-            # check if mod matches search criteria
-            if search_text and not (
-                search_text in mod['title'].lower() or 
-                search_text in mod.get('author', '').lower() or
-                search_text in mod.get('description', '').lower()
-            ):
+            # Apply search filter
+            if search_text and search_text not in self.get_display_name(mod['title']).lower():
                 continue
                 
-            # check if mod matches status filter
-            if (
-                selected_filter == "All" or
-                (selected_filter == "Enabled" and mod.get('enabled', True)) or
-                (selected_filter == "Disabled" and not mod.get('enabled', True))
-            ):
-                filtered_mods.append((i, mod))  # Store tuple of (original_index, mod)
-        # sort the filtered mods
+            # Apply status/category filter
+            if selected_filter == "Enabled" and not mod.get('enabled', True):
+                continue
+            elif selected_filter == "Disabled" and mod.get('enabled', True):
+                continue
+            elif selected_filter not in ["All", "Enabled", "Disabled"]:
+                # It's a category filter
+                if selected_filter not in mod.get('categories', []):
+                    continue
+                    
+            filtered_mods.append(mod)
+        
+        # Apply sorting
+        sort_method = self.installed_sort_method.get()
         if sort_method == "Name (A-Z)":
-            filtered_mods.sort(key=lambda x: x[1]['title'].lower())
+            filtered_mods.sort(key=lambda x: self.get_display_name(x['title']).lower())
         elif sort_method == "Name (Z-A)":
-            filtered_mods.sort(key=lambda x: x[1]['title'].lower(), reverse=True)
-        elif sort_method == "Recently Updated":
-            filtered_mods.sort(key=lambda x: x[1].get('last_updated', ''), reverse=True)
-        elif sort_method == "Recently Installed":
-            filtered_mods.sort(key=lambda x: x[1].get('updated_on', 0), reverse=True)
+            filtered_mods.sort(key=lambda x: self.get_display_name(x['title']).lower(), reverse=True)
         
-        # store mapping of listbox indices to original mod indices
-        self.installed_mod_map = [x[0] for x in filtered_mods]
-        
-        # display the filtered and sorted mods
-        for _, mod in filtered_mods:
+        # Update listbox
+        for mod in filtered_mods:
             status = "✅" if mod.get('enabled', True) else "❌"
-            mod_title = f"{status} {mod['title']}"
-            self.installed_listbox.insert(tk.END, mod_title)
+            third_party = "[3rd] " if mod.get('third_party', False) else ""
+            display_title = self.get_display_name(mod['title'])
+            self.installed_listbox.insert(tk.END, f"{status} {third_party}{display_title}".strip())
 
     # there is no fucking way i'm doing this right so just praying this works
     def get_selected_installed_mod_indices(self):
@@ -2437,13 +2544,25 @@ class HookLineSinkerUI:
     def create_settings_tab(self):
         settings_frame = ttk.Frame(self.notebook)
         self.notebook.add(settings_frame, text="Settings")
+        user_id = self.get_user_id()
 
         settings_frame.grid_columnconfigure(0, weight=1)
         settings_frame.grid_rowconfigure(7, weight=1)
 
-        # title
-        title_label = ttk.Label(settings_frame, text="Application Settings", font=("Helvetica", 16, "bold"))
-        title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
+        # title frame with user ID
+        title_frame = ttk.Frame(settings_frame)
+        title_frame.grid(row=0, column=0, pady=(20,0), padx=20, sticky="ew")
+        title_frame.grid_columnconfigure(1, weight=1)
+
+        # title on left
+        title_label = ttk.Label(title_frame, text="Application Settings", font=("Helvetica", 16, "bold"))
+        title_label.grid(row=0, column=0, sticky="w")
+
+        # user ID on right
+        id_frame = ttk.Frame(title_frame)
+        id_frame.grid(row=0, column=1, sticky="e")
+        ttk.Button(id_frame, text="Copy UUID", command=lambda: self.root.clipboard_append(user_id)).grid(row=0, column=0, padx=(0,5))
+        ttk.Label(id_frame, text=user_id, font=("Helvetica", 8)).grid(row=0, column=1)
 
         # subtitle
         subtitle_label = ttk.Label(settings_frame, text="Customize your Hook, Line, & Sinker experience", font=("Helvetica", 10, "italic"))
@@ -2496,8 +2615,7 @@ class HookLineSinkerUI:
         update_frame.grid(row=4, column=0, columnspan=2, pady=5, padx=5, sticky="w")
         update_frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Button(update_frame, text="Check for Updates", command=self.check_for_updates).grid(row=0, column=0, pady=2, padx=(0, 5), sticky="w")
-        ttk.Label(update_frame, text="Check for application and mod updates").grid(row=0, column=1, pady=2, padx=5, sticky="w")
+        ttk.Button(update_frame, text="Check for Updates", command=self.check_for_updates).grid(row=0, column=0, pady=2, sticky="w")
 
         # hook line & sinker information
         info_frame = ttk.LabelFrame(settings_frame, text="Hook, Line, & Sinker Information")
@@ -2513,11 +2631,11 @@ class HookLineSinkerUI:
         self.latest_version_label = ttk.Label(info_frame, text="Latest Version: Checking...")
         self.latest_version_label.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
 
-        ttk.Button(info_frame, text="View Changelog", command=self.show_changelog).grid(row=2, column=0, pady=5, padx=5, sticky="w")
-        ttk.Label(info_frame, text="View application changelog").grid(row=2, column=1, pady=5, padx=5, sticky="w")
+        ttk.Button(info_frame, text="View Changelog", command=self.show_changelog).grid(row=3, column=0, pady=5, padx=5, sticky="w")
+        ttk.Label(info_frame, text="View application changelog").grid(row=3, column=1, pady=5, padx=5, sticky="w")
 
-        ttk.Button(info_frame, text="View Credits", command=self.show_credits).grid(row=3, column=0, pady=5, padx=5, sticky="w")
-        ttk.Label(info_frame, text="View application credits").grid(row=3, column=1, pady=5, padx=5, sticky="w")
+        ttk.Button(info_frame, text="View Credits", command=self.show_credits).grid(row=4, column=0, pady=5, padx=5, sticky="w")
+        ttk.Label(info_frame, text="View application credits").grid(row=4, column=1, pady=5, padx=5, sticky="w")
 
         # troubleshooting options
         troubleshoot_frame = ttk.LabelFrame(settings_frame, text="Troubleshooting")
@@ -2613,18 +2731,19 @@ class HookLineSinkerUI:
         messagebox.showinfo("Success", "Support information has been copied to your clipboard.\nYou can now paste this in Discord for support.")
 
     def show_credits(self):
-        credits_text = """Credits:
+        credits_text = """Big thank you to the following people for their contributions to Hook, Line, & Sinker!
 
 Development:
 • Pyoid - Creator of Hook, Line, & Sinker
 • NotNite - Creator of GDWeave
+• lamedev (West) - Creator of WEBFISHING
 
 Discord Staff:
 • Daniela - Discord Administrator
 • Sulayre - Discord Administrator
 
 HLS Supporters:
-• azzy, betrel, box, david, delilah, eZbake, fern, fluffy, g, Goobercide, ivy, katyusha, Maxx, mika, Moro the Webfisher, Munch, namko, Nipi, Nokuuu, PMPKIN, Pongorma, Raplin, sheebs, shiro, Skye, Snowy, ThatFirey, Vival, Wes, Yaso, zena, ?
+• Arcaxon, azzy, betrel, box, david, delilah, eZbake, fern, fluffy, g, Gala, Goobercide, Goomy, ivy, Jazun, katyusha, Lil Zannie, Maxx, mika, Moro the Webfisher, Munch, namko, Nipi, Nokuuu, PMPKIN, Pongorma, Raplin, RoarkeIsBored, sheebs, shiro, Skye, Snowy, sunny tab, ThatFirey, Vival, Wes, Yaso, yeahimliam, Yen, yungnickyoung, zena, ?
 
 Special Thanks:
 • All mod creators for their contributions
@@ -3742,6 +3861,7 @@ Special Thanks:
         finally:
             # schedule the next queue check
             self.root.after(100, self.process_gui_queue)
+            
     def find_mod_by_title(self, title):
         # Remove status prefix if present (✅ or ❌)
         if title.startswith('✅ ') or title.startswith('❌ '):
@@ -4585,6 +4705,7 @@ Special Thanks:
         third_party = "[3rd] " if mod.get('third_party', False) else "" 
         self.installed_listbox.delete(index)
         self.installed_listbox.insert(index, f"{status} {third_party}{mod['title']}".strip())
+        
     def show_version_selection(self):
         selected_indices = self.get_selected_installed_mod_indices()
         if not selected_indices:
@@ -4710,6 +4831,28 @@ Special Thanks:
             logging.info(error_message)
 
         self.save_mod_cache()
+
+    def update_installed_filter_options(self):
+        # Start with status filters
+        filter_options = ["All", "Enabled", "Disabled"]
+        
+        # Get unique categories from installed mods
+        categories = set()
+        for mod in self.installed_mods:
+            categories.update(mod.get('categories', []))
+        
+        # Add categories to filter options
+        filter_options.extend(sorted(categories))
+        
+        # Update combobox values
+        current_value = self.installed_category.get()
+        self.installed_category['values'] = filter_options
+        
+        # Try to preserve current selection
+        if current_value in filter_options:
+            self.installed_category.set(current_value)
+        else:
+            self.installed_category.set("All")
 
     # loads the mod cache from file
     def load_mod_cache(self):
@@ -5027,6 +5170,7 @@ Special Thanks:
             json.dump(self.settings, f)
         self.set_status("Settings saved successfully!")
         logging.info("Settings saved:", self.settings)
+        
     # updates the ui lists of available and installed mods
     def refresh_mod_lists(self):
         if hasattr(self, 'available_listbox'):
@@ -5039,15 +5183,18 @@ Special Thanks:
 
         self.installed_mods = self.get_installed_mods()
         
-        # something here is seriously fucked up and i give up, i'll fix in 1.1.7, edit: i'll fix in 1.2.1, edit: i'll fix in 1.2.2, edit: i'll fix in 1.2.3
         if hasattr(self, 'installed_listbox'):
             self.installed_listbox.delete(0, tk.END)
             for mod in self.installed_mods:
                 status = "✅" if mod.get('enabled', True) else "❌"
-                third_party = "[3rd]" if mod.get('third_party', False) else ""
+                third_party = "[3rd] " if mod.get('third_party', False) else ""
                 display_title = self.get_display_name(mod['title'])
-                display_text = f"{status} {third_party} {display_title}".strip()
+                display_text = f"{status} {third_party}{display_title}".strip()
                 self.installed_listbox.insert(tk.END, display_text)
+
+            # update installed mods count
+            if hasattr(self, 'installed_frame'):
+                self.installed_frame.configure(text=f"Installed Mods ({len(self.installed_mods)})")
 
         # update the mod cache
         self.save_mod_cache()
@@ -5055,6 +5202,15 @@ Special Thanks:
         # refresh the lists with current filters
         self.filter_available_mods()
         self.filter_installed_mods()
+
+        # update available mods count after filtering
+        if hasattr(self, 'available_frame'):
+            visible_mods = self.available_listbox.size()
+            total_mods = len(self.available_mods)
+            if visible_mods != total_mods:
+                self.available_frame.configure(text=f"Available Mods ({visible_mods}/{total_mods})")
+            else:
+                self.available_frame.configure(text=f"Available Mods ({total_mods})")
 
     # removes non-existent mods from the cache
     def clean_mod_cache(self):

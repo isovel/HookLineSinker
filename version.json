@@ -1,11 +1,15 @@
 {
-    "version": "1.2.6",
-    "message": "The ConnectionResetError UpdateTM\n\nThis update focuses on improving mod download reliability and adds opt-in analytics to help with development.",
+    "version": "1.2.8",
+    "message": "The Modpack UpdateTM\n\nThis update brings modpacks out of beta, adds filtering by category for installed mods, and includes various improvements and bug fixes.",
     "changelog": [
-        "Added retry system for failed mod downloads",
-        "Improved error messages when downloads fail",
-        "Added opt-in Google Analytics tracking",
-        "Improved settings UI",
-        "Various bug fixes and stability improvements"
+        "Updated credits to include Ko-Fi supporters and lamedev",
+        "Added filtering by category for installed mods",
+        "Added mod counts to categories",
+        "Fixed analytics tracking issues",
+        "Added unique user IDs to help with troubleshooting",
+        "Modpacks are now out of beta",
+        "Fixed modpack share code display issues",
+        "Fixed various bugs and crashes",
+        "Added minor quality of life improvements"
     ]
 }

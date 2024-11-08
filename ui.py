@@ -2743,7 +2743,7 @@ Discord Staff:
 • Sulayre - Discord Administrator
 
 HLS Supporters:
-• Arcaxon, azzy, betrel, box, david, delilah, eZbake, fern, fluffy, g, Gala, Goobercide, Goomy, ivy, Jazun, katyusha, Lil Zannie, Maxx, mika, Moro the Webfisher, Munch, namko, Nipi, Nokuuu, PMPKIN, Pongorma, Raplin, RoarkeIsBored, sheebs, shiro, Skye, Snowy, sunny tab, ThatFirey, Vival, Wes, Yaso, yeahimliam, Yen, yungnickyoung, zena, ?
+• Arcaxon, azzy, betrel, box, david, delilah, eZbake, fern, fluffy, g, Gala, Goobercide, Goomy, ivy, Jazun, katyusha, Lil Zannie, Maxx, mika, Moro the Webfisher, Munch, namko, Nipi, Nokuuu, PMPKIN, Pongorma, Raplin, RoarkeIsBored, sheebs, shiro, Skye, Snowy, sunny, tab, ThatFirey, Vival, Wes, Yaso, yeahimliam, Yen, yungnickyoung, zena, ?
 
 Special Thanks:
 • All mod creators for their contributions

@@ -38,6 +38,7 @@ import pywinstyles
 # import firebase_admin
 # from firebase_admin import credentials, auth, firestore
 import winsound
+from dateutil import parser
 
 # import ctypes
 # from ctypes import wintypes
@@ -229,6 +230,7 @@ class HookLineSinkerUI:
         MODS = "Mods"
         MISC = "Misc"
 
+        self.filtered_installed_mods = []
         self.mod_categories = {}  # Will be populated dynamically from Thunderstore categories
                 
         self.load_mod_cache()
@@ -1153,6 +1155,7 @@ class HookLineSinkerUI:
         self.create_game_manager_tab()
         self.create_hls_setup_tab()
         # self.create_profile_tab()
+        self.create_chat_tab()
         self.create_settings_tab()
         
         # initialize mod-related functions
@@ -1851,6 +1854,7 @@ class HookLineSinkerUI:
         self.update_mod_details(event)
         self.check_selection_limit(event)
         self.update_button_states()
+        
     def update_button_states(self):
         # Get current selections
         available_selected = bool(self.available_listbox.curselection())
@@ -1861,7 +1865,7 @@ class HookLineSinkerUI:
         if installed_selected:
             selected_indices = self.get_selected_installed_mod_indices()
             if selected_indices:
-                selected_mod = self.installed_mods[selected_indices[0]]
+                selected_mod = self.filtered_installed_mods[selected_indices[0]]
         
         # Get all buttons in mod management frame
         for child in self.mod_management_frame.winfo_children():
@@ -2100,16 +2104,16 @@ class HookLineSinkerUI:
         if not hasattr(self, 'installed_listbox'):
             return
             
-        # Collect unique categories from installed mods
+        # collect unique categories from installed mods
         categories = set()
         for mod in self.installed_mods:
             categories.update(mod.get('categories', []))
         
-        # Update category dropdown with "All", "Enabled", "Disabled" and mod categories
+        # update category dropdown with "all", "enabled", "disabled" and mod categories
         filter_values = ["All", "Enabled", "Disabled"] + sorted(list(categories))
         self.installed_category['values'] = filter_values
         
-        # Set default value if not already set
+        # set default value if not already set
         if not self.installed_category.get():
             self.installed_category.set("All")
             
@@ -2133,40 +2137,43 @@ class HookLineSinkerUI:
         search_text = self.installed_search_var.get().lower()
         selected_filter = self.installed_category.get()
         
-        # Clear current items
+        # clear current items
         self.installed_listbox.delete(0, tk.END)
         
-        filtered_mods = []
+        # store filtered mods
+        self.filtered_installed_mods = []
+        
         for mod in self.installed_mods:
-            # Skip if hiding third party mods
+            # skip if hiding third party mods
             if self.hide_third_party.get() and mod.get('third_party', False):
                 continue
                 
-            # Apply search filter
+            # apply search filter
             if search_text and search_text not in self.get_display_name(mod['title']).lower():
                 continue
                 
-            # Apply status/category filter
+            # apply status/category filter
             if selected_filter == "Enabled" and not mod.get('enabled', True):
                 continue
             elif selected_filter == "Disabled" and mod.get('enabled', True):
                 continue
             elif selected_filter not in ["All", "Enabled", "Disabled"]:
-                # It's a category filter
+                # it's a category filter
                 if selected_filter not in mod.get('categories', []):
                     continue
                     
-            filtered_mods.append(mod)
+            # add to filtered list
+            self.filtered_installed_mods.append(mod)
         
-        # Apply sorting
+        # apply sorting
         sort_method = self.installed_sort_method.get()
         if sort_method == "Name (A-Z)":
-            filtered_mods.sort(key=lambda x: self.get_display_name(x['title']).lower())
+            self.filtered_installed_mods.sort(key=lambda x: self.get_display_name(x['title']).lower())
         elif sort_method == "Name (Z-A)":
-            filtered_mods.sort(key=lambda x: self.get_display_name(x['title']).lower(), reverse=True)
+            self.filtered_installed_mods.sort(key=lambda x: self.get_display_name(x['title']).lower(), reverse=True)
         
-        # Update listbox
-        for mod in filtered_mods:
+        # update listbox
+        for mod in self.filtered_installed_mods:
             status = "✅" if mod.get('enabled', True) else "❌"
             third_party = "[3rd] " if mod.get('third_party', False) else ""
             display_title = self.get_display_name(mod['title'])
@@ -2217,24 +2224,48 @@ class HookLineSinkerUI:
         subtitle_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
         # display save file location
-        save_path = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver', 'webfishing_migrated_data.save')
-        save_label = ttk.Label(game_manager_frame, text="Save file location:")
-        save_label.grid(row=2, column=0, pady=(0, 5), padx=20, sticky="w")
+        save_path = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
         
-        save_path_entry = ttk.Entry(game_manager_frame, width=70)
+        # Create frame for save location
+        save_location_frame = ttk.Frame(game_manager_frame)
+        save_location_frame.grid(row=2, column=0, pady=(0, 10), padx=20, sticky="ew")
+        
+        ttk.Label(save_location_frame, text="Save folder location:").pack(side="left")
+        save_path_entry = ttk.Entry(save_location_frame, width=70)
         save_path_entry.insert(0, save_path)
         save_path_entry.config(state='readonly')
-        save_path_entry.grid(row=3, column=0, pady=(0, 10), padx=20, sticky="w")
+        save_path_entry.pack(side="left", padx=(5, 0))
 
         # create backup frame
         backup_frame = ttk.LabelFrame(game_manager_frame, text="Backup Save")
         backup_frame.grid(row=4, column=0, pady=10, padx=20, sticky="ew")
         backup_frame.grid_columnconfigure(1, weight=1)
 
+        # backup name row
         ttk.Label(backup_frame, text="Backup Name:").grid(row=0, column=0, pady=5, padx=5, sticky="w")
         self.backup_name_entry = ttk.Entry(backup_frame)
         self.backup_name_entry.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
-        ttk.Button(backup_frame, text="Create Backup", command=self.create_backup).grid(row=0, column=2, pady=5, padx=5)
+
+        # save slot row
+        ttk.Label(backup_frame, text="Save Slot:").grid(row=1, column=0, pady=5, padx=5, sticky="w")
+        self.backup_slot_var = tk.IntVar()
+        slot_frame = ttk.Frame(backup_frame)
+        slot_frame.grid(row=1, column=1, pady=5, padx=5, sticky="w")
+
+        # create radio buttons for available save slots
+        available_slots = self.get_available_save_slots()
+        if available_slots:
+            self.backup_slot_var.set(available_slots[0])  # Set first available slot as default
+            for slot in range(1, 5):  # Slots 1-4
+                if slot in available_slots:
+                    ttk.Radiobutton(slot_frame, text=f"Slot {slot}", value=slot, 
+                                  variable=self.backup_slot_var).pack(side="left", padx=5)
+        else:
+            ttk.Label(slot_frame, text="No save files found", foreground="red").pack(side="left", padx=5)
+
+        # create backup button
+        ttk.Button(backup_frame, text="Create Backup", 
+                command=self.create_backup).grid(row=0, column=2, rowspan=2, pady=5, padx=5)
 
         # create restore frame
         self.restore_frame = ttk.LabelFrame(game_manager_frame, text="Manage Saves")
@@ -2323,10 +2354,21 @@ class HookLineSinkerUI:
             self.set_status("Backup creation failed: Invalid name")
             return
 
-        timestamp = int(time.time())
-        backup_filename = f"{sanitized_name.replace(' ', '_')}_{timestamp}.save"
+        # Get selected slot
+        selected_slot = self.backup_slot_var.get()
+        
+        # Check if save file exists for selected slot
+        save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+        save_path = os.path.join(save_dir, f'webfishing_save_slot_{selected_slot - 1}.sav')
+        
+        if not os.path.exists(save_path):
+            messagebox.showerror("Error", f"No save file found in slot {selected_slot}. Please create a save in-game first.")
+            return
 
-        save_path = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver', 'webfishing_migrated_data.save')
+        # Create backup with slot info
+        timestamp = int(time.time())
+        backup_filename = f"{sanitized_name.replace(' ', '_')}_slot{selected_slot}_{timestamp}.save"
+        
         backup_dir = os.path.join(self.app_data_dir, 'save_backups')
         os.makedirs(backup_dir, exist_ok=True)
 
@@ -2334,8 +2376,8 @@ class HookLineSinkerUI:
 
         try:
             shutil.copy2(save_path, backup_path)
-            messagebox.showinfo("Success", f"Backup created: {sanitized_name}")
-            self.set_status(f"Backup created: {sanitized_name}")
+            messagebox.showinfo("Success", f"Backup created: {sanitized_name} (Slot {selected_slot})")
+            self.set_status(f"Backup created: {sanitized_name} (Slot {selected_slot})")
             self.refresh_backup_list()
         except Exception as e:
             error_message = f"Failed to create backup: {str(e)}"
@@ -2394,7 +2436,6 @@ class HookLineSinkerUI:
                 sys.exit(0)
 
     def restore_backup(self):
-        # restore a selected backup
         selected = self.backup_tree.selection()
         if not selected:
             messagebox.showerror("Error", "Please select a backup to restore.")
@@ -2413,22 +2454,153 @@ class HookLineSinkerUI:
             self.set_status(error_message)
             return
         
-        backup_filename = matching_backups[0]  # use the first matching backup if multiple exist
-        backup_path = os.path.join(backup_dir, backup_filename)
+        backup_filename = matching_backups[0]
+        
+        # Extract slot number from filename
+        slot_match = re.search(r'_slot(\d)_', backup_filename)
+        if slot_match:
+            # Handle modern save files
+            slot_num = int(slot_match.group(1))
+            if not messagebox.askyesno("Confirm Restore", 
+                f"This will restore to Slot {slot_num}. Continue?"):
+                return
+                
+            save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+            backup_path = os.path.join(backup_dir, backup_filename)
+            save_path = os.path.join(save_dir, f'webfishing_save_slot_{slot_num-1}.sav')
+            
+            try:
+                shutil.copy2(backup_path, save_path)
+                messagebox.showinfo("Success", f"Save restored to slot {slot_num}")
+                self.set_status(f"Save restored to slot {slot_num}")
+                self.refresh_backup_list()
+            except Exception as e:
+                error_message = f"Failed to restore backup: {str(e)}"
+                messagebox.showerror("Error", error_message)
+                self.set_status(error_message)
+                
+        else:
+            # Create warning dialog for old save files
+            dialog = tk.Toplevel(self.root)
+            dialog.title("Warning - Old Save File")
+            dialog.geometry("400x300")
+            dialog.transient(self.root)
+            dialog.grab_set()
 
-        save_path = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver', 'webfishing_migrated_data.save')
+            # Load and display icon
+            try:
+                if getattr(sys, 'frozen', False):
+                    bundle_dir = sys._MEIPASS
+                else:
+                    bundle_dir = os.path.dirname(os.path.abspath(__file__))
+                
+                icon_path = os.path.join(bundle_dir, 'icon.ico')
+                if os.path.exists(icon_path):
+                    dialog.iconbitmap(icon_path)
+            except Exception as e:
+                logging.error(f"Error loading icon: {e}")
 
-        try:
-            # restore the selected backup
-            shutil.copy2(backup_path, save_path)
-            messagebox.showinfo("Success", f"Backup restored: {backup_name}")
-            self.set_status(f"Backup restored: {backup_name}")
-            self.refresh_backup_list()
-        except Exception as e:
-            error_message = f"Failed to restore backup: {str(e)}"
-            messagebox.showerror("Error", error_message)
-            self.set_status(error_message)
+            # Center the dialog
+            dialog.update_idletasks()
+            width = dialog.winfo_width()
+            height = dialog.winfo_height()
+            x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+            y = (dialog.winfo_screenheight() // 2) - (height // 2)
+            dialog.geometry(f'{width}x{height}+{x}+{y}')
 
+            warning_text = (
+                "WARNING: This is an old save file from a previous version of the game.\n\n"
+                "Restoring this save will:\n"
+                "1. Delete ALL current save files in slots 1-4\n"
+                "2. Attempt to migrate this old save to the new format\n\n"
+                "This process may fail and could potentially result in the loss of your current saves. "
+                "It is highly recommended to back up your current saves before proceeding.\n\n"
+                "The game will attempt to handle the migration automatically, but there are no guarantees."
+            )
+
+            ttk.Label(dialog, text=warning_text, wraplength=380).pack(pady=10, padx=10)
+
+            # Checkbox for acknowledgment
+            understood = tk.BooleanVar(value=False)
+            ttk.Checkbutton(
+                dialog, 
+                text="I understand the risks and have backed up my saves", 
+                variable=understood
+            ).pack(pady=10)
+
+            def on_proceed():
+                if not understood.get():
+                    messagebox.showwarning(
+                        "Acknowledgment Required",
+                        "You must check the box to acknowledge you understand the risks."
+                    )
+                    return
+                dialog.destroy()
+                
+                save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+                
+                # Delete all existing save files (slots 1-4 are _0 to _3)
+                for slot in range(4):
+                    # Delete main save file
+                    save_path = os.path.join(save_dir, f'webfishing_save_slot_{slot}.sav')
+                    if os.path.exists(save_path):
+                        try:
+                            os.remove(save_path)
+                        except Exception as e:
+                            logging.error(f"Failed to delete save file {save_path}: {e}")
+                            
+                    # Delete backup save file
+                    backup_path = os.path.join(save_dir, f'webfishing_backup_save_slot_{slot}.backup')
+                    if os.path.exists(backup_path):
+                        try:
+                            os.remove(backup_path)
+                        except Exception as e:
+                            logging.error(f"Failed to delete backup file {backup_path}: {e}")
+
+                # Delete general data file
+                general_data_path = os.path.join(save_dir, 'webfishing_general_data.sav')
+                if os.path.exists(general_data_path):
+                    try:
+                        os.remove(general_data_path)
+                    except Exception as e:
+                        logging.error(f"Failed to delete general data file: {e}")
+
+                # Copy the backup as webfishing_migrated_data.save
+                backup_path = os.path.join(backup_dir, backup_filename)
+                migrated_save_path = os.path.join(save_dir, 'webfishing_migrated_data.save')
+
+                try:
+                    shutil.copy2(backup_path, migrated_save_path)
+                    messagebox.showinfo(
+                        "Success", 
+                        "Old save file has been restored. Please start the game to complete the migration process. You probably want to restart HLS after the game starts too."
+                    )
+                    self.set_status("Old save file restored - start game to complete migration")
+                    self.refresh_backup_list()
+                except Exception as e:
+                    error_message = f"Failed to restore backup: {str(e)}"
+                    messagebox.showerror("Error", error_message)
+                    self.set_status(error_message)
+
+            def on_cancel():
+                dialog.destroy()
+
+            button_frame = ttk.Frame(dialog)
+            button_frame.pack(pady=10, padx=10, fill=tk.X)
+            ttk.Button(button_frame, text="Proceed", command=on_proceed).pack(side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Cancel", command=on_cancel).pack(side=tk.RIGHT, padx=5)
+
+            dialog.wait_window()
+
+    def get_available_save_slots(self):
+        save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+        available_slots = []
+        for slot in range(1, 5):  # Slots 1-4
+            save_path = os.path.join(save_dir, f'webfishing_save_slot_{slot - 1}.sav')
+            if os.path.exists(save_path):
+                available_slots.append(slot)
+        return available_slots
+    
     def delete_backup(self):
         selected = self.backup_tree.selection()
         if not selected:
@@ -2540,6 +2712,265 @@ class HookLineSinkerUI:
         self.setup_status.grid(row=7, column=0, pady=(20, 10), padx=20, sticky="w")
         self.update_setup_status()
         
+    def create_chat_tab(self):
+        chat_frame = ttk.Frame(self.notebook)
+        self.notebook.add(chat_frame, text="HLS IRC")
+
+        chat_frame.grid_columnconfigure(0, weight=1)
+        chat_frame.grid_rowconfigure(3, weight=1)
+
+        # Title and disclaimer
+        title_label = ttk.Label(chat_frame, text="Chat", font=("Helvetica", 16, "bold"))
+        title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
+
+        disclaimer_text = (
+            "Welcome to the chat! This is just for fun and will likely be removed in the next update.\n"
+            "Feel free to share lobby codes, ask for help with mods, or just chat with other players!\n"
+            "Messages are stored for moderation purposes. Moderators have the power to ban users.\n" 
+            "Please keep things friendly and absolutely no racism, sexism, or hate speech."
+        )
+        disclaimer_label = ttk.Label(chat_frame, text=disclaimer_text, font=("Helvetica", 10, "italic"))
+        disclaimer_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
+
+        # Username frame
+        username_frame = ttk.Frame(chat_frame)
+        username_frame.grid(row=2, column=0, pady=(0, 10), padx=20, sticky="ew")
+
+        ttk.Label(username_frame, text="Username:").pack(side="left", padx=(0, 5))
+        self.username_entry = ttk.Entry(username_frame, width=20)
+        self.username_entry.pack(side="left", padx=(0, 5))
+        # Load saved username if exists
+        saved_username = self.settings.get('chat_username')
+        if saved_username:
+            self.username_entry.insert(0, saved_username)
+            self.username_entry.config(state='readonly')
+        else:
+            ttk.Button(username_frame, text="Set Username", 
+                    command=self.set_chat_username).pack(side="left")
+
+        # Add change username button if username is set
+        if saved_username and not self.settings.get('username_changed', False):
+            ttk.Button(username_frame, text="Change Username (One-time)", 
+                    command=self.change_username).pack(side="left", padx=(5, 0))
+
+        # Chat display
+        chat_display_frame = ttk.Frame(chat_frame)
+        chat_display_frame.grid(row=3, column=0, pady=5, padx=20, sticky="nsew")
+        chat_display_frame.grid_columnconfigure(0, weight=1)
+        chat_display_frame.grid_rowconfigure(0, weight=1)
+
+        self.chat_text = tk.Text(chat_display_frame, wrap=tk.WORD, height=20)
+        self.chat_text.grid(row=0, column=0, sticky="nsew")
+        self.chat_text.config(state='disabled')
+
+        chat_scrollbar = ttk.Scrollbar(chat_display_frame, orient="vertical", 
+                                    command=self.chat_text.yview)
+        chat_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.chat_text.configure(yscrollcommand=chat_scrollbar.set)
+
+        # Message input
+        input_frame = ttk.Frame(chat_frame)
+        input_frame.grid(row=4, column=0, pady=10, padx=20, sticky="ew")
+        input_frame.grid_columnconfigure(0, weight=1)
+
+        self.message_entry = ttk.Entry(input_frame)
+        self.message_entry.grid(row=0, column=0, padx=(0, 5), sticky="ew")
+        self.message_entry.bind('<Return>', self.send_chat_message)
+        self.message_entry.bind('<KeyRelease>', self.update_char_count)
+
+        # Character count label
+        self.char_count_label = ttk.Label(input_frame, text="0/200")
+        self.char_count_label.grid(row=0, column=1, padx=5)
+
+        ttk.Button(input_frame, text="Send", 
+                command=lambda: self.send_chat_message(None)).grid(row=0, column=2)
+
+        # Rate limiting
+        self.last_message_time = 0
+        self.is_sending = False
+
+        # Start message polling
+        self.after_id = None
+        self.start_chat_polling()
+
+    def update_char_count(self, event=None):
+        current_len = len(self.message_entry.get())
+        self.char_count_label.config(text=f"{current_len}/200")
+        if current_len > 200:
+            self.char_count_label.config(foreground="red")
+        else:
+            self.char_count_label.config(foreground="black")
+
+    def set_chat_username(self):
+        username = self.username_entry.get().strip()
+        if not username:
+            messagebox.showerror("Error", "Please enter a username")
+            return
+            
+        if not re.match("^[a-zA-Z0-9_-]{3,16}$", username):
+            messagebox.showerror("Error", 
+                "Username must be 3-16 characters and contain only letters, numbers, underscores, and hyphens")
+            return
+
+        self.settings['chat_username'] = username
+        self.settings['username_changed'] = False
+        self.save_settings()
+        self.username_entry.config(state='readonly')
+        self.set_status(f"Chat username set to: {username}")
+        
+        # Add change username button
+        ttk.Button(self.username_entry.master, text="Change Username (One-time)", 
+                command=self.change_username).pack(side="left", padx=(5, 0))
+
+    def change_username(self):
+        if self.settings.get('username_changed', False):
+            messagebox.showerror("Error", "You can only change your username once")
+            return
+            
+        self.username_entry.config(state='normal')
+        self.username_entry.delete(0, tk.END)
+        
+        # Remove the change username button
+        for widget in self.username_entry.master.winfo_children():
+            if isinstance(widget, ttk.Button) and widget.cget('text') == "Change Username (One-time)":
+                widget.destroy()
+                
+        # Add set username button
+        ttk.Button(self.username_entry.master, text="Set Username", 
+                command=self.confirm_username_change).pack(side="left")
+
+    def confirm_username_change(self):
+        username = self.username_entry.get().strip()
+        if not username:
+            messagebox.showerror("Error", "Please enter a username")
+            return
+            
+        if not re.match("^[a-zA-Z0-9_-]{3,16}$", username):
+            messagebox.showerror("Error", 
+                "Username must be 3-16 characters and contain only letters, numbers, underscores, and hyphens")
+            return
+
+        self.settings['chat_username'] = username
+        self.settings['username_changed'] = True
+        self.save_settings()
+        self.username_entry.config(state='readonly')
+        self.set_status(f"Chat username changed to: {username}")
+
+    def format_chat_message(self, timestamp, username, message):
+        self.chat_text.config(state='normal')
+        timestamp_str = f"[{timestamp}] "
+        formatted = f"{timestamp_str}{username}: {message}\n"
+        self.chat_text.insert(tk.END, formatted)
+        self.chat_text.config(state='disabled')
+        self.chat_text.see(tk.END)
+
+    def send_chat_message(self, event):
+        if self.is_sending:
+            return
+            
+        if not self.settings.get('chat_username'):
+            messagebox.showerror("Error", "Please set a username first")
+            return
+            
+        # Rate limiting check
+        current_time = time.time()
+        if current_time - self.last_message_time < 3:
+            messagebox.showerror("Error", "Please wait 3 seconds between messages")
+            return
+            
+        message = self.message_entry.get().strip()
+        if not message:
+            return
+
+        if len(message) > 200:
+            messagebox.showerror("Error", "Message exceeds 200 character limit")
+            return
+
+        # Basic content filtering
+        filtered_words = ['kys', 'kill yourself', 'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded', 'tranny', 'chink', 'spic', 'kike', 'dyke', 'coon', 'beaner', 'wetback', 'gook', 'towelhead', 'raghead']
+        if any(word in message.lower() for word in filtered_words):
+            messagebox.showerror("Error", "Message contains inappropriate content")
+            return
+
+        try:
+            # Disable message entry and show waiting message
+            self.is_sending = True
+            self.message_entry.config(state='disabled')
+            original_message = self.message_entry.get()
+            self.message_entry.delete(0, tk.END)
+            self.message_entry.insert(0, "Please wait a couple seconds...")
+            self.message_entry.config(foreground='gray')
+            
+            response = requests.post('https://hooklinesinker.lol/chat/send', json={
+                'user_id': self.get_user_id(),
+                'username': self.settings['chat_username'],
+                'message': message
+            })
+            
+            if response.ok:
+                # Update rate limit timestamp
+                self.last_message_time = current_time
+                # Immediately display own message
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                self.format_chat_message(timestamp, self.settings['chat_username'], message)
+                self.message_entry.delete(0, tk.END)
+                self.update_char_count()
+            elif response.status_code == 403:
+                error_data = response.json()
+                ban_reason = error_data.get('reason', 'No reason provided')
+                ban_time = error_data.get('banned_at', 'Unknown time')
+                messagebox.showerror("Error", f"You have been banned from chat\nReason: {ban_reason}\nBanned at: {ban_time}")
+            else:
+                messagebox.showerror("Error", "Failed to send message")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to send message: {str(e)}")
+        finally:
+            # Re-enable message entry and restore state
+            self.message_entry.config(state='normal', foreground='black')
+            self.message_entry.delete(0, tk.END)
+            self.is_sending = False
+
+    def update_chat_messages(self):
+        try:
+            response = requests.get('https://hooklinesinker.lol/chat/messages')
+            if response.ok:
+                messages = response.json()['messages']
+                
+                # Use after() to update UI from main thread
+                self.root.after(0, self._update_chat_display, messages)
+                
+        except Exception as e:
+            logging.error(f"Failed to update chat: {e}")
+
+    def _update_chat_display(self, messages):
+        self.chat_text.config(state='normal')
+        self.chat_text.delete(1.0, tk.END)
+        
+        # Reverse the messages list so older messages appear at the top
+        for msg in reversed(messages):
+            try:
+                timestamp = parser.parse(msg['timestamp']).strftime('%H:%M:%S')
+                self.format_chat_message(timestamp, msg['username'], msg['message'])
+            except Exception as e:
+                logging.error(f"Failed to parse message timestamp: {e}")
+
+    def _chat_polling_thread(self):
+        while not self.stop_polling.is_set():
+            self.update_chat_messages()
+            time.sleep(1)  # Poll every second
+
+    def start_chat_polling(self):
+        self.stop_polling = threading.Event()
+        self.polling_thread = threading.Thread(target=self._chat_polling_thread, daemon=True)
+        self.polling_thread.start()
+
+    def stop_chat_polling(self):
+        if hasattr(self, 'stop_polling'):
+            self.stop_polling.set()
+            if hasattr(self, 'polling_thread'):
+                self.polling_thread.join(timeout=1.0)
+
     # creates the settings tab for hook line & sinker
     def create_settings_tab(self):
         settings_frame = ttk.Frame(self.notebook)
@@ -2782,45 +3213,77 @@ Special Thanks:
     def open_help_website(self):
         webbrowser.open("https://hooklinesinker.lol/help")
 
-    # creates a rotating backup of the current save file (buggy)
+    # creates a rotating backup of the current save file very bugged
     def create_rotating_backup(self):
         if not self.settings.get('auto_backup', True):
+            return
+
+        # Check for available save slots
+        available_slots = self.get_available_save_slots()
+        if not available_slots:
+            logging.info("No save files found for automatic backup")
             return
 
         backup_dir = os.path.join(self.app_data_dir, 'save_backups')
         os.makedirs(backup_dir, exist_ok=True)
 
-        # find and sort auto-backup files by timestamp
-        auto_backups = [f for f in os.listdir(backup_dir) if f.startswith('Auto_Backup_') and f.endswith('.save')]
-        auto_backups.sort(key=lambda x: int(x.split('_')[3].split('.')[0]))  # Sort by timestamp
+        # find and sort auto-backup files
+        auto_backups = [f for f in os.listdir(backup_dir) 
+                       if f.startswith('Auto_Backup') and f.endswith('.save')]
+        auto_backups.sort(key=lambda x: float(x.split('_')[-1].replace('.save', '')))
 
-        # determine next backup number (1-10)
-        if len(auto_backups) < 10:
-            backup_num = len(auto_backups) + 1
-        else:
-            # Get the number from oldest backup and use that
-            oldest_backup = auto_backups[0]
-            backup_num = int(oldest_backup.split('_')[2])
-            # Remove the oldest backup
-            try:
-                os.remove(os.path.join(backup_dir, oldest_backup))
-            except Exception as e:
-                logging.error(f"Failed to remove old backup {oldest_backup}: {e}")
+        # Calculate max backups per slot to stay under 10 total
+        max_backups_per_slot = 4 // len(available_slots)
+        if max_backups_per_slot < 1:
+            max_backups_per_slot = 1
 
-        # Add timestamp to backup filename
+        # Group backups by slot
+        slot_backups = {}
+        for backup in auto_backups:
+            slot_match = re.search(r'slot(\d)', backup)
+            if slot_match:
+                slot = int(slot_match.group(1))
+                if slot not in slot_backups:
+                    slot_backups[slot] = []
+                slot_backups[slot].append(backup)
+
+        # Remove oldest backups if we exceed max per slot
+        for slot, backups in slot_backups.items():
+            if not backups:
+                continue
+            backups.sort(key=lambda x: float(x.split('_')[-1].replace('.save', '')))
+            while len(backups) >= max_backups_per_slot:
+                try:
+                    oldest_backup = backups[0]
+                    os.remove(os.path.join(backup_dir, oldest_backup))
+                    backups.pop(0)
+                    logging.info(f"Removed old backup for slot {slot}: {oldest_backup}")
+                except Exception as e:
+                    logging.error(f"Failed to remove old backup for slot {slot}: {e}")
+                    break
+
+        # Create timestamp for new backup
         timestamp = int(time.time())
-        backup_filename = f"Auto_Backup_{backup_num}_{timestamp}.save"
-        save_path = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver', 'webfishing_migrated_data.save')
         
-        if os.path.exists(save_path):
-            try:
-                backup_path = os.path.join(backup_dir, backup_filename)
-                shutil.copy2(save_path, backup_path)
-                logging.info(f"Created automatic backup: {backup_filename}")
-                self.set_status("Automatic backup created") 
-            except Exception as e:
-                logging.error(f"Failed to create automatic backup: {e}")
-                self.set_status("Failed to create automatic backup")
+        # Create backups for each available slot
+        save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+        logging.info(f"Creating automatic backups in directory: {save_dir}")
+        
+        for slot in available_slots:
+            save_path = os.path.join(save_dir, f'webfishing_save_slot_{slot - 1}.sav')
+            if os.path.exists(save_path):
+                try:
+                    backup_filename = f"Auto_Backup_slot{slot}_{timestamp}.save"
+                    backup_path = os.path.join(backup_dir, backup_filename)
+                    logging.info(f"Attempting to create backup for slot {slot} at: {backup_path}")
+                    shutil.copy2(save_path, backup_path)
+                    logging.info(f"Successfully created automatic backup for slot {slot}: {backup_filename}")
+                except Exception as e:
+                    logging.error(f"Failed to create automatic backup for slot {slot}: {e}")
+                    
+        self.set_status("Automatic backup created")
+        logging.info("Automatic backup process completed")
+        logging.info("Made rotating backup")
 
     # copies existing gdweave mods to the hls mods directory
     def copy_existing_gdweave_mods(self):
@@ -4039,7 +4502,8 @@ Special Thanks:
             messagebox.showerror("Error", "Game path not set. Please set the game path in the settings.")
             return
 
-        mod = self.installed_mods[selected_indices[0]]
+        # Use filtered_installed_mods instead of installed_mods
+        mod = self.filtered_installed_mods[selected_indices[0]]
         config_path = os.path.join(self.settings['game_path'], 'GDWeave', 'configs', f"{mod['id']}.json")
 
         if not os.path.exists(config_path):
@@ -4545,7 +5009,7 @@ Special Thanks:
         if selected := self.installed_listbox.curselection():
             try:
                 for index in selected:
-                    mod = self.installed_mods[index]
+                    mod = self.filtered_installed_mods[index]
                     mod['enabled'] = True
                     self.update_mod_status_in_listbox(mod)
                     self.save_mod_status(mod)
@@ -4586,7 +5050,7 @@ Special Thanks:
         selected_indices = self.get_selected_installed_mod_indices()
         if selected_indices:
             for index in selected_indices:
-                mod = self.installed_mods[index]
+                mod = self.filtered_installed_mods[index]
                 self.set_status(f"Uninstalling mod: {mod['title']}")
                 try:
                     self.uninstall_mod_files(mod)
@@ -4630,7 +5094,7 @@ Special Thanks:
         if selected_indices:
             enabled_count = 0
             for index in selected_indices:
-                mod = self.installed_mods[index]
+                mod = self.filtered_installed_mods[index]
                 if not mod.get('enabled', True):
                     mod['enabled'] = True
                     self.update_mod_status_in_listbox(mod)
@@ -4653,7 +5117,7 @@ Special Thanks:
         if selected_indices:
             disabled_count = 0
             for index in selected_indices:
-                mod = self.installed_mods[index]
+                mod = self.filtered_installed_mods[index]
                 try:
                     mod['enabled'] = False
                     self.update_mod_status_in_listbox(mod)
@@ -4712,7 +5176,7 @@ Special Thanks:
             messagebox.showerror("Error", "Please select a mod to change version")
             return
             
-        selected_mod = self.installed_mods[selected_indices[0]]
+        selected_mod = self.filtered_installed_mods[selected_indices[0]]
         versions = self.get_mod_versions(selected_mod)
         
         if not versions:

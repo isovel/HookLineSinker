@@ -1,15 +1,11 @@
 {
-    "version": "1.2.8",
-    "message": "The Modpack UpdateTM\n\nThis update brings modpacks out of beta, adds filtering by category for installed mods, and includes various improvements and bug fixes.",
+    "version": "1.3.0", 
+    "message": "The IRC UpdateTM\n\nThis update adds a fun temporary IRC chat for users to interact with each other, fixes various bugs with installed mods, modpacks, and save backups.",
     "changelog": [
-        "Updated credits to include Ko-Fi supporters and lamedev",
-        "Added filtering by category for installed mods",
-        "Added mod counts to categories",
-        "Fixed analytics tracking issues",
-        "Added unique user IDs to help with troubleshooting",
-        "Modpacks are now out of beta",
-        "Fixed modpack share code display issues",
-        "Fixed various bugs and crashes",
-        "Added minor quality of life improvements"
+        "Added temporary IRC chat system for users to interact",
+        "Fixed bugs with installed mod management",
+        "Fixed issues with modpack importing and sharing",
+        "Fixed save backup system to work with new webfishing",
+        "Various bug fixes and stability improvements"
     ]
 }

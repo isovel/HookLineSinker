@@ -1246,11 +1246,13 @@ class HookLineSinkerUI:
         action_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ns")  # only stick to north/south
         action_frame.grid_columnconfigure(0, weight=1)  # make sure internal contents are centered - i dont think these do anything but better safe than sorry
 
-        # create game management section
-        self.game_management_frame = ttk.LabelFrame(action_frame, text="Game Management")
+        # Create game management section
+        self.game_management_frame = ttk.LabelFrame(action_frame, text="Launch Game")
         self.game_management_frame.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
         self.game_management_frame.grid_columnconfigure(0, weight=1)
-        ttk.Button(self.game_management_frame, text="Start Game", command=self.toggle_game).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
+        self.game_management_frame.grid_columnconfigure(1, weight=1)
+        ttk.Button(self.game_management_frame, text="Modded", command=self.launch_modded).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
+        ttk.Button(self.game_management_frame, text="Vanilla", command=self.launch_vanilla).grid(row=0, column=1, pady=2, padx=2, sticky="ew")
 
         # create mod management section
         self.mod_management_frame = ttk.LabelFrame(action_frame, text="Mod Management")
@@ -2190,21 +2192,54 @@ class HookLineSinkerUI:
         # fallback to direct indices if no mapping exists
         return list(selected)
 
-    def toggle_game(self):
+    def launch_modded(self):
+        """Launch the game with mods enabled"""
         if not self.check_setup():
             messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the HLS Setup tab.")
             self.notebook.select(3)  # switch to hls setup tab
             return
 
+        if not self.settings.get('game_path'):
+            messagebox.showerror("Error", "Game path not set. Please set the game path first.")
+            return
+
         try:
-            # launch the game through Steam
-            steam_url = "steam://rungameid/3146520"
-            webbrowser.open(steam_url)
-            self.set_status("Game launched through Steam")
+            game_exe = os.path.join(self.settings['game_path'], 'webfishing.exe')
+            if not os.path.exists(game_exe):
+                messagebox.showerror("Error", "Game executable not found.")
+                return
+                
+            subprocess.Popen([game_exe])
+            self.set_status("Game launched with mods")
         except Exception as e:
-            error_message = f"Failed to launch the game: {str(e)}"
+            error_message = f"Failed to launch game: {str(e)}"
             messagebox.showerror("Error", error_message)
             self.set_status(error_message)
+
+    def launch_vanilla(self):
+        """Launch the game without mods"""
+        if not self.check_setup():
+            messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the HLS Setup tab.")
+            self.notebook.select(3)  # switch to hls setup tab
+            return
+
+        if not self.settings.get('game_path'):
+            messagebox.showerror("Error", "Game path not set. Please set the game path first.")
+            return
+            
+        try:
+            game_exe = os.path.join(self.settings['game_path'], 'webfishing.exe')
+            if not os.path.exists(game_exe):
+                messagebox.showerror("Error", "Game executable not found.")
+                return
+                
+            subprocess.Popen([game_exe, '--gdweave-disable'])
+            self.set_status("Launched game in vanilla mode")
+            self.send_ga_event('game_launch', {'mode': 'vanilla'})
+        except Exception as e:
+            error_msg = f"Failed to launch game: {str(e)}"
+            messagebox.showerror("Error", error_msg)
+            self.send_ga_event('game_launch_error', {'mode': 'vanilla', 'error': str(e)})
 
     def create_game_manager_tab(self):
         # create the game manager tab for managing save files

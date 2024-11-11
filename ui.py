@@ -1,4 +1,4 @@
-# standard library imports
+# standard library imports :3
 import ctypes
 import html.parser
 import inspect
@@ -27,7 +27,7 @@ import logging
 import random
 import uuid
 
-# third-party imports
+# third-party imports :3
 import appdirs
 import requests
 import tkinter as tk
@@ -35,20 +35,20 @@ from dotenv import load_dotenv
 from PIL import Image, ImageTk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import pywinstyles
-# import firebase_admin
-# from firebase_admin import credentials, auth, firestore
+# import firebase_admin :3
+# from firebase_admin import credentials, auth, firestore :3
 import winsound
 
-# import ctypes
-# from ctypes import wintypes
+# import ctypes :3
+# from ctypes import wintypes :3
 
-# created by pyoid for more information visit the github repository
-# small portions of this code were developed with assistance from anthropic's claude 3.5 sonnet
-# if you need support ping me on discord @pyoid
+# created by pyoid for more information visit the github repository :3
+# small portions of this code were developed with assistance from anthropic's claude 3.5 sonnet :3
+# if you need support ping me on discord @pyoid :3
 
 load_dotenv()
 
-# class to redirect logging output to a custom writer
+# class to redirect logging output to a custom writer :3
 class LoggerWriter:
     def __init__(self, level):
         self.level = level
@@ -60,7 +60,7 @@ class LoggerWriter:
     def flush(self):
         pass
 
-# html parser to strip tags from text
+# html parser to strip tags from text :3
 class MLStripper(html.parser.HTMLParser):
     def __init__(self):
         super().__init__()
@@ -75,19 +75,19 @@ class MLStripper(html.parser.HTMLParser):
     def get_data(self):
         return ''.join(self.text)
 
-# removes html tags from a string
+# removes html tags from a string :3
 def strip_tags(html):
     s = MLStripper()
     s.feed(html)
     return s.get_data()
 
-# retrieves the current version of the application
+# retrieves the current version of the application :3
 def get_version():
         if getattr(sys, 'frozen', False):
-            # running as compiled executable
+            # running as compiled executable :3
             bundle_dir = sys._MEIPASS
         else:
-            # running in a normal python environment
+            # running in a normal python environment :3
             bundle_dir = os.path.dirname(os.path.abspath(__file__))
         
         version_file = os.path.join(bundle_dir, 'version.json')
@@ -100,7 +100,7 @@ def get_version():
             logging.info(f"Error reading version file: {e}")
             return 'Unknown'
 
-# main class for the hook line sinker user interface
+# main class for the hook line sinker user interface :3
 class HookLineSinkerUI:
     def __init__(self, root):
         print("Initializing HookLineSinkerUI...")
@@ -114,9 +114,9 @@ class HookLineSinkerUI:
         self.setup_logging()
         print("Logging setup complete")
         
-        # print("Setting memory limit...")
-        # self.set_memory_limit()
-        # print("Memory limit set")
+        # print("Setting memory limit...") :3
+        # self.set_memory_limit() :3
+        # print("Memory limit set") :3
         
         print("Initializing queues...")
         self.gui_queue = queue.Queue()
@@ -127,7 +127,7 @@ class HookLineSinkerUI:
         self.load_settings()
         print("Settings loaded")
 
-        # define dark mode colors
+        # define dark mode colors :3
         self.dark_mode_colors = {
             'bg': '#2b2b2b',
             'fg': '#ffffff',
@@ -155,7 +155,7 @@ class HookLineSinkerUI:
             'success_fg': '#ffffff'
         }
 
-        # add dark mode toggle variable
+        # add dark mode toggle variable :3
         self.dark_mode = tk.BooleanVar(value=self.settings.get('dark_mode', False))
 
         print("Getting version...")
@@ -169,24 +169,24 @@ class HookLineSinkerUI:
             self.root.state('zoomed')
         else:
             print("Windowed mode enabled")
-            # temporary test may get removed next update
+            # temporary test may get removed next update :3
 
-            # get screen width and height
+            # get screen width and height :3
             screen_width = self.root.winfo_screenwidth()
             screen_height = self.root.winfo_screenheight()
             print(f"Screen dimensions: {screen_width}x{screen_height}")
             
-            # set window dimensions
+            # set window dimensions :3
             window_width = 800
             window_height = 640
             print(f"Window dimensions: {window_width}x{window_height}")
             
-            # calculate center position
+            # calculate center position :3
             x = (screen_width - window_width) // 2
             y = (screen_height - window_height) // 2
             print(f"Window position: {x},{y}")
             
-            # set window geometry
+            # set window geometry :3
             self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
         print("Setting minimum window size...")
@@ -222,7 +222,7 @@ class HookLineSinkerUI:
         self.installed_mods = []
         print("Mod lists initialized")
         
-        # mod category constants
+        # mod category constants :3
         TOOLS = "Tools"
         COSMETICS = "Cosmetics"
         LIBRARIES = "Libraries"
@@ -230,20 +230,20 @@ class HookLineSinkerUI:
         MISC = "Misc"
 
         self.filtered_installed_mods = []
-        self.mod_categories = {}  # will be populated dynamically from Thunderstore categories
+        self.mod_categories = {}  # will be populated dynamically from Thunderstore categories :3
 
-        # initialize sort preferences from settings
+        # initialize sort preferences from settings :3
         self.available_sort_by = tk.StringVar(value=self.settings.get('available_sort_by', 'Last Updated'))
         self.installed_sort_by = tk.StringVar(value=self.settings.get('installed_sort_by', 'Recently Installed'))
 
-        # track the last selected categories
+        # track the last selected categories :3
         self.last_available_category = self.settings.get('available_category', 'All')
         self.last_installed_category = self.settings.get('installed_category', 'All')
 
         self.load_mod_cache()
         self.mod_downloading = False
 
-        # initialize attributes
+        # initialize attributes :3
         self.windowed_mode = tk.BooleanVar(value=self.settings.get('windowed_mode', True))
         self.auto_update = tk.BooleanVar(value=self.settings.get('auto_update', True))
         self.notifications = tk.BooleanVar(value=self.settings.get('notifications', False))
@@ -255,13 +255,13 @@ class HookLineSinkerUI:
 
         logging.info(f"Initial game path: {self.game_path_entry.get()}")
 
-        # create status bar
+        # create status bar :3
         self.create_status_bar()
 
-        # initialize notebook
+        # initialize notebook :3
         self.notebook = None
 
-        # setup keyboard combinations
+        # setup keyboard combinations :3
         self.last_key = None
         self.last_key_time = 0
         self.root.bind('<KeyPress>', self.handle_keypress)
@@ -271,16 +271,16 @@ class HookLineSinkerUI:
         self.last_activity_time = time.time()
         self.total_engagement_time = 0
         
-        # bind activity tracking to root window
+        # bind activity tracking to root window :3
         self.root.bind_all('<Key>', self.track_activity)
         self.root.bind_all('<Button>', self.track_activity)
         self.root.bind_all('<MouseWheel>', self.track_activity)
         
-        # start engagement tracking thread
+        # start engagement tracking thread :3
         self.engagement_thread = threading.Thread(target=self.track_engagement_time, daemon=True)
         self.engagement_thread.start()
         
-        # track if mod limit is disabled
+        # track if mod limit is disabled :3
         self.mod_limit_disabled = False
 
         self.create_rotating_backup()
@@ -290,7 +290,7 @@ class HookLineSinkerUI:
         if self.dark_mode.get():
             self.toggle_dark_mode(show_restart_prompt=False)
 
-        # check for updates on startup and show discord prompt
+        # check for updates on startup and show discord prompt :3
         self.check_for_fresh_update()
         self.show_discord_prompt()
         self.show_analytics_prompt()
@@ -298,14 +298,14 @@ class HookLineSinkerUI:
         self.multi_mod_warning_shown = False
         self.send_ga_event("app_launch", {"version": get_version(), "platform": sys.platform})
 
-        # check for updates silently after 5 seconds removed
+        # check for updates silently after 5 seconds removed :3
         if self.auto_update.get():
             self.check_for_updates(silent=True)
         else:
             self.check_for_program_updates()
             logging.info("Auto update is disabled, not prompting for any updates or program updates")
 
-        # check if this is a fresh update
+        # check if this is a fresh update :3
         parser = argparse.ArgumentParser()
         parser.add_argument('--fresh-update', action='store_true')
         args = parser.parse_args()
@@ -313,11 +313,11 @@ class HookLineSinkerUI:
         if args.fresh_update:
             self.show_update_complete()
 
-        # start update checking thread
+        # start update checking thread :3
         self.update_thread = threading.Thread(target=self.periodic_update_check, daemon=True)
         self.update_thread.start()
 
-        # survey configuration
+        # survey configuration :3
         self.survey_questions = [
             {
                 "type": "rating",
@@ -486,12 +486,12 @@ class HookLineSinkerUI:
             }
         ]
         self.last_survey_time = time.time()
-        self.survey_cooldown = 300  # seconds between survey checks
+        self.survey_cooldown = 300  # seconds between survey checks :3
         self.survey_chance = 0.002
-        # assuming 500 users every 30 minutes, this would get us 3 surveys every 30 minutes
-        # i think, my math is very bad, i'm either too low or just perfect
+        # assuming 500 users every 30 minutes, this would get us 3 surveys every 30 minutes :3
+        # i think, my math is very bad, i'm either too low or just perfect :3
 
-        # start survey check thread
+        # start survey check thread :3
         self.survey_thread = threading.Thread(target=self.check_survey_prompt, daemon=True)
         self.survey_thread.start()
 
@@ -507,9 +507,9 @@ class HookLineSinkerUI:
 
     def track_engagement_time(self):
         while True:
-            time.sleep(1)  # check every second
+            time.sleep(1)  # check every second :3
             current_time = time.time()
-            # consider user engaged if less than 30 seconds since last activity
+            # consider user engaged if less than 30 seconds since last activity :3
             if current_time - self.last_activity_time < 30:
                 self.total_engagement_time += 1
 
@@ -517,22 +517,22 @@ class HookLineSinkerUI:
         while True:
             time.sleep(self.survey_cooldown)
             
-            # skip if analytics disabled
+            # skip if analytics disabled :3
             if not self.settings.get('analytics_enabled', True):
                 continue
                 
-            # random chance to show survey
+            # random chance to show survey :3
             if random.random() > self.survey_chance:
                 continue
                 
-            # get random survey question
+            # get random survey question :3
             question = random.choice(self.survey_questions)
             
-            # show survey prompt in main thread
+            # show survey prompt in main thread :3
             self.root.after(0, lambda q=question: self.prompt_survey(q))
 
     def prompt_survey(self, question):
-        # ask user if they want to take survey
+        # ask user if they want to take survey :3
         response = messagebox.askyesno(
             "Quick Survey",
             "Would you like to take a quick survey to help improve Hook, Line, & Sinker?",
@@ -549,30 +549,30 @@ class HookLineSinkerUI:
         dialog.transient(self.root)
         dialog.grab_set()
         
-        # set icon
+        # set icon :3
         icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
         if os.path.exists(icon_path):
             dialog.iconbitmap(icon_path)
         
-        # center dialog
+        # center dialog :3
         dialog.update_idletasks()
         x = (dialog.winfo_screenwidth() // 2) - (dialog.winfo_width() // 2)
         y = (dialog.winfo_screenheight() // 2) - (dialog.winfo_height() // 2)
         dialog.geometry(f"+{x}+{y}")
         
-        # add header
+        # add header :3
         header = ttk.Label(dialog, text="Your feedback helps us improve!", font=('TkDefaultFont', 10, 'bold'))
         header.pack(pady=(10,5))
         
-        # add question
+        # add question :3
         ttk.Label(dialog, text=question["question"], wraplength=350).pack(pady=10)
         
         if question["type"] == "rating":
-            var = tk.IntVar(value=3) # default to middle value
+            var = tk.IntVar(value=3) # default to middle value :3
             scale = ttk.Scale(dialog, from_=1, to=5, variable=var, orient="horizontal")
             scale.pack(pady=10, padx=20, fill="x")
             
-            # add rating labels
+            # add rating labels :3
             label_frame = ttk.Frame(dialog)
             label_frame.pack(fill='x', padx=20)
             ttk.Label(label_frame, text="Poor").pack(side='left')
@@ -604,13 +604,13 @@ class HookLineSinkerUI:
             ttk.Button(dialog, text="Submit", command=submit_suggestion, style='Accent.TButton').pack(pady=10)
 
     def get_user_id(self):
-        # check if user id exists in settings
+        # check if user id exists in settings :3
         user_id = self.settings.get('user_id')
         if not user_id:
-            # generate new uuid if none exists
+            # generate new uuid if none exists :3
             user_id = str(uuid.uuid4())
             self.settings['user_id'] = user_id
-            # save only the settings dict, don't call full save_settings()
+            # save only the settings dict, don't call full save_settings() :3
             settings_path = os.path.join(self.app_data_dir, 'settings.json')
             try:
                 with open(settings_path, 'w') as f:
@@ -625,29 +625,29 @@ class HookLineSinkerUI:
         Uses the Measurement Protocol for GA4
         """
 
-        # it's a setting so no one can get mad at me :3
+        # it's a setting so no one can get mad at me :3 :3
         if not self.settings.get('analytics_enabled', True):
             return
         
         try:
-            # this is to not spam the logs with ga4 requests
+            # this is to not spam the logs with ga4 requests :3
             logging.getLogger('urllib3').setLevel(logging.WARNING)
             requests.packages.urllib3.disable_warnings()
 
-            # get persistent user id
+            # get persistent user id :3
             client_id = self.get_user_id()
             
-            # generate session id if needed
+            # generate session id if needed :3
             if not hasattr(self, 'session_id'):
                 self.session_id = str(uuid.uuid4())
                 
-            # calculate engagement time in milliseconds
+            # calculate engagement time in milliseconds :3
             engagement_ms = int(self.total_engagement_time * 1000)
             
-            # base payload with improved parameters
+            # base payload with improved parameters :3
             payload = {
                 "client_id": client_id,
-                "user_id": client_id,  # enable user-level reporting
+                "user_id": client_id,  # enable user-level reporting :3
                 "non_personalized_ads": True,
                 "events": [{
                     "name": event_name,
@@ -668,19 +668,19 @@ class HookLineSinkerUI:
                 }]
             }
 
-            # add custom parameters if provided
+            # add custom parameters if provided :3
             if params:
                 payload["events"][0]["params"].update(params)
 
-            # send to GA4 endpoint asynchronously
+            # send to GA4 endpoint asynchronously :3
             def send_request():
                 try:
-                    # get path to secrets file
+                    # get path to secrets file :3
                     if getattr(sys, 'frozen', False):
-                        # running as compiled executable
+                        # running as compiled executable :3
                         bundle_dir = sys._MEIPASS
                     else:
-                        # running in normal python environment
+                        # running in normal python environment :3
                         bundle_dir = os.path.dirname(os.path.abspath(__file__))
                         
                     secrets_path = os.path.join(bundle_dir, 'GASecret.txt')
@@ -708,37 +708,37 @@ class HookLineSinkerUI:
     def handle_keypress(self, event):
         current_time = time.time()
         
-        # reset if too much time passed between keypresses
+        # reset if too much time passed between keypresses :3
         if current_time - self.last_key_time > 0.5:
             self.last_key = None
         
-        # store current key info
+        # store current key info :3
         self.last_key_time = current_time
         
-        # check for H + M combination
+        # check for H + M combination :3
         if self.last_key == 'h' and event.char.lower() == 'm':
             self.play_meow()
-        # check for H + B combination  
+        # check for H + B combination   :3
         elif self.last_key == 'h' and event.char.lower() == 'b':
             self.toggle_mod_limit()
             
         self.last_key = event.char.lower()
 
     def handle_keyrelease(self, event):
-        # reset key tracking after release
+        # reset key tracking after release :3
         self.last_key = None
 
     def play_meow(self):
         try:
-            if os.path.exists('meow.wav'):  # changed to .wav since winsound works better with WAV files
+            if os.path.exists('meow.wav'):  # changed to .wav since winsound works better with WAV files :3
                 winsound.PlaySound('meow.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
             else:
-                # get the directory where the script/executable is located
+                # get the directory where the script/executable is located :3
                 if getattr(sys, 'frozen', False):
-                    # if running as exe
+                    # if running as exe :3
                     base_dir = sys._MEIPASS
                 else:
-                    # if running as script
+                    # if running as script :3
                     base_dir = os.path.dirname(os.path.abspath(__file__))
                 
                 meow_path = os.path.join(base_dir, 'meow.wav')
@@ -761,15 +761,15 @@ class HookLineSinkerUI:
         is_dark = self.dark_mode.get()
         style = ttk.Style()
 
-        # set Windows title bar color based on dark mode
+        # set Windows title bar color based on dark mode :3
         version = sys.getwindowsversion()
         if version.major == 10 and version.build >= 22000:
-            # set the title bar color to match theme on Windows 11
+            # set the title bar color to match theme on Windows 11 :3
             pywinstyles.change_header_color(self.root, "#1c1c1c" if is_dark else "#fafafa")
         elif version.major == 10:
-            # set title bar style on Windows 10
+            # set title bar style on Windows 10 :3
             pywinstyles.apply_style(self.root, "dark" if is_dark else "normal")
-            # force refresh title bar color
+            # force refresh title bar color :3
             self.root.wm_attributes("-alpha", 0.99)
             self.root.wm_attributes("-alpha", 1)
         
@@ -872,18 +872,18 @@ class HookLineSinkerUI:
                 "A restart is required for the theme change to take full effect. Press OK to close HLS. Please manually start it back up.")
             self.root.destroy()
 
-    # sets up logging to write to latestlog.txt and fulllatestlog.txt
+    # sets up logging to write to latestlog.txt and fulllatestlog.txt :3
     def setup_logging(self):
         print("Setting up logging system...")
         print(f"App data directory: {self.app_data_dir}")
         
-        # ensure the directory exists
+        # ensure the directory exists :3
         log_dir = os.path.dirname(os.path.join(self.app_data_dir, 'latestlog.txt'))
         print(f"Creating log directory: {log_dir}")
         os.makedirs(log_dir, exist_ok=True)
         print("Log directory created/verified")
         
-        # set up error-only logging to latestlog.txt
+        # set up error-only logging to latestlog.txt :3
         error_log = os.path.join(self.app_data_dir, 'latestlog.txt')
         print(f"Setting up error log at: {error_log}")
         with open(error_log, 'w') as f:
@@ -901,7 +901,7 @@ class HookLineSinkerUI:
         error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S'))
         print("Error log handler configured")
         
-        # set up full logging to fulllatestlog.txt
+        # set up full logging to fulllatestlog.txt :3
         full_log = os.path.join(self.app_data_dir, 'fulllatestlog.txt')
         print(f"Setting up full debug log at: {full_log}")
         with open(full_log, 'w') as f:
@@ -919,7 +919,7 @@ class HookLineSinkerUI:
         full_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S'))
         print("Full log handler configured")
         
-        # configure root logger
+        # configure root logger :3
         print("Configuring root logger...")
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
@@ -927,36 +927,36 @@ class HookLineSinkerUI:
         root_logger.addHandler(full_handler)
         print("Root logger configured with both handlers")
         
-        # redirect stdout and stderr
+        # redirect stdout and stderr :3
         print("Redirecting stdout and stderr to logging system...")
         sys.stdout = LoggerWriter(logging.info)
         sys.stderr = LoggerWriter(logging.error)
         print("Logging system setup complete!")
 
-    # opens the latest log file in a new window
+    # opens the latest log file in a new window :3
     def open_latest_log(self):
         log_path = os.path.join(self.app_data_dir, 'latestlog.txt')
         if os.path.exists(log_path):
             with open(log_path, 'r') as f:
                 log_content = f.read()
             
-            # create a new top-level window
+            # create a new top-level window :3
             log_window = tk.Toplevel(self.root)
             log_window.title("HLS Log")
             log_window.geometry("800x600")
             
-            # set the window icon
+            # set the window icon :3
             icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
             if os.path.exists(icon_path):
                 log_window.iconbitmap(icon_path)
 
-            # create main frame
+            # create main frame :3
             main_frame = ttk.Frame(log_window)
             main_frame.pack(expand=True, fill='both', padx=5, pady=5)
             main_frame.grid_columnconfigure(0, weight=1)
             main_frame.grid_rowconfigure(0, weight=1)
 
-            # create text widget with scrollbar
+            # create text widget with scrollbar :3
             text_frame = ttk.Frame(main_frame)
             text_frame.grid(row=0, column=0, sticky='nsew')
             text_frame.grid_columnconfigure(0, weight=1)
@@ -969,45 +969,45 @@ class HookLineSinkerUI:
             scrollbar.grid(row=0, column=1, sticky='ns')
             log_text.config(yscrollcommand=scrollbar.set)
 
-            # create button frame
+            # create button frame :3
             button_frame = ttk.Frame(main_frame)
             button_frame.grid(row=1, column=0, sticky='ew', pady=(5, 0))
             button_frame.grid_columnconfigure(0, weight=1)
 
-            # add buttons
+            # add buttons :3
             ttk.Button(button_frame, text="Copy to Clipboard", command=lambda: self.root.clipboard_append(log_text.get("1.0", tk.END))).grid(row=0, column=0)
             ttk.Button(button_frame, text="Close", command=log_window.destroy).grid(row=0, column=1)
 
-            # insert the log content
+            # insert the log content :3
             log_text.insert(tk.END, log_content)
-            log_text.config(state='disabled')  # make the text read-only
+            log_text.config(state='disabled')  # make the text read-only :3
         else:
             messagebox.showerror("Error", "Latest log file not found.")
 
-    # opens the full log file in a new window
+    # opens the full log file in a new window :3
     def open_full_log(self):
         log_path = os.path.join(self.app_data_dir, 'fulllatestlog.txt')
         if os.path.exists(log_path):
             with open(log_path, 'r') as f:
                 log_content = f.read()
             
-            # create a new top-level window
+            # create a new top-level window :3
             log_window = tk.Toplevel(self.root)
             log_window.title("Full HLS Log")
             log_window.geometry("800x600")
             
-            # set the window icon
+            # set the window icon :3
             icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
             if os.path.exists(icon_path):
                 log_window.iconbitmap(icon_path)
 
-            # create main frame
+            # create main frame :3
             main_frame = ttk.Frame(log_window)
             main_frame.pack(expand=True, fill='both', padx=5, pady=5)
             main_frame.grid_columnconfigure(0, weight=1)
             main_frame.grid_rowconfigure(0, weight=1)
 
-            # create text widget with scrollbar
+            # create text widget with scrollbar :3
             text_frame = ttk.Frame(main_frame)
             text_frame.grid(row=0, column=0, sticky='nsew')
             text_frame.grid_columnconfigure(0, weight=1)
@@ -1020,26 +1020,26 @@ class HookLineSinkerUI:
             scrollbar.grid(row=0, column=1, sticky='ns')
             log_text.config(yscrollcommand=scrollbar.set)
 
-            # create button frame
+            # create button frame :3
             button_frame = ttk.Frame(main_frame)
             button_frame.grid(row=1, column=0, sticky='ew', pady=(5, 0))
             button_frame.grid_columnconfigure(0, weight=1)
 
-            # add buttons
+            # add buttons :3
             ttk.Button(button_frame, text="Copy to Clipboard", command=lambda: self.root.clipboard_append(log_text.get("1.0", tk.END))).grid(row=0, column=0)
             ttk.Button(button_frame, text="Close", command=log_window.destroy).grid(row=0, column=1)
 
-            # insert the log content
+            # insert the log content :3
             log_text.insert(tk.END, log_content)
-            log_text.config(state='disabled')  # make the text read-only
+            log_text.config(state='disabled')  # make the text read-only :3
         else:
             messagebox.showerror("Error", "Full log file not found.")
     
-    # checks if the game is currently running (removed due to privacy concerns)
+    # checks if the game is currently running (removed due to privacy concerns) :3
 
-    # checks if the game is not running and shows an error if it is (removed due to privacy concerns)
+    # checks if the game is not running and shows an error if it is (removed due to privacy concerns) :3
 
-    # checks for a fresh update and shows a message if one is found
+    # checks for a fresh update and shows a message if one is found :3
     def check_for_fresh_update(self):
         current_version = version.parse(get_version())
 
@@ -1054,12 +1054,12 @@ class HookLineSinkerUI:
                 self.settings['last_update_version'] = str(current_version)
                 self.save_settings()
         else:
-            # first time running, just save current version
+            # first time running, just save current version :3
             self.settings['last_update_version'] = str(current_version)
             self.save_settings()
 
-    # toggles gdweave on or off
-    # i need to implement checks to see if gdweave is toggled and disallow things like installing mods etc (1.2.1) it is now 1.2.6 and i still haven't done this, really just hoping people have a brain and don't try to install mods without gdweave
+    # toggles gdweave on or off :3
+    # i need to implement checks to see if gdweave is toggled and disallow things like installing mods etc (1.2.1) it is now 1.2.6 and i still haven't done this, really just hoping people have a brain and don't try to install mods without gdweave :3
     def toggle_gdweave(self):
         if not self.settings.get('game_path'):
             messagebox.showerror("Error", "Game path not set. Please set the game path first.")
@@ -1073,7 +1073,7 @@ class HookLineSinkerUI:
         winmm_backup_path = os.path.join(self.app_data_dir, 'winmm_backup.dll')
 
         if os.path.exists(gdweave_game_path) or os.path.exists(winmm_game_path):
-            # gdweave is currently in the game folder let's move it to backup
+            # gdweave is currently in the game folder let's move it to backup :3
             try:
                 if os.path.exists(gdweave_game_path):
                     shutil.move(gdweave_game_path, gdweave_backup_path)
@@ -1088,7 +1088,7 @@ class HookLineSinkerUI:
                 self.send_ga_event('gdweave_toggle', 'error', f'disable_failed: {str(e)}')
                 return
         else:
-            # gdweave is not in the game folder let's restore it from backup
+            # gdweave is not in the game folder let's restore it from backup :3
             try:
                 if os.path.exists(gdweave_backup_path):
                     shutil.move(gdweave_backup_path, gdweave_game_path)
@@ -1105,7 +1105,7 @@ class HookLineSinkerUI:
 
         self.update_setup_status()
 
-    # uninstalls gdweave
+    # uninstalls gdweave :3
     def uninstall_gdweave(self):
         if not self.settings.get('game_path'):
             messagebox.showerror("Error", "Game path not set. Please set the game path first.")
@@ -1120,12 +1120,12 @@ class HookLineSinkerUI:
 
         if messagebox.askyesno("Confirm Uninstall", "Are you sure you want to uninstall GDWeave? This will remove the GDWeave folder, all mods within it, and the winmm.dll file from your game directory."):
             try:
-                # attempt to remove gdweave folder and winmmdll without elevation
+                # attempt to remove gdweave folder and winmmdll without elevation :3
                 shutil.rmtree(gdweave_path, ignore_errors=True)
                 if os.path.exists(winmm_path):
                     os.remove(winmm_path)
 
-                # check if files still exist
+                # check if files still exist :3
                 remaining_files = []
                 if os.path.exists(gdweave_path):
                     remaining_files.append("GDWeave folder")
@@ -1133,67 +1133,67 @@ class HookLineSinkerUI:
                     remaining_files.append("winmm.dll")
                 
                 if remaining_files:
-                    # some files couldn't be deleted, possibly due to permissions or open programs
+                    # some files couldn't be deleted, possibly due to permissions or open programs :3
                     warning_message = f"Some files could not be deleted: {', '.join(remaining_files)}. This may be due to insufficient permissions or open programs. Please close all related programs and try again."
                     messagebox.showwarning("Partial Uninstall", warning_message)
                     self.set_status("GDWeave partially uninstalled")
                 else:
-                    # uninstall successful, update settings and ui
+                    # uninstall successful, update settings and ui :3
                     self.settings['gdweave_version'] = None
                     self.save_settings()
                     self.set_status("GDWeave uninstalled successfully")
                     messagebox.showinfo("Success", "GDWeave has been uninstalled successfully.")
                 
-                # refresh ui elements
+                # refresh ui elements :3
                 self.update_setup_status()
                 logging.info("GDWeave uninstallation process completed.")
 
             except Exception as e:
-                # handle any unexpected errors during uninstallation
+                # handle any unexpected errors during uninstallation :3
                 error_message = f"Failed to uninstall GDWeave: {str(e)}"
                 self.set_status(error_message)
                 messagebox.showerror("Error", error_message)
 
     def create_main_ui(self):
-        # create and set up the main user interface
+        # create and set up the main user interface :3
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(expand=True, fill='both')
 
-        # create various tabs for different functionalities
+        # create various tabs for different functionalities :3
         self.create_mod_manager_tab()
         self.create_modpacks_tab()
         self.create_game_manager_tab()
         self.create_hls_setup_tab()
-        # self.create_profile_tab()
+        # self.create_profile_tab() :3
         self.create_settings_tab()
         
-        # initialize mod-related functions
+        # initialize mod-related functions :3
         self.copy_existing_gdweave_mods()
         self.load_available_mods()
         self.refresh_mod_lists()
 
     def create_mod_manager_tab(self):
-        # create the mod manager tab for managing game modifications
+        # create the mod manager tab for managing game modifications :3
         mod_manager_frame = ttk.Frame(self.notebook)
         self.notebook.add(mod_manager_frame, text="Mod Manager")
 
-        # configure grid layout
-        mod_manager_frame.grid_columnconfigure(0, weight=1)  # left panel
-        mod_manager_frame.grid_columnconfigure(1, weight=0)  # center panel (action buttons)
-        mod_manager_frame.grid_columnconfigure(2, weight=1)  # right panel
+        # configure grid layout :3
+        mod_manager_frame.grid_columnconfigure(0, weight=1)  # left panel :3
+        mod_manager_frame.grid_columnconfigure(1, weight=0)  # center panel (action buttons) :3
+        mod_manager_frame.grid_columnconfigure(2, weight=1)  # right panel :3
         mod_manager_frame.grid_rowconfigure(0, weight=3)
         mod_manager_frame.grid_rowconfigure(1, weight=1)
 
-        # create left panel for available mods
+        # create left panel for available mods :3
         available_frame = ttk.LabelFrame(mod_manager_frame, text="Available Mods (0)")
         self.available_frame = available_frame
         available_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         available_frame.grid_columnconfigure(0, weight=1)
-        available_frame.grid_rowconfigure(0, weight=0)  # search frame
-        available_frame.grid_rowconfigure(1, weight=0)  # filter frame
-        available_frame.grid_rowconfigure(2, weight=1)  # listbox
+        available_frame.grid_rowconfigure(0, weight=0)  # search frame :3
+        available_frame.grid_rowconfigure(1, weight=0)  # filter frame :3
+        available_frame.grid_rowconfigure(2, weight=1)  # listbox :3
 
-        # create search frame
+        # create search frame :3
         search_frame = ttk.Frame(available_frame)
         search_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
         search_frame.grid_columnconfigure(1, weight=1)
@@ -1204,14 +1204,14 @@ class HookLineSinkerUI:
         search_entry = ttk.Entry(search_frame, textvariable=self.search_var)
         search_entry.grid(row=0, column=1, sticky="ew", padx=5)
 
-        # create collapsible advanced filter section
+        # create collapsible advanced filter section :3
         self.advanced_filters_visible = tk.BooleanVar(value=False)
         ttk.Button(search_frame, text="Advanced Filters", command=self.toggle_advanced_filters).grid(row=0, column=2, padx=5)
 
-        # create advanced filter frame (hidden by default)
+        # create advanced filter frame (hidden by default) :3
         self.filter_frame = ttk.LabelFrame(available_frame, text="Advanced Filters")
         
-        # category frame
+        # category frame :3
         category_frame = ttk.Frame(self.filter_frame)
         category_frame.pack(fill="x", padx=5, pady=2)
         ttk.Label(category_frame, text="Category:").pack(side="left", padx=5)
@@ -1219,7 +1219,7 @@ class HookLineSinkerUI:
         self.available_category.pack(side="left", fill="x", expand=True, padx=5)
         self.available_category.bind('<<ComboboxSelected>>', lambda e: self.filter_available_mods())
 
-        # sort frame
+        # sort frame :3
         sort_frame = ttk.Frame(self.filter_frame)
         sort_frame.pack(fill="x", padx=5, pady=2)
         ttk.Label(sort_frame, text="Sort:").pack(side="left", padx=5)
@@ -1229,7 +1229,7 @@ class HookLineSinkerUI:
         self.sort_method.pack(side="left", fill="x", expand=True, padx=5)
         self.sort_method.bind('<<ComboboxSelected>>', lambda e: (self.filter_available_mods(), self.save_sort_preferences()))
 
-        # toggle frame
+        # toggle frame :3
         toggle_frame = ttk.Frame(self.filter_frame)
         toggle_frame.pack(fill="x", padx=5, pady=2)
         ttk.Checkbutton(toggle_frame, text="Show NSFW", 
@@ -1241,23 +1241,23 @@ class HookLineSinkerUI:
                        command=lambda: self.handle_filter_toggle('deprecated')
         ).pack(side="left", padx=5)
 
-        # create listbox for available mods with scrollbar
+        # create listbox for available mods with scrollbar :3
         self.available_listbox = tk.Listbox(available_frame, width=30, height=15, selectmode=tk.EXTENDED)
         self.available_listbox.grid(row=2, column=0, pady=(2,2), padx=2, sticky="nsew")
         self.available_listbox.bind('<<ListboxSelect>>', self.on_available_listbox_select)
         self.available_listbox.bind('<Button-3>', self.show_context_menu)
 
-        # add scrollbar
+        # add scrollbar :3
         scrollbar = ttk.Scrollbar(available_frame, orient="vertical", command=self.available_listbox.yview)
         scrollbar.grid(row=2, column=1, sticky="ns")
         self.available_listbox.configure(yscrollcommand=scrollbar.set)
 
-        # create middle panel for action buttons
+        # create middle panel for action buttons :3
         action_frame = ttk.Frame(mod_manager_frame)
-        action_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ns")  # only stick to north/south
-        action_frame.grid_columnconfigure(0, weight=1)  # make sure internal contents are centered - i dont think these do anything but better safe than sorry
+        action_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ns")  # only stick to north/south :3
+        action_frame.grid_columnconfigure(0, weight=1)  # make sure internal contents are centered - i dont think these do anything but better safe than sorry :3
 
-        # create game management section
+        # create game management section :3
         self.game_management_frame = ttk.LabelFrame(action_frame, text="Launch Game")
         self.game_management_frame.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
         self.game_management_frame.grid_columnconfigure(0, weight=1)
@@ -1265,7 +1265,7 @@ class HookLineSinkerUI:
         ttk.Button(self.game_management_frame, text="Modded", command=self.launch_modded).grid(row=0, column=0, pady=2, padx=2, sticky="ew")
         ttk.Button(self.game_management_frame, text="Vanilla", command=self.launch_vanilla).grid(row=0, column=1, pady=2, padx=2, sticky="ew")
 
-        # create mod management section
+        # create mod management section :3
         self.mod_management_frame = ttk.LabelFrame(action_frame, text="Mod Management")
         self.mod_management_frame.grid(row=2, column=0, pady=5, padx=5, sticky="ew")
         self.mod_management_frame.grid_columnconfigure(0, weight=1)
@@ -1275,9 +1275,9 @@ class HookLineSinkerUI:
         ttk.Button(self.mod_management_frame, text="Enable", command=self.enable_mod).grid(row=1, column=0, pady=2, padx=2, sticky="ew")
         ttk.Button(self.mod_management_frame, text="Disable", command=self.disable_mod).grid(row=1, column=1, pady=2, padx=2, sticky="ew")
         ttk.Button(self.mod_management_frame, text="Edit Config", command=self.edit_mod_config).grid(row=2, column=0, pady=2, padx=2, sticky="ew")
-        ttk.Button(self.mod_management_frame, text="Version", command=self.show_version_selection).grid(row=2, column=1, pady=2, padx=2, sticky="ew")        # change version logic is very buggy
+        ttk.Button(self.mod_management_frame, text="Version", command=self.show_version_selection).grid(row=2, column=1, pady=2, padx=2, sticky="ew")        # change version logic is very buggy :3
 
-        # create 3rd party mods section
+        # create 3rd party mods section :3
         third_party_frame = ttk.LabelFrame(action_frame, text="3rd Party Mods")
         third_party_frame.grid(row=3, column=0, pady=5, padx=5, sticky="ew")
         third_party_frame.grid_columnconfigure(0, weight=1)
@@ -1286,7 +1286,7 @@ class HookLineSinkerUI:
         ttk.Button(third_party_frame, text="Refresh Mods", command=self.refresh_all_mods).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
         ttk.Button(third_party_frame, text="View Deprecated Mods List", command=self.view_deprecated_mods_list).grid(row=1, column=0, columnspan=2, padx=2, pady=2, sticky="ew")
 
-        # create helpful links section
+        # create helpful links section :3
         help_frame = ttk.LabelFrame(action_frame, text="Helpful Links")
         help_frame.grid(row=4, column=0, pady=5, padx=5, sticky="ew")
         help_frame.grid_columnconfigure(0, weight=1)
@@ -1296,12 +1296,12 @@ class HookLineSinkerUI:
         ttk.Button(help_frame, text="Support HLS", command=lambda: webbrowser.open("https://ko-fi.com/pyoid")).grid(row=1, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(help_frame, text="Dev Guide", command=lambda: webbrowser.open("https://github.com/BlueberryWolf/WEBFISHINGModdingGuide/blob/main/README.md")).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
 
-        # create right panel for installed mods
+        # create right panel for installed mods :3
         installed_frame = ttk.LabelFrame(mod_manager_frame, text="Installed Mods (0)")
         self.installed_frame = installed_frame
         installed_frame.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
 
-        # create search frame
+        # create search frame :3
         installed_search_frame = ttk.Frame(installed_frame)
         installed_search_frame.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
         installed_search_frame.grid_columnconfigure(1, weight=1)
@@ -1312,15 +1312,15 @@ class HookLineSinkerUI:
         installed_search_entry = ttk.Entry(installed_search_frame, textvariable=self.installed_search_var)
         installed_search_entry.grid(row=0, column=1, sticky="ew", padx=5)
 
-        # create collapsible advanced filter section
+        # create collapsible advanced filter section :3
         self.installed_filters_visible = tk.BooleanVar(value=False)
         ttk.Button(installed_search_frame, text="Advanced Filters", 
                   command=self.toggle_installed_filters).grid(row=0, column=2, padx=5)
 
-        # create advanced filter frame (hidden by default)
+        # create advanced filter frame (hidden by default) :3
         self.installed_filter_frame = ttk.LabelFrame(installed_frame, text="Advanced Filters")
 
-        # create filter dropdown frame
+        # create filter dropdown frame :3
         installed_filter_frame = ttk.Frame(self.installed_filter_frame)
         installed_filter_frame.pack(fill="x", padx=5, pady=2)
 
@@ -1329,7 +1329,7 @@ class HookLineSinkerUI:
         self.installed_category.pack(side="left", fill="x", expand=True, padx=5)
         self.installed_category.bind('<<ComboboxSelected>>', self.filter_installed_mods)
 
-        # create sort frame
+        # create sort frame :3
         installed_sort_frame = ttk.Frame(self.installed_filter_frame)
         installed_sort_frame.pack(fill="x", padx=5, pady=2)
         ttk.Label(installed_sort_frame, text="Sort:").pack(side="left", padx=5)
@@ -1344,7 +1344,7 @@ class HookLineSinkerUI:
                         variable=self.hide_third_party,
                         command=self.filter_installed_mods).pack(fill="x", padx=5, pady=2)
 
-        # create listbox for installed mods with scrollbar
+        # create listbox for installed mods with scrollbar :3
         self.installed_listbox = tk.Listbox(installed_frame, width=30, height=15, selectmode=tk.EXTENDED)
         installed_scrollbar = ttk.Scrollbar(installed_frame, orient="vertical", command=self.installed_listbox.yview)
         self.installed_listbox.configure(yscrollcommand=installed_scrollbar.set)
@@ -1358,7 +1358,7 @@ class HookLineSinkerUI:
         installed_frame.grid_columnconfigure(0, weight=1)
         installed_frame.grid_rowconfigure(2, weight=1)
 
-        # create bottom panel for mod details
+        # create bottom panel for mod details :3
         self.mod_details_frame = ttk.LabelFrame(mod_manager_frame, text="Mod Details")
         self.mod_details_frame.grid(row=1, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
 
@@ -1397,7 +1397,7 @@ class HookLineSinkerUI:
         left_frame.grid_columnconfigure(0, weight=1)
         left_frame.grid_rowconfigure(1, weight=1)
 
-        # create listbox for modpacks with scrollbar
+        # create listbox for modpacks with scrollbar :3
         self.modpacks_listbox = tk.Listbox(left_frame, width=45)
         modpacks_scrollbar = ttk.Scrollbar(left_frame, orient="vertical", command=self.modpacks_listbox.yview)
         self.modpacks_listbox.configure(yscrollcommand=modpacks_scrollbar.set)
@@ -1406,7 +1406,7 @@ class HookLineSinkerUI:
         modpacks_scrollbar.grid(row=1, column=1, sticky="ns", pady=5, padx=(0,5))
         self.modpacks_listbox.bind('<<ListboxSelect>>', self.on_modpack_select)
 
-        # buttons at bottom of left frame in 2x2 grid
+        # buttons at bottom of left frame in 2x2 grid :3
         buttons_frame = ttk.Frame(left_frame)
         buttons_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
         buttons_frame.grid_columnconfigure(0, weight=1)
@@ -1436,26 +1436,26 @@ class HookLineSinkerUI:
         self.refresh_modpacks_list()
 
     def create_modpack_window(self):
-        # create new window
+        # create new window :3
         modpack_window = tk.Toplevel(self.root)
         modpack_window.title("Create Modpack")
         modpack_window.geometry("800x600")
         
-        # set window icon
+        # set window icon :3
         icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
         if os.path.exists(icon_path):
             modpack_window.iconbitmap(icon_path)
 
-        # configure grid
+        # configure grid :3
         modpack_window.grid_columnconfigure(0, weight=1)
         modpack_window.grid_columnconfigure(1, weight=1)
         modpack_window.grid_rowconfigure(1, weight=1)
 
-        # create info frame
+        # create info frame :3
         info_frame = ttk.LabelFrame(modpack_window, text="Modpack Information")
         info_frame.grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-        # add info fields
+        # add info fields :3
         ttk.Label(info_frame, text="Name:").grid(row=0, column=0, padx=5, pady=5)
         name_entry = ttk.Entry(info_frame)
         name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
@@ -1468,21 +1468,21 @@ class HookLineSinkerUI:
         description_text = tk.Text(info_frame, height=3)
         description_text.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
 
-        # create installed mods frame
+        # create installed mods frame :3
         installed_frame = ttk.LabelFrame(modpack_window, text="Installed Mods")
         installed_frame.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
 
         installed_listbox = tk.Listbox(installed_frame, selectmode=tk.MULTIPLE)
         installed_listbox.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # create modpack mods frame
+        # create modpack mods frame :3
         modpack_frame = ttk.LabelFrame(modpack_window, text="Modpack Mods")
         modpack_frame.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
 
         modpack_listbox = tk.Listbox(modpack_frame)
         modpack_listbox.pack(fill="both", expand=True, padx=5, pady=5)
 
-        # only add non-third-party mods to the listbox
+        # only add non-third-party mods to the listbox :3
         for mod in self.installed_mods:
             if not mod.get('third_party', False):
                 installed_listbox.insert(tk.END, mod['title'])
@@ -1513,7 +1513,7 @@ class HookLineSinkerUI:
                 messagebox.showerror("Error", "Please add at least one mod to the modpack")
                 return
 
-            # create modpack info dictionary
+            # create modpack info dictionary :3
             modpack_info = {
                 "name": name,
                 "author": author,
@@ -1532,11 +1532,11 @@ class HookLineSinkerUI:
             }
 
             try:
-                # save modpack locally first without the paste_id
+                # save modpack locally first without the paste_id :3
                 modpack_filename = f"{name}.json"
                 modpack_path = os.path.join(self.modpacks_dir, modpack_filename)
                 
-                # check if modpack already exists and get existing paste_id if it does
+                # check if modpack already exists and get existing paste_id if it does :3
                 existing_paste_id = None
                 if os.path.exists(modpack_path):
                     if not messagebox.askyesno("Modpack Exists", 
@@ -1549,7 +1549,7 @@ class HookLineSinkerUI:
                     except:
                         pass
 
-                # create Pastebin paste
+                # create Pastebin paste :3
                 json_data = json.dumps(modpack_info, indent=2)
                 api_dev_key = 'jOTm6BSYKBTKnFx1BUCzgFy1nIi-W9M1'
                 api_url = 'https://pastebin.com/api/api_post.php'
@@ -1568,12 +1568,12 @@ class HookLineSinkerUI:
                 if response.status_code == 200 and response.text.startswith('https://pastebin.com/'):
                     paste_id = response.text.split('/')[-1]
                     
-                    # add paste_id to modpack_info and save again
+                    # add paste_id to modpack_info and save again :3
                     modpack_info['paste_id'] = paste_id
                     with open(modpack_path, 'w') as f:
                         json.dump(modpack_info, f, indent=2)
 
-                    # show success message
+                    # show success message :3
                     if existing_paste_id:
                         message = (f"Modpack updated successfully!\n"
                                   f"Previous share code: {existing_paste_id}\n"
@@ -1586,12 +1586,12 @@ class HookLineSinkerUI:
                     
                     messagebox.showinfo("Success", message)
                     
-                    # copy new paste ID to clipboard
+                    # copy new paste ID to clipboard :3
                     self.root.clipboard_clear()
                     self.root.clipboard_append(paste_id)
                     self.root.update()
                     
-                    # refresh and select in modpack list
+                    # refresh and select in modpack list :3
                     self.refresh_modpacks_list()
                     for i in range(self.modpacks_listbox.size()):
                         if self.modpacks_listbox.get(i) == name:
@@ -1609,7 +1609,7 @@ class HookLineSinkerUI:
                 error_message = f"Failed to create modpack: {str(e)}"
                 messagebox.showerror("Error", error_message)
 
-        # create buttons frame
+        # create buttons frame :3
         buttons_frame = ttk.Frame(modpack_window)
         buttons_frame.grid(row=2, column=0, columnspan=2, pady=5)
 
@@ -1619,52 +1619,52 @@ class HookLineSinkerUI:
         ttk.Button(buttons_frame, text="Cancel", command=modpack_window.destroy).pack(side="left", padx=5)
 
     def import_modpack(self):
-        # ask for Pastebin ID
+        # ask for Pastebin ID :3
         paste_id = simpledialog.askstring("Import Modpack", "Enter the modpack code:")
         if not paste_id:
             return
 
         try:
-            # fetch paste content
+            # fetch paste content :3
             response = requests.get(f'https://pastebin.com/raw/{paste_id}')
             if response.status_code != 200:
                 raise Exception("Failed to fetch modpack data")
 
-            # parse modpack info
+            # parse modpack info :3
             modpack_info = json.loads(response.text)
 
-            # verify required fields
+            # verify required fields :3
             required_fields = ['name', 'author', 'description', 'mods']
             if not all(field in modpack_info for field in required_fields):
                 raise Exception("Invalid modpack format")
 
-            # add the paste_id to the modpack info
+            # add the paste_id to the modpack info :3
             modpack_info['paste_id'] = paste_id
 
-            # save modpack locally
+            # save modpack locally :3
             modpack_filename = f"{modpack_info['name']}.json"
             modpack_path = os.path.join(self.modpacks_dir, modpack_filename)
             
-            # check if modpack already exists
+            # check if modpack already exists :3
             if os.path.exists(modpack_path):
                 if not messagebox.askyesno("Modpack Exists", 
                     "A modpack with this name already exists. Do you want to overwrite it?"):
                     return
             
-            # save the modpack file
+            # save the modpack file :3
             with open(modpack_path, 'w') as f:
                 json.dump(modpack_info, f, indent=2)
 
-            # refresh the modpacks list
+            # refresh the modpacks list :3
             self.refresh_modpacks_list()
             
-            # find and select the newly imported modpack in the listbox
+            # find and select the newly imported modpack in the listbox :3
             for i in range(self.modpacks_listbox.size()):
                 if self.modpacks_listbox.get(i) == modpack_info['name']:
                     self.modpacks_listbox.selection_clear(0, tk.END)
                     self.modpacks_listbox.selection_set(i)
                     self.modpacks_listbox.see(i)
-                    # trigger the selection event to update details
+                    # trigger the selection event to update details :3
                     self.on_modpack_select(None)
                     break
 
@@ -1681,7 +1681,7 @@ class HookLineSinkerUI:
         self.modpacks_listbox.delete(0, tk.END)
         for file in os.listdir(self.modpacks_dir):
             if file.endswith('.json'):
-                self.modpacks_listbox.insert(tk.END, file[:-5])  # remove .json extension
+                self.modpacks_listbox.insert(tk.END, file[:-5])  # remove .json extension :3
                 
     def on_modpack_select(self, event):
         selected = self.modpacks_listbox.curselection()
@@ -1698,7 +1698,7 @@ class HookLineSinkerUI:
             self.modpack_details.config(state='normal')
             self.modpack_details.delete(1.0, tk.END)
             
-            # display modpack information
+            # display modpack information :3
             self.modpack_details.insert(tk.END, f"Name: {modpack_info['name']}\n")
             self.modpack_details.insert(tk.END, f"Author: {modpack_info['author']}\n")
             created_date = datetime.fromisoformat(modpack_info['created'])
@@ -1730,33 +1730,33 @@ class HookLineSinkerUI:
         if messagebox.askyesno("Confirm Apply", 
             "Applying this modpack will disable all current mods and enable only the mods in the modpack. Continue?"):
             try:
-                # read modpack info
+                # read modpack info :3
                 with open(modpack_path) as f:
                     modpack_info = json.load(f)
 
-                # disable all currently installed mods
+                # disable all currently installed mods :3
                 for mod in self.installed_mods:
                     mod['enabled'] = False
                     self.save_mod_info(mod)
 
-                # process each mod in the modpack
+                # process each mod in the modpack :3
                 for mod_entry in modpack_info['mods']:
                     mod_id = mod_entry['id']
                     
-                    # check if mod exists
+                    # check if mod exists :3
                     existing_mod = next((mod for mod in self.installed_mods if mod['id'] == mod_id), None)
                     
                     if existing_mod:
-                        # check if versions match
+                        # check if versions match :3
                         if existing_mod.get('version') != mod_entry.get('version'):
-                            # find the specific version in available mods
+                            # find the specific version in available mods :3
                             if mod_entry.get('thunderstore_id'):
                                 available_mod = next((mod for mod in self.available_mods 
                                             if mod['thunderstore_id'] == mod_entry['thunderstore_id']), None)
                                 if available_mod:
-                                    # uninstall current version
+                                    # uninstall current version :3
                                     self.uninstall_mod_files(existing_mod)
-                                    # install specific version
+                                    # install specific version :3
                                     temp_mod = available_mod.copy()
                                     temp_mod.update({
                                         'version': mod_entry['version'],
@@ -1766,11 +1766,11 @@ class HookLineSinkerUI:
                                     self.download_and_install_mod(temp_mod)
                                     continue
 
-                        # enable existing mod if version matches or couldn't find/install specific version
+                        # enable existing mod if version matches or couldn't find/install specific version :3
                         existing_mod['enabled'] = True
                         self.save_mod_info(existing_mod)
                     else:
-                        # install mod if it doesn't exist
+                        # install mod if it doesn't exist :3
                         if mod_entry.get('thunderstore_id'):
                             available_mod = next((mod for mod in self.available_mods 
                                             if mod['thunderstore_id'] == mod_entry['thunderstore_id']), None)
@@ -1783,7 +1783,7 @@ class HookLineSinkerUI:
                                 })
                                 self.download_and_install_mod(temp_mod)
 
-                # refresh UI
+                # refresh UI :3
                 self.refresh_mod_lists()
                 messagebox.showinfo("Success", f"Modpack '{modpack_name}' applied successfully!")
                 self.set_status(f"Applied modpack: {modpack_name}")
@@ -1793,11 +1793,11 @@ class HookLineSinkerUI:
                 messagebox.showerror("Error", error_message)
                 self.set_status(error_message)
 
-    # i'm trying a new thing! maybe i should document my code more lmao
+    # i'm trying a new thing! maybe i should document my code more lmao :3
     def save_mod_info(self, mod):
         """Saves the mod information to its mod_info.json file"""
         try:
-            # determine the correct path based on whether it's a third-party mod
+            # determine the correct path based on whether it's a third-party mod :3
             if mod.get('third_party', False):
                 mod_dir = os.path.join(self.mods_dir, "3rd_party", mod['id'])
             else:
@@ -1805,11 +1805,11 @@ class HookLineSinkerUI:
                 
             mod_info_path = os.path.join(mod_dir, 'mod_info.json')
             
-            # save the mod info
+            # save the mod info :3
             with open(mod_info_path, 'w') as f:
                 json.dump(mod, f, indent=2)
                 
-            # also update the mod status
+            # also update the mod status :3
             self.save_mod_status(mod)
             
         except Exception as e:
@@ -1828,10 +1828,10 @@ class HookLineSinkerUI:
 
         if messagebox.askyesno("Confirm Remove", "Do you want to remove this modpack?"):
             try:
-                # delete the modpack file
+                # delete the modpack file :3
                 os.remove(modpack_path)
                 
-                # refresh UI
+                # refresh UI :3
                 self.refresh_mod_lists()
                 self.refresh_modpacks_list()
                 self.set_status(f"Removed modpack: {modpack_name}")
@@ -1867,40 +1867,40 @@ class HookLineSinkerUI:
         self.update_button_states()
         
     def update_button_states(self):
-        # get current selections
+        # get current selections :3
         available_selected = bool(self.available_listbox.curselection())
         installed_selected = bool(self.installed_listbox.curselection())
         
-        # get selected installed mod for config check
+        # get selected installed mod for config check :3
         selected_mod = None
         if installed_selected:
             selected_indices = self.get_selected_installed_mod_indices()
             if selected_indices:
                 selected_mod = self.filtered_installed_mods[selected_indices[0]]
         
-        # get all buttons in mod management frame
+        # get all buttons in mod management frame :3
         for child in self.mod_management_frame.winfo_children():
             if isinstance(child, ttk.Button):
                 text = child.cget('text')
                 
-                # handle Install button
+                # handle Install button :3
                 if text == "Install":
                     child.configure(state='normal' if available_selected else 'disabled')
                 
-                # handle Edit Config button
+                # handle Edit Config button :3
                 elif text == "Edit Config":
                     has_config = selected_mod and self.mod_has_config(selected_mod)
                     child.configure(state='normal' if installed_selected and has_config else 'disabled')
                 
-                # handle other mod management buttons
+                # handle other mod management buttons :3
                 elif text in ["Uninstall", "Enable", "Disable"]:
                     child.configure(state='normal' if installed_selected else 'disabled')
 
-                # handle Version button
+                # handle Version button :3
                 elif text == "Version":
                     child.configure(state='normal' if installed_selected else 'disabled')
 
-        # update game management button state based on setup status
+        # update game management button state based on setup status :3
         start_game_btn = self.game_management_frame.winfo_children()[0]
         start_game_btn.configure(state='normal' if self.check_setup() else 'disabled')
 
@@ -1914,17 +1914,17 @@ class HookLineSinkerUI:
             
         selected = listbox.curselection()
         
-        # ignore category headers
+        # ignore category headers :3
         actual_mods = [i for i in selected if not listbox.get(i).startswith('--')]
         
         if len(actual_mods) > 10:
-            # keep only the first 10 selections
+            # keep only the first 10 selections :3
             listbox.selection_clear(0, tk.END)
             for i in actual_mods[:10]:
                 listbox.selection_set(i)
             messagebox.showwarning("Selection Limit", "You can only select up to 10 mods for installation at once.")
         elif len(actual_mods) > 3 and not self.multi_mod_warning_shown:
-            # show warning only once and allow the selection
+            # show warning only once and allow the selection :3
             messagebox.showwarning("Performance Warning", 
                 "You have selected more than 3 mods for installation.\n\n"
                 "The program may become unresponsive while downloading and installing multiple mods.\n\n"
@@ -1939,7 +1939,7 @@ class HookLineSinkerUI:
 
     def _format_timestamp(self, timestamp):
         try:
-            # convert iso format to datetime
+            # convert iso format to datetime :3
             updated_dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
             now = datetime.now(timezone.utc)
             diff = now - updated_dt
@@ -1962,21 +1962,21 @@ class HookLineSinkerUI:
             return None
 
     def _show_category_details(self, category_name):
-        # remove the category prefix if present
+        # remove the category prefix if present :3
         category_name = category_name.replace('-- ', '').replace(' --', '')
         
         self.mod_details.config(state='normal')
         self.mod_details.delete(1.0, tk.END)
         
-        # title section
+        # title section :3
         self.mod_details.insert(tk.END, f"{category_name} Category\n\n", "header")
         self.mod_details.tag_config("header", font=("TkDefaultFont", 10, "bold"))
         
-        # count mods in this category
+        # count mods in this category :3
         mod_count = sum(1 for mod in self.available_mods if category_name in mod.get('categories', []))
         self.mod_details.insert(tk.END, f"Contains {mod_count} mod{'s' if mod_count != 1 else ''}\n\n")
         
-        # list mods in category
+        # list mods in category :3
         if mod_count > 0:
             self.mod_details.insert(tk.END, "Mods in this category:\n", "subheader")
             self.mod_details.tag_config("subheader", font=("TkDefaultFont", 9, "bold"))
@@ -1990,7 +1990,7 @@ class HookLineSinkerUI:
         selected_category = self.available_category.get()
         self.available_listbox.delete(0, tk.END)
         
-        # get list of installed mod titles (excluding 3rd party)
+        # get list of installed mod titles (excluding 3rd party) :3
         installed_mod_titles = {
             mod['title'] for mod in self.installed_mods 
             if not mod.get('third_party', False)
@@ -1998,11 +1998,11 @@ class HookLineSinkerUI:
         
         filtered_mods = []
         for mod in self.available_mods:
-            # skip if mod is already installed
+            # skip if mod is already installed :3
             if mod['title'] in installed_mod_titles:
                 continue
                 
-            # check if mod matches search criteria
+            # check if mod matches search criteria :3
             if search_text and not (
                 search_text in mod['title'].lower() or 
                 search_text in mod.get('author', '').lower() or 
@@ -2010,13 +2010,13 @@ class HookLineSinkerUI:
             ):
                 continue
                 
-            # check if mod matches category filter
+            # check if mod matches category filter :3
             if selected_category != "All" and selected_category not in mod.get('categories', []):
                 continue
                 
             filtered_mods.append(mod)
 
-        # sort the filtered mods based on selected method
+        # sort the filtered mods based on selected method :3
         sort_method = self.sort_method.get()
         if sort_method == "Last Updated":
             filtered_mods.sort(key=lambda x: x.get('updated_on', ''), reverse=True)
@@ -2029,7 +2029,7 @@ class HookLineSinkerUI:
         elif sort_method == "Name (Z-A)":
             filtered_mods.sort(key=lambda x: x.get('title', '').lower(), reverse=True)
 
-        # display filtered mods with converted display names
+        # display filtered mods with converted display names :3
         for mod in filtered_mods:
             display_title = self.get_display_name(mod['title'])
             self.available_listbox.insert(tk.END, display_title)
@@ -2040,7 +2040,7 @@ class HookLineSinkerUI:
         duplicates = []
         processed_duplicates = set()
 
-        # check normal mods
+        # check normal mods :3
         for mod_folder in os.listdir(self.mods_dir):
             mod_info_path = os.path.join(self.mods_dir, mod_folder, 'mod_info.json')
             if os.path.exists(mod_info_path):
@@ -2050,7 +2050,7 @@ class HookLineSinkerUI:
                     mod_title = mod_info.get('title')
                     mod_version = mod_info.get('version', 'Unknown')
                     
-                    # check for duplicate ids
+                    # check for duplicate ids :3
                     if mod_id:
                         if mod_id in mod_ids and mod_id not in processed_duplicates:
                             duplicates.append((mod_ids[mod_id], mod_info_path, mod_id, mod_title, mod_version))
@@ -2058,7 +2058,7 @@ class HookLineSinkerUI:
                         else:
                             mod_ids[mod_id] = mod_info_path
                     
-                    # check for duplicate titles
+                    # check for duplicate titles :3
                     if mod_title:
                         if mod_title in mod_titles and mod_title not in processed_duplicates:
                             duplicates.append((mod_titles[mod_title], mod_info_path, mod_title, mod_id, mod_version))
@@ -2066,7 +2066,7 @@ class HookLineSinkerUI:
                         else:
                             mod_titles[mod_title] = mod_info_path
 
-        # check third-party mods
+        # check third-party mods :3
         third_party_mods_dir = os.path.join(self.mods_dir, "3rd_party")
         if os.path.exists(third_party_mods_dir):
             for mod_folder in os.listdir(third_party_mods_dir):
@@ -2078,7 +2078,7 @@ class HookLineSinkerUI:
                         mod_title = mod_info.get('title')
                         mod_version = mod_info.get('version', 'Unknown')
                         
-                        # check for duplicate ids
+                        # check for duplicate ids :3
                         if mod_id:
                             if mod_id in mod_ids and mod_id not in processed_duplicates:
                                 duplicates.append((mod_ids[mod_id], mod_info_path, mod_id, mod_title, mod_version))
@@ -2086,7 +2086,7 @@ class HookLineSinkerUI:
                             else:
                                 mod_ids[mod_id] = mod_info_path
                         
-                        # check for duplicate titles
+                        # check for duplicate titles :3
                         if mod_title:
                             if mod_title in mod_titles and mod_title not in processed_duplicates:
                                 duplicates.append((mod_titles[mod_title], mod_info_path, mod_title, mod_id, mod_version))
@@ -2094,7 +2094,7 @@ class HookLineSinkerUI:
                             else:
                                 mod_titles[mod_title] = mod_info_path
 
-        # handle duplicates
+        # handle duplicates :3
         for original, duplicate, duplicate_identifier, duplicate_title, duplicate_version in duplicates:
             original_version = 'Unknown'
             with open(original, 'r') as f:
@@ -2115,20 +2115,20 @@ class HookLineSinkerUI:
         if not hasattr(self, 'installed_listbox'):
             return
             
-        # collect unique categories from installed mods
+        # collect unique categories from installed mods :3
         categories = set()
         for mod in self.installed_mods:
             categories.update(mod.get('categories', []))
         
-        # update category dropdown with "all", "enabled", "disabled" and mod categories
+        # update category dropdown with "all", "enabled", "disabled" and mod categories :3
         filter_values = ["All", "Enabled", "Disabled"] + sorted(list(categories))
         self.installed_category['values'] = filter_values
         
-        # set default value if not already set
+        # set default value if not already set :3
         if not self.installed_category.get():
             self.installed_category.set("All")
             
-        # check total number of installed mods
+        # check total number of installed mods :3
         if (len(self.installed_mods) > 50 and 
             not hasattr(self, 'large_mod_list_warning_shown') and 
             not self.settings.get('suppress_mod_warning', False)):
@@ -2148,66 +2148,66 @@ class HookLineSinkerUI:
         search_text = self.installed_search_var.get().lower()
         selected_filter = self.installed_category.get()
         
-        # clear current items
+        # clear current items :3
         self.installed_listbox.delete(0, tk.END)
         
-        # store filtered mods
+        # store filtered mods :3
         self.filtered_installed_mods = []
         
         for mod in self.installed_mods:
-            # skip if hiding third party mods
+            # skip if hiding third party mods :3
             if self.hide_third_party.get() and mod.get('third_party', False):
                 continue
                 
-            # apply search filter
+            # apply search filter :3
             if search_text and search_text not in self.get_display_name(mod['title']).lower():
                 continue
                 
-            # apply status/category filter
+            # apply status/category filter :3
             if selected_filter == "Enabled" and not mod.get('enabled', True):
                 continue
             elif selected_filter == "Disabled" and mod.get('enabled', True):
                 continue
             elif selected_filter not in ["All", "Enabled", "Disabled"]:
-                # it's a category filter
+                # it's a category filter :3
                 if selected_filter not in mod.get('categories', []):
                     continue
                     
-            # add to filtered list
+            # add to filtered list :3
             self.filtered_installed_mods.append(mod)
         
-        # apply sorting
+        # apply sorting :3
         sort_method = self.installed_sort_method.get()
         if sort_method == "Name (A-Z)":
             self.filtered_installed_mods.sort(key=lambda x: self.get_display_name(x['title']).lower())
         elif sort_method == "Name (Z-A)":
             self.filtered_installed_mods.sort(key=lambda x: self.get_display_name(x['title']).lower(), reverse=True)
         
-        # update listbox
+        # update listbox :3
         for mod in self.filtered_installed_mods:
             status = "✅" if mod.get('enabled', True) else "❌"
             third_party = "[3rd] " if mod.get('third_party', False) else ""
             display_title = self.get_display_name(mod['title'])
             self.installed_listbox.insert(tk.END, f"{status} {third_party}{display_title}".strip())
 
-    # there is no fucking way i'm doing this right so just praying this works
+    # there is no fucking way i'm doing this right so just praying this works :3
     def get_selected_installed_mod_indices(self):
         selected = self.installed_listbox.curselection()
         if not selected:
             return []
             
-        # map the listbox indices to actual mod indices using installed_mod_map
+        # map the listbox indices to actual mod indices using installed_mod_map :3
         if hasattr(self, 'installed_mod_map'):
             return [self.installed_mod_map[i] for i in selected]
         
-        # fallback to direct indices if no mapping exists
+        # fallback to direct indices if no mapping exists :3
         return list(selected)
 
     def launch_modded(self):
         """Launch the game with mods enabled"""
         if not self.check_setup():
             messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the HLS Setup tab.")
-            self.notebook.select(3)  # switch to hls setup tab
+            self.notebook.select(3)  # switch to hls setup tab :3
             return
 
         if not self.settings.get('game_path'):
@@ -2231,7 +2231,7 @@ class HookLineSinkerUI:
         """Launch the game without mods"""
         if not self.check_setup():
             messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the HLS Setup tab.")
-            self.notebook.select(3)  # switch to hls setup tab
+            self.notebook.select(3)  # switch to hls setup tab :3
             return
 
         if not self.settings.get('game_path'):
@@ -2253,24 +2253,24 @@ class HookLineSinkerUI:
             self.send_ga_event('game_launch_error', {'mode': 'vanilla', 'error': str(e)})
 
     def create_game_manager_tab(self):
-        # create the game manager tab for managing save files
+        # create the game manager tab for managing save files :3
         game_manager_frame = ttk.Frame(self.notebook)
         self.notebook.add(game_manager_frame, text="Save Manager")
 
         game_manager_frame.grid_columnconfigure(0, weight=1)
-        game_manager_frame.grid_rowconfigure(5, weight=1)  # increased to accommodate the subtitle
+        game_manager_frame.grid_rowconfigure(5, weight=1)  # increased to accommodate the subtitle :3
 
-        # create title and subtitle
+        # create title and subtitle :3
         title_label = ttk.Label(game_manager_frame, text="Save Manager", font=("Helvetica", 16, "bold"))
         title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
 
         subtitle_label = ttk.Label(game_manager_frame, text="Backup and restore your game progress", font=("Helvetica", 10, "italic"))
         subtitle_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
-        # display save file location
+        # display save file location :3
         save_path = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
         
-        # create frame for save location
+        # create frame for save location :3
         save_location_frame = ttk.Frame(game_manager_frame)
         save_location_frame.grid(row=2, column=0, pady=(0, 10), padx=20, sticky="ew")
         
@@ -2280,44 +2280,44 @@ class HookLineSinkerUI:
         save_path_entry.config(state='readonly')
         save_path_entry.pack(side="left", padx=(5, 0))
 
-        # create backup frame
+        # create backup frame :3
         backup_frame = ttk.LabelFrame(game_manager_frame, text="Backup Save")
         backup_frame.grid(row=4, column=0, pady=10, padx=20, sticky="ew")
         backup_frame.grid_columnconfigure(1, weight=1)
 
-        # backup name row
+        # backup name row :3
         ttk.Label(backup_frame, text="Backup Name:").grid(row=0, column=0, pady=5, padx=5, sticky="w")
         self.backup_name_entry = ttk.Entry(backup_frame)
         self.backup_name_entry.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
 
-        # save slot row
+        # save slot row :3
         ttk.Label(backup_frame, text="Save Slot:").grid(row=1, column=0, pady=5, padx=5, sticky="w")
         self.backup_slot_var = tk.IntVar()
         slot_frame = ttk.Frame(backup_frame)
         slot_frame.grid(row=1, column=1, pady=5, padx=5, sticky="w")
 
-        # create radio buttons for available save slots
+        # create radio buttons for available save slots :3
         available_slots = self.get_available_save_slots()
         if available_slots:
-            self.backup_slot_var.set(available_slots[0])  # set first available slot as default
-            for slot in range(1, 5):  # slots 1-4
+            self.backup_slot_var.set(available_slots[0])  # set first available slot as default :3
+            for slot in range(1, 5):  # slots 1-4 :3
                 if slot in available_slots:
                     ttk.Radiobutton(slot_frame, text=f"Slot {slot}", value=slot, 
                                   variable=self.backup_slot_var).pack(side="left", padx=5)
         else:
             ttk.Label(slot_frame, text="No save files found", foreground="red").pack(side="left", padx=5)
 
-        # create backup button
+        # create backup button :3
         ttk.Button(backup_frame, text="Create Backup", 
                 command=self.create_backup).grid(row=0, column=2, rowspan=2, pady=5, padx=5)
 
-        # create restore frame
+        # create restore frame :3
         self.restore_frame = ttk.LabelFrame(game_manager_frame, text="Manage Saves")
         self.restore_frame.grid(row=5, column=0, pady=10, padx=20, sticky="nsew")
         self.restore_frame.grid_columnconfigure(0, weight=1)
         self.restore_frame.grid_rowconfigure(0, weight=1)
 
-        # create treeview for backups
+        # create treeview for backups :3
         self.backup_tree = ttk.Treeview(self.restore_frame, columns=('Name', 'Timestamp'), show='headings', height=10)
         self.backup_tree.heading('Name', text='Name')
         self.backup_tree.heading('Timestamp', text='Timestamp')
@@ -2325,12 +2325,12 @@ class HookLineSinkerUI:
         self.backup_tree.column('Timestamp', width=200)
         self.backup_tree.grid(row=0, column=0, pady=5, padx=5, sticky="nsew")
         
-        # add scrollbar to treeview
+        # add scrollbar to treeview :3
         scrollbar = ttk.Scrollbar(self.restore_frame, orient="vertical", command=self.backup_tree.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.backup_tree.configure(yscrollcommand=scrollbar.set)
         
-        # create buttons frame
+        # create buttons frame :3
         buttons_frame = ttk.Frame(self.restore_frame)
         buttons_frame.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="ew")
         buttons_frame.grid_columnconfigure((0, 1, 2), weight=1)
@@ -2339,17 +2339,17 @@ class HookLineSinkerUI:
         ttk.Button(buttons_frame, text="Delete Selected", command=self.delete_backup).grid(row=0, column=1, padx=5, sticky="ew")
         ttk.Button(buttons_frame, text="Refresh List", command=self.refresh_backup_list).grid(row=0, column=2, padx=5, sticky="ew")
 
-        # refresh backup list
+        # refresh backup list :3
         self.refresh_backup_list()
 
     def refresh_backup_list(self):
-        # refresh the list of backups in the treeview
+        # refresh the list of backups in the treeview :3
         for i in self.backup_tree.get_children():
             self.backup_tree.delete(i)
     
         backup_dir = os.path.join(self.app_data_dir, 'save_backups')
         if os.path.exists(backup_dir):
-            # get all backup files and their timestamps
+            # get all backup files and their timestamps :3
             backups = []
             for backup in os.listdir(backup_dir):
                 if backup.endswith('.save'):
@@ -2360,48 +2360,48 @@ class HookLineSinkerUI:
                     if len(name_parts) == 2:
                         name = name_parts[0].replace('_', ' ')
                         try:
-                            # try to get timestamp from filename first
+                            # try to get timestamp from filename first :3
                             file_timestamp = float(name_parts[1].replace('.save', ''))
                             formatted_time = datetime.fromtimestamp(file_timestamp).strftime("%I:%M%p %d/%m/%Y")
                         except ValueError:
-                            # fall back to file modification time
+                            # fall back to file modification time :3
                             formatted_time = datetime.fromtimestamp(timestamp).strftime("%I:%M%p %d/%m/%Y")
                         
                         backups.append((name, formatted_time, timestamp))
                     else:
                         backups.append((backup, 'Unknown', timestamp))
             
-            # sort backups by timestamp (most recent first)
+            # sort backups by timestamp (most recent first) :3
             backups.sort(key=lambda x: x[2], reverse=True)
             
-            # insert into treeview
+            # insert into treeview :3
             for name, formatted_time, _ in backups:
                 self.backup_tree.insert('', 'end', values=(name, formatted_time))
                 
         self.set_status("Backup list refreshed")
 
     def create_backup(self):
-        # create a backup of the current save file
+        # create a backup of the current save file :3
         backup_name = self.backup_name_entry.get().strip()
         if not backup_name:
             messagebox.showerror("Error", "Please enter a backup name.")
             self.set_status("Backup creation failed: No name provided")
             return
 
-        # sanitize the backup name
+        # sanitize the backup name :3
         invalid_chars = r'<>:"/\|?*'
         sanitized_name = ''.join(c for c in backup_name if c not in invalid_chars)
-        sanitized_name = sanitized_name[:255]  # limit to 255 characters
+        sanitized_name = sanitized_name[:255]  # limit to 255 characters :3
 
         if not sanitized_name:
             messagebox.showerror("Error", "The backup name contains only invalid characters. Please use a different name.")
             self.set_status("Backup creation failed: Invalid name")
             return
 
-        # get selected slot
+        # get selected slot :3
         selected_slot = self.backup_slot_var.get()
         
-        # check if save file exists for selected slot
+        # check if save file exists for selected slot :3
         save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
         save_path = os.path.join(save_dir, f'webfishing_save_slot_{selected_slot - 1}.sav')
         
@@ -2409,7 +2409,7 @@ class HookLineSinkerUI:
             messagebox.showerror("Error", f"No save file found in slot {selected_slot}. Please create a save in-game first.")
             return
 
-        # create backup with slot info
+        # create backup with slot info :3
         timestamp = int(time.time())
         backup_filename = f"{sanitized_name.replace(' ', '_')}_slot{selected_slot}_{timestamp}.save"
         
@@ -2430,11 +2430,11 @@ class HookLineSinkerUI:
 
     def check_migration_needed(self):
         """Check if migration from old format is needed and handle it"""
-        # skip if already migrated or fresh install
+        # skip if already migrated or fresh install :3
         if self.settings.get('thunderstore_migrated', False):
             return
             
-        # check if old mods exist
+        # check if old mods exist :3
         gdweave_path = os.path.join(self.settings.get('game_path', ''), 'GDWeave', 'Mods')
         has_old_mods = os.path.exists(gdweave_path) and os.listdir(gdweave_path)
         
@@ -2448,18 +2448,18 @@ class HookLineSinkerUI:
             )
             if messagebox.askyesno("Migration Required", message):
                 try:
-                    # clear gdweave mods
+                    # clear gdweave mods :3
                     gdweave_mods_dir = os.path.join(self.settings['game_path'], 'GDWeave', 'Mods')
                     if os.path.exists(gdweave_mods_dir):
                         shutil.rmtree(gdweave_mods_dir)
                         os.makedirs(gdweave_mods_dir)
                     
-                    # clear hls mods
+                    # clear hls mods :3
                     if os.path.exists(self.mods_dir):
                         shutil.rmtree(self.mods_dir)
                         os.makedirs(self.mods_dir)
                     
-                    # update settings
+                    # update settings :3
                     self.settings['thunderstore_migrated'] = True
                     self.save_settings()
                     
@@ -2500,10 +2500,10 @@ class HookLineSinkerUI:
         
         backup_filename = matching_backups[0]
         
-        # extract slot number from filename
+        # extract slot number from filename :3
         slot_match = re.search(r'_slot(\d)_', backup_filename)
         if slot_match:
-            # handle modern save files
+            # handle modern save files :3
             slot_num = int(slot_match.group(1))
             if not messagebox.askyesno("Confirm Restore", 
                 f"This will restore to Slot {slot_num}. Continue?"):
@@ -2524,14 +2524,14 @@ class HookLineSinkerUI:
                 self.set_status(error_message)
                 
         else:
-            # create warning dialog for old save files
+            # create warning dialog for old save files :3
             dialog = tk.Toplevel(self.root)
             dialog.title("Warning - Old Save File")
             dialog.geometry("400x300")
             dialog.transient(self.root)
             dialog.grab_set()
 
-            # load and display icon
+            # load and display icon :3
             try:
                 if getattr(sys, 'frozen', False):
                     bundle_dir = sys._MEIPASS
@@ -2544,7 +2544,7 @@ class HookLineSinkerUI:
             except Exception as e:
                 logging.error(f"Error loading icon: {e}")
 
-            # center the dialog
+            # center the dialog :3
             dialog.update_idletasks()
             width = dialog.winfo_width()
             height = dialog.winfo_height()
@@ -2564,7 +2564,7 @@ class HookLineSinkerUI:
 
             ttk.Label(dialog, text=warning_text, wraplength=380).pack(pady=10, padx=10)
 
-            # checkbox for acknowledgment
+            # checkbox for acknowledgment :3
             understood = tk.BooleanVar(value=False)
             ttk.Checkbutton(
                 dialog, 
@@ -2583,9 +2583,9 @@ class HookLineSinkerUI:
                 
                 save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
                 
-                # delete all existing save files (slots 1-4 are _0 to _3)
+                # delete all existing save files (slots 1-4 are _0 to _3) :3
                 for slot in range(4):
-                    # delete main save file
+                    # delete main save file :3
                     save_path = os.path.join(save_dir, f'webfishing_save_slot_{slot}.sav')
                     if os.path.exists(save_path):
                         try:
@@ -2593,7 +2593,7 @@ class HookLineSinkerUI:
                         except Exception as e:
                             logging.error(f"Failed to delete save file {save_path}: {e}")
                             
-                    # delete backup save file
+                    # delete backup save file :3
                     backup_path = os.path.join(save_dir, f'webfishing_backup_save_slot_{slot}.backup')
                     if os.path.exists(backup_path):
                         try:
@@ -2601,7 +2601,7 @@ class HookLineSinkerUI:
                         except Exception as e:
                             logging.error(f"Failed to delete backup file {backup_path}: {e}")
 
-                # delete general data file
+                # delete general data file :3
                 general_data_path = os.path.join(save_dir, 'webfishing_general_data.sav')
                 if os.path.exists(general_data_path):
                     try:
@@ -2609,7 +2609,7 @@ class HookLineSinkerUI:
                     except Exception as e:
                         logging.error(f"Failed to delete general data file: {e}")
 
-                # copy the backup as webfishing_migrated_data.save
+                # copy the backup as webfishing_migrated_data.save :3
                 backup_path = os.path.join(backup_dir, backup_filename)
                 migrated_save_path = os.path.join(save_dir, 'webfishing_migrated_data.save')
 
@@ -2639,7 +2639,7 @@ class HookLineSinkerUI:
     def get_available_save_slots(self):
         save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
         available_slots = []
-        for slot in range(1, 5):  # slots 1-4
+        for slot in range(1, 5):  # slots 1-4 :3
             save_path = os.path.join(save_dir, f'webfishing_save_slot_{slot - 1}.sav')
             if os.path.exists(save_path):
                 available_slots.append(slot)
@@ -2678,23 +2678,23 @@ class HookLineSinkerUI:
                 messagebox.showerror("Error", error_message)
                 self.set_status(error_message)
 
-    # creates the main setup tab for hook line & sinker
+    # creates the main setup tab for hook line & sinker :3
     def create_hls_setup_tab(self):
         setup_frame = ttk.Frame(self.notebook)
         self.notebook.add(setup_frame, text="HLS Setup")
 
         setup_frame.grid_columnconfigure(0, weight=1)
-        setup_frame.grid_rowconfigure(8, weight=1)  # increased to accommodate new button
+        setup_frame.grid_rowconfigure(8, weight=1)  # increased to accommodate new button :3
 
-        # title
+        # title :3
         title_label = ttk.Label(setup_frame, text="Game Setup Guide", font=("Helvetica", 16, "bold"))
         title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
 
-        # new label for instructions
+        # new label for instructions :3
         instruction_label = ttk.Label(setup_frame, text="You must complete all steps below to use Hook, Line, & Sinker", font=("Helvetica", 10, "italic"))
         instruction_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
-        # step 1: set game path
+        # step 1: set game path :3
         step1_frame = ttk.LabelFrame(setup_frame, text="Step 1: Set Game Installation Path")
         step1_frame.grid(row=2, column=0, pady=10, padx=20, sticky="ew")
         step1_frame.grid_columnconfigure(1, weight=1)
@@ -2710,7 +2710,7 @@ class HookLineSinkerUI:
         self.step1_status = ttk.Label(step1_frame, text="Unverified", foreground="red", font=("Helvetica", 10, "bold"))
         self.step1_status.grid(row=1, column=0, columnspan=4, pady=5, padx=5, sticky="w")
 
-        # step 2: verify installation
+        # step 2: verify installation :3
         step2_frame = ttk.LabelFrame(setup_frame, text="Step 2: Verify Game Installation")
         step2_frame.grid(row=3, column=0, pady=10, padx=20, sticky="ew")
         step2_frame.grid_columnconfigure(1, weight=1)
@@ -2720,7 +2720,7 @@ class HookLineSinkerUI:
 
         self.step2_status = ttk.Label(step2_frame, text="Unverified", foreground="red", font=("Helvetica", 10, "bold"))
         self.step2_status.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
-        # step 3: install net
+        # step 3: install net :3
         step3_frame = ttk.LabelFrame(setup_frame, text="Step 3: Install .NET")
         step3_frame.grid(row=4, column=0, pady=10, padx=20, sticky="ew")
         step3_frame.grid_columnconfigure(1, weight=1)
@@ -2731,7 +2731,7 @@ class HookLineSinkerUI:
         self.step3_status = ttk.Label(step3_frame, text="Unable to verify this step", foreground="green", font=("Helvetica", 10, "bold"))
         self.step3_status.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
 
-        # step 4: install/update gdweave
+        # step 4: install/update gdweave :3
         step4_frame = ttk.LabelFrame(setup_frame, text="Step 4: Install/Update GDWeave")
         step4_frame.grid(row=5, column=0, pady=10, padx=20, sticky="ew")
         step4_frame.grid_columnconfigure(1, weight=1)
@@ -2744,19 +2744,19 @@ class HookLineSinkerUI:
         self.step4_status = ttk.Label(step4_frame, text="Uninstalled", foreground="red", font=("Helvetica", 10, "bold"))
         self.step4_status.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
         
-        # step 5: backup save
+        # step 5: backup save :3
         step5_frame = ttk.LabelFrame(setup_frame, text="Step 5: Back Up Your Save")
         step5_frame.grid(row=6, column=0, pady=10, padx=20, sticky="ew")
         step5_frame.grid_columnconfigure(1, weight=1)
 
         ttk.Label(step5_frame, text="Click 'Save Manager' at the top to back up your save before modding. Do this. Don't be that guy.", foreground="red").grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
-        # setup status
+        # setup status :3
         self.setup_status = ttk.Label(setup_frame, text="", font=("Helvetica", 12))
         self.setup_status.grid(row=7, column=0, pady=(20, 10), padx=20, sticky="w")
         self.update_setup_status()
 
-    # creates the settings tab for hook line & sinker
+    # creates the settings tab for hook line & sinker :3
     def create_settings_tab(self):
         settings_frame = ttk.Frame(self.notebook)
         self.notebook.add(settings_frame, text="Settings")
@@ -2765,48 +2765,48 @@ class HookLineSinkerUI:
         settings_frame.grid_columnconfigure(0, weight=1)
         settings_frame.grid_rowconfigure(7, weight=1)
 
-        # title frame with user ID
+        # title frame with user ID :3
         title_frame = ttk.Frame(settings_frame)
         title_frame.grid(row=0, column=0, pady=(20,0), padx=20, sticky="ew")
         title_frame.grid_columnconfigure(1, weight=1)
 
-        # title on left
+        # title on left :3
         title_label = ttk.Label(title_frame, text="Application Settings", font=("Helvetica", 16, "bold"))
         title_label.grid(row=0, column=0, sticky="w")
 
-        # user ID on right
+        # user ID on right :3
         id_frame = ttk.Frame(title_frame)
         id_frame.grid(row=0, column=1, sticky="e")
 
         copy_uuid_button = ttk.Button(id_frame, text="Copy UUID", command=lambda: self.copy_user_id())
         copy_uuid_button.grid(row=0, column=0, padx=(0,5))
 
-        # create both masked and full UUID labels
+        # create both masked and full UUID labels :3
         masked_uuid = 'Hover over to see your UUID! Keep it private.'
         self.masked_uuid_label = ttk.Label(id_frame, text=masked_uuid, font=("Helvetica", 8))
         self.uuid_label = ttk.Label(id_frame, text=user_id, font=("Helvetica", 8))
 
         self.masked_uuid_label.grid(row=0, column=1)
         self.uuid_label.grid(row=0, column=1)
-        self.uuid_label.grid_remove()  # hide the real UUID initially
+        self.uuid_label.grid_remove()  # hide the real UUID initially :3
 
-        # bind hover events to both labels
+        # bind hover events to both labels :3
         self.masked_uuid_label.bind('<Enter>', lambda e: self.show_uuid())
         self.uuid_label.bind('<Enter>', lambda e: self.show_uuid())
         self.masked_uuid_label.bind('<Leave>', lambda e: self.hide_uuid())
         self.uuid_label.bind('<Leave>', lambda e: self.hide_uuid())
         copy_uuid_button.bind('<Leave>', lambda e: self.hide_uuid())
 
-        # subtitle
+        # subtitle :3
         subtitle_label = ttk.Label(settings_frame, text="Customize your Hook, Line, & Sinker experience", font=("Helvetica", 10, "italic"))
         subtitle_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
-        # general settings
+        # general settings :3
         general_frame = ttk.LabelFrame(settings_frame, text="General Settings")
         general_frame.grid(row=2, column=0, pady=10, padx=20, sticky="ew")
         general_frame.grid_columnconfigure((0,1), weight=1)
 
-        # left column
+        # left column :3
         left_frame = ttk.Frame(general_frame)
         left_frame.grid(row=0, column=0, sticky="w", padx=5)
         
@@ -2825,7 +2825,7 @@ class HookLineSinkerUI:
                        variable=self.dark_mode,
                        command=self.toggle_dark_mode).grid(row=2, column=0, pady=2, sticky="w")
 
-        # right column  
+        # right column   :3
         right_frame = ttk.Frame(general_frame)
         right_frame.grid(row=0, column=1, sticky="w", padx=5)
         
@@ -2850,12 +2850,12 @@ class HookLineSinkerUI:
 
         ttk.Button(update_frame, text="Check for Updates", command=self.check_for_updates).grid(row=0, column=0, pady=2, sticky="w")
 
-        # hook line & sinker information
+        # hook line & sinker information :3
         info_frame = ttk.LabelFrame(settings_frame, text="Hook, Line, & Sinker Information")
         info_frame.grid(row=3, column=0, pady=10, padx=20, sticky="ew")
         info_frame.grid_columnconfigure((0,1,2), weight=1)
 
-        # load current version
+        # load current version :3
         current_version = get_version()
 
         self.current_version_label = ttk.Label(info_frame, text=f"Current Version: {current_version}")
@@ -2871,7 +2871,7 @@ class HookLineSinkerUI:
         ttk.Button(info_frame, text="View Changelog", command=self.show_changelog).grid(row=2, column=1, pady=5, padx=5, sticky="ew")
         ttk.Button(info_frame, text="View Credits", command=self.show_credits).grid(row=2, column=2, pady=5, padx=5, sticky="ew")
 
-        # troubleshooting options
+        # troubleshooting options :3
         troubleshoot_frame = ttk.LabelFrame(settings_frame, text="Troubleshooting")
         troubleshoot_frame.grid(row=5, column=0, pady=10, padx=20, sticky="ew")
         troubleshoot_frame.grid_columnconfigure((0, 1, 2), weight=1)
@@ -2901,11 +2901,11 @@ class HookLineSinkerUI:
         ttk.Button(troubleshoot_frame, text="Open GDWeave Folder", command=self.open_gdweave_folder).grid(row=4, column=1, pady=5, padx=5, sticky="ew")
         ttk.Button(troubleshoot_frame, text="Clear Temp Folder", command=self.delete_temp_files).grid(row=4, column=2, pady=5, padx=5, sticky="ew")
 
-        # settings status
+        # settings status :3
         self.settings_status = ttk.Label(settings_frame, text="", font=("Helvetica", 12))
         self.settings_status.grid(row=6, column=0, pady=(10, 20), padx=20, sticky="w")
 
-        # start a thread to check the latest version
+        # start a thread to check the latest version :3
         threading.Thread(target=self.update_latest_version_label, daemon=True).start()
         self.root.after(100, self.process_gui_queue)
 
@@ -2948,7 +2948,7 @@ class HookLineSinkerUI:
             third_party = " (Third-Party)" if mod.get('third_party', False) else ""
             info += f"{mod['title']} (v{mod.get('version', 'Unknown')}) by {mod.get('author', 'Unknown')}{third_party}\n"
         
-        # add GDWeave log
+        # add GDWeave log :3
         info += "============================\nGDWeave Log:\n"
         gdweave_log_path = os.path.join(self.settings.get('game_path', ''), 'GDWeave', 'gdweave.log')
         if os.path.exists(gdweave_log_path):
@@ -2961,13 +2961,13 @@ class HookLineSinkerUI:
         else:
             info += "No log found"
         
-        # add HLS log
+        # add HLS log :3
         info += "\n============================\nHLS Log:\n"
         hls_log_path = os.path.join(self.app_data_dir, 'latestlog.txt')
         if os.path.exists(hls_log_path):
             try:
                 with open(hls_log_path, 'r') as f:
-                    lines = f.readlines()[5:]  # skip first 5 lines (header)
+                    lines = f.readlines()[5:]  # skip first 5 lines (header) :3
                     log_content = ''.join(lines).strip()
                     info += log_content if log_content else "No critical errors found in HLS log"
             except Exception:
@@ -2975,7 +2975,7 @@ class HookLineSinkerUI:
         else:
             info += "No log found"
         
-        # add system info
+        # add system info :3
         info += "\n============================\nSystem Information:\n"
         info += f"HLS Version: v{get_version()}\n"
         info += f"GDWeave Version: {self.settings.get('gdweave_version', 'Unknown')}\n"
@@ -3015,10 +3015,10 @@ Special Thanks:
     def show_changelog(self):
         try:
             if getattr(sys, 'frozen', False):
-                # running as compiled executable
+                # running as compiled executable :3
                 bundle_dir = sys._MEIPASS
             else:
-                # running in a normal python environment
+                # running in a normal python environment :3
                 bundle_dir = os.path.dirname(os.path.abspath(__file__))
             
             version_file = os.path.join(bundle_dir, 'version.json')
@@ -3040,16 +3040,16 @@ Special Thanks:
 
             messagebox.showerror("Error", f"Failed to load changelog: {e}")
             
-    # opens the help website in the default browser
+    # opens the help website in the default browser :3
     def open_help_website(self):
         webbrowser.open("https://hooklinesinker.lol/help")
 
-    # creates a rotating backup of the current save file very bugged
+    # creates a rotating backup of the current save file very bugged :3
     def create_rotating_backup(self):
         if not self.settings.get('auto_backup', True):
             return
 
-        # check for available save slots
+        # check for available save slots :3
         available_slots = self.get_available_save_slots()
         if not available_slots:
             logging.info("No save files found for automatic backup")
@@ -3058,17 +3058,17 @@ Special Thanks:
         backup_dir = os.path.join(self.app_data_dir, 'save_backups')
         os.makedirs(backup_dir, exist_ok=True)
 
-        # find and sort auto-backup files
+        # find and sort auto-backup files :3
         auto_backups = [f for f in os.listdir(backup_dir) 
                        if f.startswith('Auto_Backup') and f.endswith('.save')]
         auto_backups.sort(key=lambda x: float(x.split('_')[-1].replace('.save', '')))
 
-        # calculate max backups per slot to stay under 10 total
+        # calculate max backups per slot to stay under 10 total :3
         max_backups_per_slot = 4 // len(available_slots)
         if max_backups_per_slot < 1:
             max_backups_per_slot = 1
 
-        # group backups by slot
+        # group backups by slot :3
         slot_backups = {}
         for backup in auto_backups:
             slot_match = re.search(r'slot(\d)', backup)
@@ -3078,7 +3078,7 @@ Special Thanks:
                     slot_backups[slot] = []
                 slot_backups[slot].append(backup)
 
-        # remove oldest backups if we exceed max per slot
+        # remove oldest backups if we exceed max per slot :3
         for slot, backups in slot_backups.items():
             if not backups:
                 continue
@@ -3093,10 +3093,10 @@ Special Thanks:
                     logging.error(f"Failed to remove old backup for slot {slot}: {e}")
                     break
 
-        # create timestamp for new backup
+        # create timestamp for new backup :3
         timestamp = int(time.time())
         
-        # create backups for each available slot
+        # create backups for each available slot :3
         save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
         logging.info(f"Creating automatic backups in directory: {save_dir}")
         
@@ -3116,7 +3116,7 @@ Special Thanks:
         logging.info("Automatic backup process completed")
         logging.info("Made rotating backup")
 
-    # copies existing gdweave mods to the hls mods directory
+    # copies existing gdweave mods to the hls mods directory :3
     def copy_existing_gdweave_mods(self):
         if not self.settings.get('game_path'):
             logging.info("Game path not set, skipping existing mod copy.")
@@ -3130,7 +3130,7 @@ Special Thanks:
         third_party_mods_dir = os.path.join(self.mods_dir, "3rd_party")
         os.makedirs(third_party_mods_dir, exist_ok=True)
 
-        # get the list of known mod ids from our managed mods
+        # get the list of known mod ids from our managed mods :3
         known_mod_ids = set()
         for mod_folder in os.listdir(self.mods_dir):
             mod_info_path = os.path.join(self.mods_dir, mod_folder, 'mod_info.json')
@@ -3163,17 +3163,17 @@ Special Thanks:
                 mod_description = manifest.get('Description', 'No description provided')
                 mod_version = manifest.get('Version', 'Unknown')
 
-                # check if this is a known mod
+                # check if this is a known mod :3
                 if mod_id in known_mod_ids:
                     logging.info(f"Skipped known mod: {mod_title} (ID: {mod_id})")
                     continue
 
-                # if we've reached here it's likely a third-party mod
+                # if we've reached here it's likely a third-party mod :3
                 dst_mod_path = os.path.join(third_party_mods_dir, mod_id)
                 if not os.path.exists(dst_mod_path):
                     shutil.copytree(src_mod_path, dst_mod_path)
 
-                    # create mod_info.json
+                    # create mod_info.json :3
                     mod_info = {
                         'id': mod_id,
                         'title': mod_title,
@@ -3195,17 +3195,17 @@ Special Thanks:
             except Exception as e:
                 logging.info(f"Error processing mod {mod_folder}: {str(e)}")
 
-        # add newly installed mods to the installed mods list
+        # add newly installed mods to the installed mods list :3
         self.installed_mods.extend(newly_installed_mods)
 
         self.refresh_mod_lists()
 
-    # deletes temporary files and folders
+    # deletes temporary files and folders :3
     def delete_temp_files(self):
         temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
         if os.path.exists(temp_dir):
             try:
-                # use os.walk to iterate through all directories and files
+                # use os.walk to iterate through all directories and files :3
                 for root, dirs, files in os.walk(temp_dir, topdown=False):
                     for name in files:
                         file_path = os.path.join(root, name)
@@ -3216,7 +3216,7 @@ Special Thanks:
                         os.chmod(dir_path, stat.S_IWRITE)
                         os.rmdir(dir_path)
                 
-                # remove the main directory
+                # remove the main directory :3
                 os.chmod(temp_dir, stat.S_IWRITE)
                 os.rmdir(temp_dir)
                 
@@ -3230,7 +3230,7 @@ Special Thanks:
             logging.info(f"Temporary directory does not exist: {temp_dir}")
             self.set_status("No temporary files or folders to delete.")
 
-    # verifies that net is installed and working correctly    
+    # verifies that net is installed and working correctly     :3
     def verify_dotnet(self):
         try:
             subprocess.run(["dotnet", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -3240,7 +3240,7 @@ Special Thanks:
             self.set_status(error_message)
             messagebox.showerror("Installation Error", error_message)
 
-    # downloads and runs the net installer
+    # downloads and runs the net installer :3
     def download_and_run_dotnet_installer(self):
         self.set_status("Downloading .NET installer...")
         messagebox.showinfo("Downloading .NET", "This will download the .NET 8.0 SDK installer. Please wait 10-20 seconds.")
@@ -3253,16 +3253,16 @@ Special Thanks:
         
         def download_and_install():
             try:
-                # create temp directory in appdata
+                # create temp directory in appdata :3
                 temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
                 os.makedirs(temp_dir, exist_ok=True)
                 
-                # download the installer
+                # download the installer :3
                 with requests.get(url, stream=True) as response:
                     response.raise_for_status()
                     total_size = int(response.headers.get('content-length', 0))
                     
-                    # create a temporary file to store the installer
+                    # create a temporary file to store the installer :3
                     temp_file_path = os.path.join(temp_dir, 'dotnet_installer.exe')
                     with open(temp_file_path, 'wb') as temp_file:
                         downloaded_size = 0
@@ -3276,7 +3276,7 @@ Special Thanks:
                 
                 self.set_status("Download complete.")
 
-                # run the installer without quiet mode on windows
+                # run the installer without quiet mode on windows :3
                 subprocess.Popen([temp_file_path, '/norestart'])
                 self.set_status("Installer launched. Please follow the installation prompts.")
                 messagebox.showinfo("Installation Started", "The .NET installer has been launched. Please follow the installation prompts. After installation, please restart Hook, Line, & Sinker.")
@@ -3287,14 +3287,14 @@ Special Thanks:
                 messagebox.showerror("Installation Error", error_message)
 
             finally:
-                # clean up the temporary file
+                # clean up the temporary file :3
                 if 'temp_file_path' in locals():
                     try:
                         os.unlink(temp_file_path)
                     except Exception:
                         pass
 
-        # start the download and installation process in a separate thread
+        # start the download and installation process in a separate thread :3
         threading.Thread(target=download_and_install, daemon=True).start()
 
     def check_thunderstore_title_exists(self, title):
@@ -3309,10 +3309,10 @@ Special Thanks:
         logging.debug(f"No matching mod found for title: {title}")
         return False
 
-    # imports a zip mod file
+    # imports a zip mod file :3
     def import_zip_mod(self):
         try:
-            # get the zip file path from user
+            # get the zip file path from user :3
             zip_path = filedialog.askopenfilename(
                 title="Select Mod Zip File", 
                 filetypes=[("ZIP files", "*.zip")]
@@ -3324,7 +3324,7 @@ Special Thanks:
 
             logging.info(f"Selected ZIP file: {zip_path}")
 
-            # create temp directories
+            # create temp directories :3
             temp_dir = os.path.join(self.app_data_dir, 'temp')
             os.makedirs(temp_dir, exist_ok=True)
             import_temp_dir = os.path.join(temp_dir, f"import_{int(time.time())}")
@@ -3332,7 +3332,7 @@ Special Thanks:
             extracted_zip_dir = os.path.join(import_temp_dir, 'extractedzip')
             os.makedirs(extracted_zip_dir)
 
-            # extract zip contents
+            # extract zip contents :3
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(extracted_zip_dir)
 
@@ -3343,7 +3343,7 @@ Special Thanks:
                 messagebox.showerror("Error", error_msg)
                 return
 
-            # read manifest and check dependencies
+            # read manifest and check dependencies :3
             with open(manifest_path, 'r') as f:
                 manifest = json.load(f)
 
@@ -3354,7 +3354,7 @@ Special Thanks:
                 messagebox.showerror("Error", error_msg)
                 return
 
-            # get the mod title and check Thunderstore
+            # get the mod title and check Thunderstore :3
             mod_title = manifest.get('Metadata', {}).get('Name') or manifest.get('Name')
             if mod_title and self.check_thunderstore_title_exists(mod_title):
                 if not messagebox.askokcancel(
@@ -3398,17 +3398,17 @@ Special Thanks:
                     if not messagebox.askyesno("Dependencies Required", message):
                         return
 
-                    # install available dependencies
+                    # install available dependencies :3
                     for dep_mod in all_dependencies:
                         self.set_status(f"Installing dependency: {dep_mod['title']}")
                         self.download_and_install_mod(dep_mod)
 
-            # check if mod already exists
+            # check if mod already exists :3
             if self.mod_id_exists(mod_id):
                 messagebox.showwarning("Mod Conflict", f"A mod with ID '{mod_id}' already exists. You must uninstall the existing mod before importing a new mod with the same ID.")
                 return
 
-            # continue with mod installation
+            # continue with mod installation :3
             mod_dir = os.path.join(self.mods_dir, "3rd_party", mod_id)
             if os.path.exists(mod_dir):
                 shutil.rmtree(mod_dir)
@@ -3419,7 +3419,7 @@ Special Thanks:
             else:
                 shutil.move(extracted_zip_dir, mod_dir)
 
-            # create mod_info.json
+            # create mod_info.json :3
             mod_info = {
                 'id': mod_id,
                 'title': manifest.get('Metadata', {}).get('Name') or manifest.get('Name', mod_id),
@@ -3445,7 +3445,7 @@ Special Thanks:
             logging.error(traceback.format_exc())
             self.set_status(error_message)
 
-    # searches for manifest.json file containing an 'Id' field in a given directory and its subdirectories
+    # searches for manifest.json file containing an 'Id' field in a given directory and its subdirectories :3
     def find_manifest(self, directory):
         for root, dirs, files in os.walk(directory):
             if 'manifest.json' in files:
@@ -3453,20 +3453,20 @@ Special Thanks:
                 try:
                     with open(manifest_path, 'r') as f:
                         manifest_data = json.load(f)
-                        if manifest_data.get('Id'):  # only return if Id field exists
+                        if manifest_data.get('Id'):  # only return if Id field exists :3
                             return manifest_path
                 except (json.JSONDecodeError, IOError):
                     continue
         return None
     
-    # refreshes all mods by reloading available mods and updating the UI
+    # refreshes all mods by reloading available mods and updating the UI :3
     def refresh_all_mods(self):
         self.load_available_mods()
         self.refresh_mod_lists()
         self.set_status("All mods refreshed")
         
-    # fetches the latest version of GDWeave from GitHub
-    # uses a separate thread with a timeout to prevent hanging
+    # fetches the latest version of GDWeave from GitHub :3
+    # uses a separate thread with a timeout to prevent hanging :3
     def get_gdweave_version(self):
         def fetch_version():
             try:
@@ -3475,7 +3475,7 @@ Special Thanks:
                 response = requests.get(api_url, headers=headers, timeout=30)
                 response.raise_for_status()
                 data = response.json()
-                version = data['tag_name'].lstrip('v')  # remove 'v' prefix if present
+                version = data['tag_name'].lstrip('v')  # remove 'v' prefix if present :3
                 logging.info(f"Successfully fetched GDWeave version: {version}")
                 return version
             except requests.exceptions.RequestException as e:
@@ -3495,7 +3495,7 @@ Special Thanks:
 
         thread = threading.Thread(target=run_fetch, daemon=True)
         thread.start()
-        thread.join(timeout=30)  # increased timeout to 30 seconds
+        thread.join(timeout=30)  # increased timeout to 30 seconds :3
 
         if thread.is_alive():
             logging.error("Timeout occurred while fetching GDWeave version")
@@ -3503,8 +3503,8 @@ Special Thanks:
         
         return result if result is not None else "Unknown"
         
-    # installs selected mods from the available mods list
-    # handles conflicts with existing mods and third-party mods
+    # installs selected mods from the available mods list :3
+    # handles conflicts with existing mods and third-party mods :3
     def install_mod(self):
         logging.debug("Starting install_mod()")
         if not self.check_setup():
@@ -3518,14 +3518,14 @@ Special Thanks:
             self.set_status("Please select a mod to install")
             return
 
-        # get selected mod titles
+        # get selected mod titles :3
         selected_titles = [self.available_listbox.get(index) for index in selected]
         logging.debug(f"Selected titles: {selected_titles}")
         
-        # check for protected mods
+        # check for protected mods :3
         protected_mods = ['GDWeave', 'Hook_Line_and_Sinker']
         for title in selected_titles:
-            # clean the title and convert display name to backend name
+            # clean the title and convert display name to backend name :3
             clean_title = title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
             backend_title = self.get_backend_name(clean_title)
             logging.debug(f"Checking protected status for {backend_title}")
@@ -3542,7 +3542,7 @@ Special Thanks:
         missing_dependencies = []
 
         try:
-            # first check all dependencies
+            # first check all dependencies :3
             for index in selected:
                 mod_title = self.available_listbox.get(index)
                 logging.debug(f"Processing mod: {mod_title}")
@@ -3550,12 +3550,12 @@ Special Thanks:
                     logging.debug("Skipping category header")
                     continue
 
-                # clean the title and convert to backend name for lookup
+                # clean the title and convert to backend name for lookup :3
                 clean_title = mod_title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
                 backend_title = self.get_backend_name(clean_title)
                 logging.debug(f"Cleaned title: {clean_title}, backend title: {backend_title}")
                 
-                # find the mod using the backend name
+                # find the mod using the backend name :3
                 mod = next((m for m in self.available_mods if self.get_backend_name(m['title'].strip()) == backend_title), None)
                 if not mod:
                     logging.debug(f"Could not find mod for {backend_title}")
@@ -3565,16 +3565,16 @@ Special Thanks:
                 if dependencies := mod.get('dependencies', []):
                     logging.debug(f"Found dependencies for {mod['title']}: {dependencies}")
                     for dep in dependencies:
-                        # parse dependency string (format: owner-name-version)
+                        # parse dependency string (format: owner-name-version) :3
                         parts = dep.split('-')
                         if len(parts) >= 2:
                             thunderstore_id = f"{parts[0]}-{parts[1]}"
                             logging.debug(f"Checking dependency: {thunderstore_id}")
-                            # skip gdweave and hls dependencies
+                            # skip gdweave and hls dependencies :3
                             if thunderstore_id.startswith(('NotNet-GDWeave', 'Pyoid-Hook_Line_and_Sinker')):
                                 logging.debug(f"Skipping core dependency: {thunderstore_id}")
                                 continue
-                            # check if dependency is installed using thunderstore_id
+                            # check if dependency is installed using thunderstore_id :3
                             if not any(m.get('thunderstore_id') == thunderstore_id for m in self.installed_mods):
                                 logging.debug(f"Dependency {thunderstore_id} not installed")
                                 if dep_mod := next((m for m in self.available_mods if m.get('thunderstore_id') == thunderstore_id), None):
@@ -3585,7 +3585,7 @@ Special Thanks:
                                     logging.debug(f"Dependency {thunderstore_id} not found in available mods")
                                     missing_dependencies.append(dep)
 
-            # if there are dependencies, prompt user
+            # if there are dependencies, prompt user :3
             if all_dependencies or missing_dependencies:
                 logging.debug(f"Found dependencies to handle - to install: {len(all_dependencies)}, missing: {len(missing_dependencies)}")
                 message = ""
@@ -3605,13 +3605,13 @@ Special Thanks:
                     logging.debug("User cancelled dependency installation")
                     return
 
-                # install available dependencies first
+                # install available dependencies first :3
                 for dep_mod in all_dependencies:
                     logging.debug(f"Installing dependency: {dep_mod['title']}")
                     self.set_status_safe(f"Installing dependency: {dep_mod['title']}")
                     self.download_and_install_mod(dep_mod)
 
-            # install selected mods
+            # install selected mods :3
             for index in selected:
                 mod_title = self.available_listbox.get(index)
                 logging.debug(f"Installing selected mod: {mod_title}")
@@ -3640,7 +3640,7 @@ Special Thanks:
             messagebox.showerror("Error", error_message)
             logging.ERROR(error_message)
 
-    # checks if a mod is installed by its ID
+    # checks if a mod is installed by its ID :3
     def is_mod_installed(self, mod_id):
         return any(m['id'] == mod_id for m in self.installed_mods)
     
@@ -3650,27 +3650,27 @@ Special Thanks:
     def check_mod_dependencies(self, mod):
         missing_deps = []
         for dep in mod.get('dependencies', []):
-            # parse dependency string (format: owner-name-version)
+            # parse dependency string (format: owner-name-version) :3
             parts = dep.split('-')
             if len(parts) >= 2:
                 thunderstore_id = f"{parts[0]}-{parts[1]}"
-                # skip gdweave and hls dependencies
+                # skip gdweave and hls dependencies :3
                 if thunderstore_id.startswith(('NotNet-GDWeave', 'Pyoid-Hook_Line_and_Sinker')):
                     continue
-                # check if dependency is installed using thunderstore_id
+                # check if dependency is installed using thunderstore_id :3
                 if not any(m.get('thunderstore_id') == thunderstore_id for m in self.installed_mods):
                     missing_deps.append(dep)
         return missing_deps
 
-    # searches for an installed mod by its ID
-    # checks both regular and third-party mods
+    # searches for an installed mod by its ID :3
+    # checks both regular and third-party mods :3
     def find_installed_mod_by_id(self, mod_id):
-        # check regular mods
+        # check regular mods :3
         for mod in self.installed_mods:
             if mod['id'] == mod_id:
                 return mod
         
-            # check third-party mods
+            # check third-party mods :3
             third_party_dir = os.path.join(self.mods_dir, "3rd_party")
             if os.path.exists(third_party_dir):
                 for mod_folder in os.listdir(third_party_dir):
@@ -3682,7 +3682,7 @@ Special Thanks:
                                 return mod_info
             return None
         
-        # check third-party mods
+        # check third-party mods :3
         third_party_dir = os.path.join(self.mods_dir, "3rd_party")
         if os.path.exists(third_party_dir):
             for mod_folder in os.listdir(third_party_dir):
@@ -3694,8 +3694,8 @@ Special Thanks:
                             return mod_info
         return None
 
-    # installs or updates GDWeave mod loader
-    # backs up existing mods and configs before installation
+    # installs or updates GDWeave mod loader :3
+    # backs up existing mods and configs before installation :3
     def install_gdweave(self):
         if not self.settings.get('game_path'):
             self.set_status("Please set the game path first")
@@ -3710,13 +3710,13 @@ Special Thanks:
         gdweave_path = os.path.join(game_path, 'GDWeave')
 
         try:
-            # create a temporary directory for backup in appdata
+            # create a temporary directory for backup in appdata :3
             temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
             os.makedirs(temp_dir, exist_ok=True)
             temp_backup_dir = os.path.join(temp_dir, f'gdweave_backup_{int(time.time())}')
             os.makedirs(temp_backup_dir, exist_ok=True)
 
-            # backup existing mods and configs
+            # backup existing mods and configs :3
             mods_path = os.path.join(gdweave_path, 'Mods')
             configs_path = os.path.join(gdweave_path, 'configs')
             
@@ -3736,7 +3736,7 @@ Special Thanks:
                     'backup_type': 'configs'
                 })
 
-            # download and install GDWeave
+            # download and install GDWeave :3
             self.set_status("Downloading GDWeave...")
             response = requests.get(gdweave_url)
             response.raise_for_status()
@@ -3752,30 +3752,30 @@ Special Thanks:
                 'status': 'success'
             })
             
-            # extract the zip file
+            # extract the zip file :3
             extract_path = os.path.join(temp_dir, "GDWeave_extract")
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(extract_path)
             logging.info(f"Zip file extracted to: {extract_path}")
             
-            # remove existing GDWeave folder if it exists
+            # remove existing GDWeave folder if it exists :3
             if os.path.exists(gdweave_path):
                 logging.info(f"Removing existing GDWeave folder: {gdweave_path}")
                 shutil.rmtree(gdweave_path)
             
-            # move the extracted GDWeave folder to the correct location
+            # move the extracted GDWeave folder to the correct location :3
             extracted_gdweave_path = os.path.join(extract_path, 'GDWeave')
             logging.info(f"Moving {extracted_gdweave_path} to {gdweave_path}")
             shutil.move(extracted_gdweave_path, gdweave_path)
             
-            # copy winmm.dll to the game directory on Windows
+            # copy winmm.dll to the game directory on Windows :3
             if sys.platform.startswith('win'):
                 winmm_src = os.path.join(extract_path, 'winmm.dll')
                 winmm_dst = os.path.join(game_path, 'winmm.dll')
                 logging.info(f"Copying {winmm_src} to {winmm_dst}")
                 shutil.copy2(winmm_src, winmm_dst)
             
-            # restore mods and configs from backup
+            # restore mods and configs from backup :3
             if os.path.exists(os.path.join(temp_backup_dir, 'Mods')):
                 shutil.copytree(os.path.join(temp_backup_dir, 'Mods'), os.path.join(gdweave_path, 'Mods'), dirs_exist_ok=True)
                 logging.info("Restored Mods folder")
@@ -3823,14 +3823,14 @@ Special Thanks:
 
         self.refresh_mod_lists()
         
-    # updates the UI to reflect the current setup status
+    # updates the UI to reflect the current setup status :3
     def update_setup_status(self):
-        # update step statuses
+        # update step statuses :3
         self.update_step1_status()
         self.update_step2_status()
         self.update_step4_status()
 
-        # update GDWeave button text
+        # update GDWeave button text :3
         if self.is_gdweave_installed():
             self.gdweave_button.config(text="Update GDWeave")
             self.gdweave_label.config(text="Updates GDWeave mod loader to the latest version. Will preserve your mods.")
@@ -3838,7 +3838,7 @@ Special Thanks:
             self.gdweave_button.config(text="Install GDWeave")
             self.gdweave_label.config(text="Installs GDWeave mod loader. Required for mod functionality.")
             
-    # checks if GDWeave is currently enabled
+    # checks if GDWeave is currently enabled :3
     def is_gdweave_enabled(self):
         if not self.settings.get('game_path'):
             return False
@@ -3848,14 +3848,14 @@ Special Thanks:
             return os.path.exists(gdweave_game_path) or os.path.exists(os.path.join(game_path, 'winmm.dll'))
         return False
 
-    # updates the status of step 1 in the setup process
+    # updates the status of step 1 in the setup process :3
     def update_step1_status(self):
         if self.settings.get('game_path') and os.path.exists(self.settings['game_path']):
             self.step1_status.config(text="Verified", foreground="green")
         else:
             self.step1_status.config(text="Unverified", foreground="red")
 
-    # updates the status of step 2 in the setup process
+    # updates the status of step 2 in the setup process :3
     def update_step2_status(self):
         if self.settings.get('game_path'):
             exe_path = os.path.join(self.settings['game_path'], 'webfishing.exe' if sys.platform.startswith('win') else 'webfishing.x86_64')
@@ -3866,7 +3866,7 @@ Special Thanks:
         else:
             self.step2_status.config(text="Unverified", foreground="red")
 
-    # updates the status of step 4 in the setup process
+    # updates the status of step 4 in the setup process :3
     def update_step4_status(self):
         try:
             if self.is_gdweave_installed():
@@ -3885,7 +3885,7 @@ Special Thanks:
         except Exception as e:
             self.step4_status.config(text=f"Error: {str(e)}", foreground="red")
 
-    # checks if the setup process is complete
+    # checks if the setup process is complete :3
     def is_setup_complete(self):
         return (
             self.settings.get('game_path') and
@@ -3894,14 +3894,14 @@ Special Thanks:
             (self.is_gdweave_installed() or self.settings.get('gdweave_version'))
         )
 
-    # checks if GDWeave is installed
+    # checks if GDWeave is installed :3
     def is_gdweave_installed(self):
         if not self.settings.get('game_path'):
             return False
         gdweave_path = os.path.join(self.settings['game_path'], 'GDWeave')
         return os.path.exists(gdweave_path)
     
-    # checks if .NET is installed on the system
+    # checks if .NET is installed on the system :3
     def check_dotnet(self, silent=False):
         try:
             subprocess.run(["dotnet", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -3913,11 +3913,11 @@ Special Thanks:
                 self.set_status(f"Error: {str(e)}. .NET is not installed. Please install .NET 8.0 SDK from https://dotnet.microsoft.com/download")
             return False
 
-    # opens the .NET download page in the default web browser
+    # opens the .NET download page in the default web browser :3
     def open_dotnet_download(self):
        webbrowser.open("https://dotnet.microsoft.com/download")
 
-    # creates the help tab in the UI
+    # creates the help tab in the UI :3
     def create_help_tab(self):
         help_frame = ttk.Frame(self.notebook)
         self.notebook.add(help_frame, text="Troubleshooting")
@@ -3925,15 +3925,15 @@ Special Thanks:
         help_frame.grid_columnconfigure(0, weight=1)
         help_frame.grid_rowconfigure(2, weight=1)
 
-        # title
+        # title :3
         title_label = ttk.Label(help_frame, text="Troubleshooting Guide", font=("Helvetica", 16, "bold"))
         title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
 
-        # new subtitle
+        # new subtitle :3
         subtitle_label = ttk.Label(help_frame, text="If you're experiencing any problems, please try all these steps first", font=("Helvetica", 10, "italic"))
         subtitle_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
-        # create a canvas with a scrollbar
+        # create a canvas with a scrollbar :3
         canvas = tk.Canvas(help_frame)
         scrollbar = ttk.Scrollbar(help_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
@@ -3951,14 +3951,14 @@ Special Thanks:
         canvas.grid(row=2, column=0, sticky="nsew", padx=20, pady=10)
         scrollbar.grid(row=2, column=1, sticky="ns")
 
-        # enable mousewheel scrolling
+        # enable mousewheel scrolling :3
         def _on_mousewheel(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         help_frame.grid_rowconfigure(2, weight=1)
 
-        # help content
+        # help content :3
         help_items = [
             ("1. Install .NET 8.0 SDK Manually", "If you're having issues with .NET:\n- Visit the .NET Download Page\n- Download and install the .NET 8.0 SDK", "https://dotnet.microsoft.com/download"),
             ("2. Install GDWeave Manually", "If automatic GDWeave installation fails:\n- Go to GDWeave Releases\n- Download the latest GDWeave.zip\n- Extract it to your WEBFISHING game directory", "https://github.com/NotNite/GDWeave/releases"),
@@ -3980,7 +3980,7 @@ Special Thanks:
             if link:
                 ttk.Button(item_frame, text="Open Link", command=lambda url=link: webbrowser.open(url)).grid(row=2, column=0, sticky="w", padx=20, pady=(5, 0))
 
-        # need more help section
+        # need more help section :3
         more_help_frame = ttk.Frame(scrollable_frame)
         more_help_frame.grid(row=len(help_items), column=0, sticky="ew", padx=10, pady=20)
         more_help_frame.grid_columnconfigure(0, weight=1)
@@ -3988,15 +3988,15 @@ Special Thanks:
         ttk.Label(more_help_frame, text="Need More Help?", font=("Helvetica", 12, "bold")).grid(row=0, column=0, sticky="w", pady=(5, 2))
         ttk.Label(more_help_frame, text="Visit our website for more information and updates.", wraplength=500, justify="left").grid(row=1, column=0, sticky="w", padx=20)
 
-        # contact information
+        # contact information :3
         contact_info = "If you're still having issues, please contact me:\n- Discord: @pyoid\n- Reddit: u/pyoid_loves_cats"
         ttk.Label(more_help_frame, text=contact_info, wraplength=500, justify="left").grid(row=2, column=0, sticky="w", padx=20, pady=(10, 0))
 
-        # website button
+        # website button :3
         website_button = ttk.Button(help_frame, text="Visit Our Website", command=lambda: webbrowser.open("https://hooklinesinker.lol/"))
         website_button.grid(row=3, column=0, pady=(0, 20), padx=20, sticky="w")
 
-    # makes links in a label clickable
+    # makes links in a label clickable :3
     def make_links_clickable(self, label):
         text = label.cget("text")
         links = re.findall(r'\[([^\]]+)\]\(([^\)]+)\)', text)
@@ -4013,7 +4013,7 @@ Special Thanks:
         label.bind("<Button-1>", open_link)
         label.config(cursor="hand2", foreground="blue")
 
-    # opens the Hook, Line, & Sinker folder
+    # opens the Hook, Line, & Sinker folder :3
     def open_hls_folder(self):
         if sys.platform.startswith('win'):
             os.startfile(self.app_data_dir)
@@ -4022,7 +4022,7 @@ Special Thanks:
         else:
             messagebox.showerror("Error", "Unsupported operating system")
 
-    # opens the GDWeave folder
+    # opens the GDWeave folder :3
     def open_gdweave_folder(self):
         gdweave_path = os.path.join(self.settings['game_path'], 'GDWeave')
         if os.path.exists(gdweave_path):
@@ -4033,7 +4033,7 @@ Special Thanks:
         else:
             messagebox.showerror("Error", "GDWeave folder not found. Make sure GDWeave is installed.")
 
-    # opens the GDWeave log file
+    # opens the GDWeave log file :3
     def open_gdweave_log(self):
         log_path = os.path.join(self.settings['game_path'], 'GDWeave', 'GDWeave.log')
         if os.path.exists(log_path):
@@ -4044,7 +4044,7 @@ Special Thanks:
             log_window.title("GDWeave Log")
             log_window.geometry("800x600")
 
-            # set the window icon
+            # set the window icon :3
             icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
             if os.path.exists(icon_path):
                 log_window.iconbitmap(icon_path)
@@ -4064,13 +4064,13 @@ Special Thanks:
         else:
             messagebox.showerror("Error", "GDWeave log file not found. Make sure GDWeave is installed and has been run at least once.")
 
-    # copies content to clipboard
+    # copies content to clipboard :3
     def copy_to_clipboard(self, content):
         self.root.clipboard_clear()
         self.root.clipboard_append(content)
         messagebox.showinfo("Success", "Log content copied to clipboard!")
 
-    # removes all mods from the game's mods folder
+    # removes all mods from the game's mods folder :3
     def clear_gdweave_mods(self):
         if not messagebox.askyesno(
             "Confirm Clear",
@@ -4092,7 +4092,7 @@ Special Thanks:
         else:
             self.set_status("GDWeave mods folder not found.")
 
-    # removes all mods managed by hook line & sinker
+    # removes all mods managed by hook line & sinker :3
     def clear_hls_mods(self):
         if not messagebox.askyesno(
             "Confirm Clear",
@@ -4100,7 +4100,7 @@ Special Thanks:
         ):
             return
         try:
-            # clear mods in appdata
+            # clear mods in appdata :3
             for item in os.listdir(self.mods_dir):
                 item_path = os.path.join(self.mods_dir, item)
                 if os.path.isdir(item_path):
@@ -4108,18 +4108,18 @@ Special Thanks:
                 else:
                     os.remove(item_path)
 
-            # clear mod cache
+            # clear mod cache :3
             self.mod_cache = {}
             self.save_mod_cache()
 
-            # refresh mod lists
+            # refresh mod lists :3
             self.refresh_mod_lists()
 
             self.set_status("All Hook, Line, & Sinker managed mods and cache have been cleared.")
         except Exception as e:
             self.set_status(f"Error clearing HLS mods: {str(e)}")
 
-    # fetches the latest version from the server
+    # fetches the latest version from the server :3
     def update_latest_version_label(self):
         try:
             response = requests.get("https://hooklinesinker.lol/download/version.json")
@@ -4129,7 +4129,7 @@ Special Thanks:
             logging.info(f"Error fetching latest version: {str(e)}")
             self.gui_queue.put(('latest_version', 'Unknown'))
 
-    # processes messages in the gui queue
+    # processes messages in the gui queue :3
     def process_gui_queue(self):
         try:
             while True:
@@ -4139,31 +4139,31 @@ Special Thanks:
         except queue.Empty:
             pass
         finally:
-            # schedule the next queue check
+            # schedule the next queue check :3
             self.root.after(100, self.process_gui_queue)
             
     def find_mod_by_title(self, title):
-        # remove status prefix if present (✅ or ❌)
+        # remove status prefix if present (✅ or ❌) :3
         if title.startswith('✅ ') or title.startswith('❌ '):
             title = title[2:].strip()
     
-        # remove [3rd] prefix if present
+        # remove [3rd] prefix if present :3
         if '[3rd]' in title:
             title = title.replace('[3rd]', '').strip()
     
-        # first check installed mods list
+        # first check installed mods list :3
         for mod in self.installed_mods:
             if mod['title'] == title:
                 return mod
             
-        # then check available mods from Thunderstore
+        # then check available mods from Thunderstore :3
         for mod in self.available_mods:
             if mod['title'] == title:
                 return mod
             
         raise ValueError(f"no mod found with title: {title}")
 
-    # checks for program updates and prompts user to update if available
+    # checks for program updates and prompts user to update if available :3
     def check_for_program_updates(self, silent=False):
         try:
             response = requests.get("https://hooklinesinker.lol/download/version.json")
@@ -4202,12 +4202,12 @@ Special Thanks:
                 progress_window.status_label.config(text="Downloading HLS update...")
                 logging.info("Updating status label to downloading")
                 
-                # create temp directory
+                # create temp directory :3
                 temp_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'PyoidTM', 'Hook_Line_Sinker', 'temp')
                 logging.info(f"Creating temp directory at {temp_dir}")
                 os.makedirs(temp_dir, exist_ok=True)
                 
-                # download the installer
+                # download the installer :3
                 url = f"https://hooklinesinker.lol/download/{version}"
                 installer_path = os.path.join(temp_dir, 'HLS_Setup.exe')
                 logging.info(f"Downloading installer from {url} to {installer_path}")
@@ -4231,11 +4231,11 @@ Special Thanks:
                 progress_window.progress_bar['value'] = 100
                 logging.info("Download complete, starting installation")
                 
-                # run installer silently and wait for it to finish
-                # /VERYSILENT runs the installer silently
-                # /NORESTART prevents automatic restart
-                # /CLOSEAPPLICATIONS closes the current instance
-                # /RESTARTAPPLICATIONS starts the new version
+                # run installer silently and wait for it to finish :3
+                # /VERYSILENT runs the installer silently :3
+                # /NORESTART prevents automatic restart :3
+                # /CLOSEAPPLICATIONS closes the current instance :3
+                # /RESTARTAPPLICATIONS starts the new version :3
                 installer_args = [
                     installer_path,
                     '/SILENT',
@@ -4248,13 +4248,13 @@ Special Thanks:
                 ]
                 logging.info(f"Launching installer with args: {installer_args}")
                 
-                # use DETACHED_PROCESS flag on Windows to run installer independently
-                if os.name == 'nt':  # windows
+                # use DETACHED_PROCESS flag on Windows to run installer independently :3
+                if os.name == 'nt':  # windows :3
                     subprocess.Popen(installer_args, creationflags=subprocess.DETACHED_PROCESS)
                 else:
                     subprocess.Popen(installer_args)
                 
-                # close the current instance
+                # close the current instance :3
                 time.sleep(5)
                 logging.info("Installation started, closing current instance")
                 self.root.destroy()
@@ -4266,18 +4266,18 @@ Special Thanks:
                 messagebox.showerror("Update Error", error_message)
                 progress_window.destroy()
 
-        # create progress window
+        # create progress window :3
         logging.info("Creating progress window")
         progress_window = tk.Toplevel(self.root)
         progress_window.title("Installing Update")
         
-        # set icon path based on whether running as exe or python
+        # set icon path based on whether running as exe or python :3
         if getattr(sys, 'frozen', False):
-            # running as compiled executable
+            # running as compiled executable :3
             icon_path = os.path.join(sys._MEIPASS, 'icon.ico')
             logging.info("Using MEIPASS icon path for compiled exe")
         else:
-            # running in normal Python environment
+            # running in normal Python environment :3
             icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icon.ico')
             logging.info("Using local icon path for Python environment")
             
@@ -4290,18 +4290,18 @@ Special Thanks:
         progress_window.transient(self.root)
         progress_window.grab_set()
         
-        # center window
+        # center window :3
         window_x = self.root.winfo_x() + (self.root.winfo_width() - 300) // 2
         window_y = self.root.winfo_y() + (self.root.winfo_height() - 100) // 2
         progress_window.geometry(f"+{window_x}+{window_y}")
         logging.info(f"Centered progress window at x:{window_x} y:{window_y}")
         
-        # add status label
+        # add status label :3
         logging.info("Adding status label to progress window")
         progress_window.status_label = ttk.Label(progress_window, text="Preparing update...")
         progress_window.status_label.pack(pady=10)
         
-        # add progress bar
+        # add progress bar :3
         logging.info("Adding progress bar to progress window")
         progress_window.progress_bar = ttk.Progressbar(
             progress_window, 
@@ -4311,7 +4311,7 @@ Special Thanks:
         )
         progress_window.progress_bar.pack(pady=10)
 
-        # start download and install in separate thread
+        # start download and install in separate thread :3
         logging.info("Starting download thread")
         threading.Thread(
             target=lambda: download_and_install(progress_window), 
@@ -4319,10 +4319,10 @@ Special Thanks:
         ).start()
 
     def update_available_mods_list(self):
-        # clear current list
+        # clear current list :3
         self.available_listbox.delete(0, tk.END)
         
-        # add mods to listbox sorted by title
+        # add mods to listbox sorted by title :3
         for mod in sorted(self.available_mods, key=lambda x: x['title']):
             display_title = self.get_display_name(mod['title'])
             self.available_listbox.insert(tk.END, display_title)
@@ -4331,16 +4331,16 @@ Special Thanks:
         """Extract mod from zip file by finding manifest.json with Id field"""
         try:
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                # extract to temp directory
+                # extract to temp directory :3
                 zip_ref.extractall(temp_dir)
                 
-            # recursively search for manifest.json files
+            # recursively search for manifest.json files :3
             manifest_files = []
             for root, _, files in os.walk(temp_dir):
                 if 'manifest.json' in files:
                     manifest_path = os.path.join(root, 'manifest.json')
                     try:
-                        # read the manifest to get the actual mod ID
+                        # read the manifest to get the actual mod ID :3
                         with open(manifest_path, 'r') as f:
                             manifest = json.load(f)
                             if 'Id' in manifest:
@@ -4352,11 +4352,11 @@ Special Thanks:
             if not manifest_files:
                 raise ValueError("No valid manifest.json with Id field found in mod package")
                 
-            # use the first valid manifest found
+            # use the first valid manifest found :3
             manifest_path, mod_id = manifest_files[0]
             mod_dir = os.path.dirname(manifest_path)
             
-            # verify this is a mod directory
+            # verify this is a mod directory :3
             if not os.path.exists(mod_dir):
                 raise ValueError("Mod directory not found after extraction")
                 
@@ -4386,11 +4386,11 @@ Special Thanks:
                 if sys.platform.startswith('win'):
                     subprocess.Popen([installer_path])
                     
-                    # save the new version to the config
+                    # save the new version to the config :3
                     self.settings['last_update_version'] = new_version
                     self.save_settings()
 
-                    # inform the user and close the current instance
+                    # inform the user and close the current instance :3
                     self.root.after(0, lambda: messagebox.showinfo(
                         "Update in Progress", 
                         "The update is being installed. Please restart the application to use the new version."
@@ -4407,30 +4407,30 @@ Special Thanks:
                 self.root.after(0, lambda: messagebox.showerror("Update Failed", error_message))
                 self.root.after(0, lambda: self.set_status(error_message))
 
-        # only start the download thread if we're actually updating
+        # only start the download thread if we're actually updating :3
         threading.Thread(target=download_and_install, daemon=True).start()
 
-    # creates and configures the status bar
+    # creates and configures the status bar :3
     def create_status_bar(self):
         self.status_bar = ttk.Label(self.root, text="Ready", relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
-    # updates the status bar with a new message
+    # updates the status bar with a new message :3
     def set_status(self, message):
         self.status_bar.config(text=message)
         self.root.update_idletasks()
 
-    # clears placeholder text when entry widget is clicked
+    # clears placeholder text when entry widget is clicked :3
     def clear_placeholder(self, event, placeholder):
         if event.widget.get() == placeholder:
             event.widget.delete(0, tk.END)
 
-    # restores placeholder text if entry widget is empty
+    # restores placeholder text if entry widget is empty :3
     def restore_placeholder(self, event, placeholder):
         if event.widget.get() == "":
             event.widget.insert(0, placeholder)
 
-    # opens a window to edit the configuration of a selected mod
+    # opens a window to edit the configuration of a selected mod :3
     def edit_mod_config(self):
         selected_indices = self.get_selected_installed_mod_indices()
         if not selected_indices:
@@ -4441,7 +4441,7 @@ Special Thanks:
             messagebox.showerror("Error", "Game path not set. Please set the game path in the settings.")
             return
 
-        # use filtered_installed_mods instead of installed_mods
+        # use filtered_installed_mods instead of installed_mods :3
         mod = self.filtered_installed_mods[selected_indices[0]]
         config_path = os.path.join(self.settings['game_path'], 'GDWeave', 'configs', f"{mod['id']}.json")
 
@@ -4453,7 +4453,7 @@ Special Thanks:
             with open(config_path, 'r') as f:
                 config = json.load(f)
             
-            if not config:  # if the config is empty treat it as if there's no file
+            if not config:  # if the config is empty treat it as if there's no file :3
                 messagebox.showinfo("No Config Found", f"{mod['title']} doesn't have a config. Either this mod doesn't require one, or you need to restart your game to generate the config.")
                 return
             
@@ -4477,9 +4477,9 @@ Special Thanks:
                 'error': str(e)
             })
             
-    # opens a window to edit the configuration of a mod
+    # opens a window to edit the configuration of a mod :3
     def open_config_editor(self, mod_name, config, config_path):
-        if not config:  # if the config is empty treat it as if there's no file
+        if not config:  # if the config is empty treat it as if there's no file :3
             messagebox.showinfo("No Config Found", f"{mod_name} doesn't have a config. Either this mod doesn't require one, or you need to restart your game to generate the config.")
             return
 
@@ -4491,25 +4491,25 @@ Special Thanks:
         if os.path.exists(icon_path):
             editor_window.iconbitmap(icon_path)
 
-        # create main container
+        # create main container :3
         main_frame = ttk.Frame(editor_window, padding="10")
         main_frame.pack(fill='both', expand=True)
 
-        # create header with mod name
+        # create header with mod name :3
         header_frame = ttk.Frame(main_frame)
         header_frame.pack(fill='x', pady=(0, 10))
         ttk.Label(header_frame, text=f"Editing configuration for {mod_name}", font=('TkDefaultFont', 10, 'bold')).pack(side='left')
 
-        # create scrollable content area
+        # create scrollable content area :3
         content_frame = ttk.Frame(main_frame)
         content_frame.pack(fill='both', expand=True)
 
-        # create canvas and scrollbar
+        # create canvas and scrollbar :3
         canvas = tk.Canvas(content_frame)
         scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
 
-        # configure scrolling
+        # configure scrolling :3
         scrollable_frame.bind(
             "<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
@@ -4518,34 +4518,34 @@ Special Thanks:
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        # pack scrollbar first so it appears on the right
+        # pack scrollbar first so it appears on the right :3
         scrollbar.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
 
-        # enable mousewheel scrolling
+        # enable mousewheel scrolling :3
         def on_mousewheel(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         canvas.bind_all("<MouseWheel>", on_mousewheel)
 
         config_vars = {}
         for i, (key, value) in enumerate(config.items()):
-            # format the display name by splitting on camelcase, underscores, etc
+            # format the display name by splitting on camelcase, underscores, etc :3
             display_name = key
 
-            # this is not a good solution, but it works for now
-            # special case handling for known acronyms and special names
+            # this is not a good solution, but it works for now :3
+            # special case handling for known acronyms and special names :3
             if key in ['FishIDs', 'ID', 'IDs', 'XP'] or '_' not in key and not any(c.isupper() for c in key[1:]):
-                # leave special cases as-is
+                # leave special cases as-is :3
                 display_name = key
             else:
-                # handle camelcase
+                # handle camelcase :3
                 display_name = ''.join([' ' + c if c.isupper() else c for c in display_name]).strip()
-                # handle snake_case
+                # handle snake_case :3
                 display_name = display_name.replace('_', ' ')
-                # capitalize each word
+                # capitalize each word :3
                 display_name = ' '.join(word.capitalize() for word in display_name.split())
 
-            # create frame for each config item
+            # create frame for each config item :3
             item_frame = ttk.LabelFrame(scrollable_frame, text=display_name, padding="5")
             item_frame.pack(fill='x', pady=5)
 
@@ -4575,7 +4575,7 @@ Special Thanks:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # create button frame
+        # create button frame :3
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill='x', pady=(10, 0))
 
@@ -4640,9 +4640,9 @@ Special Thanks:
             listbox.activate(index)
             
             if listbox == self.available_listbox:
-                # get the actual mod from the filtered list
+                # get the actual mod from the filtered list :3
                 selected_title = listbox.get(index)
-                # find the corresponding mod in available_mods
+                # find the corresponding mod in available_mods :3
                 mod = next((m for m in self.available_mods 
                            if self.get_display_name(m['title']) == selected_title), None)
                 
@@ -4650,22 +4650,22 @@ Special Thanks:
                     menu.add_command(label="Install", command=self.install_mod)
                     
             elif listbox == self.installed_listbox:
-                # get the actual mod from the filtered list
+                # get the actual mod from the filtered list :3
                 selected_text = listbox.get(index)
-                # remove status indicators (✅/❌) and [3rd] tag
+                # remove status indicators (✅/❌) and [3rd] tag :3
                 clean_title = re.sub(r'^[✅❌]\s*(?:\[3rd\]\s*)?', '', selected_text)
-                # find the corresponding mod in installed_mods
+                # find the corresponding mod in installed_mods :3
                 mod = next((m for m in self.installed_mods 
                            if self.get_display_name(m['title']) == clean_title), None)
                 
                 if mod:
-                    # basic mod management options
+                    # basic mod management options :3
                     if self.mod_has_config(mod):
                         menu.add_command(label="Edit Config", command=self.edit_mod_config)
                     menu.add_command(label="Test Mod", command=lambda: self.test_mod(mod))
                     menu.add_separator()
                     
-                    # version management submenu
+                    # version management submenu :3
                     version_menu = tk.Menu(menu, tearoff=0)
                     menu.add_cascade(label="Version Management", menu=version_menu)
                     version_menu.add_command(label="Mark Current Version as Unwanted", 
@@ -4674,17 +4674,17 @@ Special Thanks:
                                            command=lambda: self.show_blacklisted_versions(mod))
                     menu.add_separator()
                     
-                    # mod state controls
+                    # mod state controls :3
                     menu.add_command(label="Enable", command=self.enable_mod)
                     menu.add_command(label="Disable", command=self.disable_mod)
                     menu.add_command(label="Uninstall", command=self.uninstall_mod)
                     
-                    # open folder option if mod is enabled
+                    # open folder option if mod is enabled :3
                     if mod.get('enabled', True):
                         menu.add_separator()
                         menu.add_command(label="Open Folder", command=lambda: self.open_mod_folder(mod))
                     
-                    # third-party mod options
+                    # third-party mod options :3
                     if mod.get('third_party', False):
                         menu.add_separator()
                         menu.add_command(label="Export as ZIP", 
@@ -4721,12 +4721,12 @@ Special Thanks:
             if not mod.get('thunderstore_id'):
                 return []
 
-            # get all mods from thunderstore API
+            # get all mods from thunderstore API :3
             response = requests.get("https://thunderstore.io/c/webfishing/api/v1/package/")
             response.raise_for_status()
             all_mods = response.json()
 
-            # find the matching mod
+            # find the matching mod :3
             mod_data = next(
                 (m for m in all_mods if f"{m['owner']}-{m['name']}" == mod['thunderstore_id']),
                 None
@@ -4735,12 +4735,12 @@ Special Thanks:
             if not mod_data:
                 return []
 
-            # sort versions by date created
+            # sort versions by date created :3
             versions = sorted(
                 mod_data['versions'],
                 key=lambda x: x['date_created'],
                 reverse=True
-            )[:20]  # get latest 20 versions
+            )[:20]  # get latest 20 versions :3
 
             return versions
 
@@ -4750,7 +4750,7 @@ Special Thanks:
 
     def install_specific_version(self, mod, version):
         try:
-            # create temporary mod info for installation
+            # create temporary mod info for installation :3
             temp_mod = mod.copy()
             temp_mod.update({
                 'version': version['version_number'],
@@ -4758,7 +4758,7 @@ Special Thanks:
                 'dependencies': version['dependencies']
             })
             
-            # confirm with user
+            # confirm with user :3
             if messagebox.askyesno(
                 "Install Specific Version",
                 f"Are you sure you want to install v{version['version_number']} of {mod['title']}?\n\n"
@@ -4772,10 +4772,10 @@ Special Thanks:
 
     def test_mod(self, mod):
         try:
-            # check dependencies first
+            # check dependencies first :3
             dependencies = self.check_mod_dependencies(mod)
 
-            # disable all mods first
+            # disable all mods first :3
             for installed_mod in self.installed_mods:
                 if installed_mod.get('enabled', True):
                     installed_mod['enabled'] = False
@@ -4783,10 +4783,10 @@ Special Thanks:
                     self.save_mod_status(installed_mod)
                     self.remove_mod_from_game(installed_mod)
 
-            # enable the selected mod and its dependencies
+            # enable the selected mod and its dependencies :3
             mods_to_enable = [mod]
 
-            # find and add dependencies to enable list if there are any
+            # find and add dependencies to enable list if there are any :3
             if dependencies:
                 for dep_id in dependencies:
                     if dep_mod := next(
@@ -4794,7 +4794,7 @@ Special Thanks:
                     ):
                         mods_to_enable.append(dep_mod)
 
-            # enable all required mods
+            # enable all required mods :3
             for mod_to_enable in mods_to_enable:
                 mod_to_enable['enabled'] = True
                 self.update_mod_status_in_listbox(mod_to_enable)
@@ -4803,7 +4803,7 @@ Special Thanks:
 
             self.refresh_mod_lists()
 
-            # update status message to show enabled dependencies
+            # update status message to show enabled dependencies :3
             if len(mods_to_enable) > 1:
                 dep_names = ", ".join(m['title'] for m in mods_to_enable[1:])
                 self.set_status(f"Test mode enabled for {mod['title']} with dependencies: {dep_names}")
@@ -4907,13 +4907,13 @@ Special Thanks:
 
     def export_mod_as_zip(self, mod):
         try:
-            # determine source directory
+            # determine source directory :3
             mod_dir = os.path.join(self.mods_dir, "3rd_party", mod['id'])
             if not os.path.exists(mod_dir):
                 messagebox.showerror("Error", "Mod directory not found.")
                 return
                 
-            # ask user where to save the zip
+            # ask user where to save the zip :3
             zip_path = filedialog.asksaveasfilename(
                 defaultextension=".zip",
                 filetypes=[("ZIP files", "*.zip")],
@@ -4928,7 +4928,7 @@ Special Thanks:
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(mod_dir):
                     for file in files:
-                        if file != 'mod_info.json':  # exclude mod_info.json
+                        if file != 'mod_info.json':  # exclude mod_info.json :3
                             file_path = os.path.join(root, file)
                             arcname = os.path.relpath(file_path, mod_dir)
                             zipf.write(file_path, arcname)
@@ -4941,7 +4941,7 @@ Special Thanks:
             self.set_status(error_message)
             messagebox.showerror("Error", error_message)
 
-    # enables selected mods
+    # enables selected mods :3
     def enable_mod(self):
         if not self.check_setup():
             return
@@ -4955,7 +4955,7 @@ Special Thanks:
                     self.copy_mod_to_game(mod)
                     logging.info(f"Enabled mod: {mod['title']} (ID: {mod['id']}, Third Party: {mod.get('third_party', False)})")
                     
-                    # log successful enable
+                    # log successful enable :3
                     self.send_ga_event('mod_enable', {
                         'mod_id': mod['id'],
                         'mod_title': mod['title'],
@@ -4970,13 +4970,13 @@ Special Thanks:
                 logging.error(error_msg)
                 self.set_status(error_msg)
                 
-                # log enable error
+                # log enable error :3
                 self.send_ga_event('mod_enable_error', {
                     'mod_id': mod['id'],
                     'error': str(e)
                 })
                 
-    # copies a third-party mod to the game directory
+    # copies a third-party mod to the game directory :3
     def copy_third_party_mod_to_game(self, mod):
         src_path = os.path.join(self.mods_dir, "3rd_party", mod['id'])
         dst_path = os.path.join(self.settings['game_path'], 'GDWeave', 'Mods', mod['id'])
@@ -4984,7 +4984,7 @@ Special Thanks:
         self.set_status(f"Installed 3rd party mod: {mod['title']}")
         self.refresh_mod_lists()
 
-    # uninstalls selected mods
+    # uninstalls selected mods :3
     def uninstall_mod(self):
         selected_indices = self.get_selected_installed_mod_indices()
         if selected_indices:
@@ -4993,7 +4993,7 @@ Special Thanks:
                 self.set_status(f"Uninstalling mod: {mod['title']}")
                 try:
                     self.uninstall_mod_files(mod)
-                    # log successful uninstall
+                    # log successful uninstall :3
                     self.send_ga_event('mod_uninstall_success', {
                         'mod_id': mod['id'],
                         'mod_title': mod['title'],
@@ -5002,14 +5002,14 @@ Special Thanks:
                 except Exception as e:
                     error_message = f"Failed to uninstall mod {mod['title']}: {str(e)}"
                     self.set_status(error_message)
-                    # log uninstall error
+                    # log uninstall error :3
                     self.send_ga_event('mod_uninstall_error', {
                         'mod_id': mod['id'],
                         'error': str(e)
                     })
             self.refresh_mod_lists()
 
-    # removes mod files from the system
+    # removes mod files from the system :3
     def uninstall_mod_files(self, mod):
         if mod.get('third_party', False):
             mod_path = os.path.join(self.mods_dir, "3rd_party", mod['id'])
@@ -5019,13 +5019,13 @@ Special Thanks:
         if os.path.exists(mod_path):
             shutil.rmtree(mod_path)
         
-        # remove from game directory if it exists
+        # remove from game directory if it exists :3
         game_mod_path = os.path.join(self.settings['game_path'], 'GDWeave', 'Mods', mod['id'])
         if os.path.exists(game_mod_path):
             shutil.rmtree(game_mod_path)
         
         self.set_status(f"Uninstalled mod: {mod['title']}")
-    # enables selected mods
+    # enables selected mods :3
     def enable_mod(self):
         if not self.check_setup():
             return
@@ -5048,7 +5048,7 @@ Special Thanks:
             else:
                 self.set_status("No mods were enabled. Selected mods may already be enabled.")
 
-    # disables selected mods
+    # disables selected mods :3
     def disable_mod(self):
         if not self.check_setup():
             return
@@ -5082,7 +5082,7 @@ Special Thanks:
                 'count': disabled_count
             })
 
-    # creates a mod.json file for imported mods
+    # creates a mod.json file for imported mods :3
     def create_mod_json(self, mod_folder, mod_name):
         mod_info = {
             'title': mod_name,
@@ -5094,14 +5094,14 @@ Special Thanks:
         with open(os.path.join(mod_folder, 'mod.json'), 'w') as f:
             json.dump(mod_info, f)
 
-    # checks if the game path is set and valid
+    # checks if the game path is set and valid :3
     def check_setup(self):
         if not self.settings.get('game_path') or not os.path.exists(self.settings.get('game_path')):
             messagebox.showinfo("Setup Required", "Please follow all the steps for installation in the HLS Setup tab.")
             return False
         return True
 
-    # updates the status of a mod in the installed mods listbox
+    # updates the status of a mod in the installed mods listbox :3
     def update_mod_status_in_listbox(self, mod):
         index = self.installed_mods.index(mod)
         status = "✅" if mod.get('enabled', True) else "❌"
@@ -5122,20 +5122,20 @@ Special Thanks:
             messagebox.showerror("Error", "No other versions available for this mod")
             return
             
-        # create version selection dialog
+        # create version selection dialog :3
         dialog = tk.Toplevel(self.root)
         dialog.title("Select Version")
         dialog.geometry("300x400")
         dialog.transient(self.root)
         dialog.grab_set()
 
-        # load and display icon
+        # load and display icon :3
         try:
             if getattr(sys, 'frozen', False):
-                # running as compiled executable
+                # running as compiled executable :3
                 bundle_dir = sys._MEIPASS
             else:
-                # running in a normal python environment
+                # running in a normal python environment :3
                 bundle_dir = os.path.dirname(os.path.abspath(__file__))
             
             icon_path = os.path.join(bundle_dir, 'icon.ico')
@@ -5144,7 +5144,7 @@ Special Thanks:
         except Exception as e:
             logging.error(f"Error loading icon: {e}")
         
-        # center the dialog
+        # center the dialog :3
         dialog.update_idletasks()
         width = dialog.winfo_width()
         height = dialog.winfo_height()
@@ -5152,14 +5152,14 @@ Special Thanks:
         y = (dialog.winfo_screenheight() // 2) - (height // 2)
         dialog.geometry(f'{width}x{height}+{x}+{y}')
         
-        # create and pack widgets
+        # create and pack widgets :3
         ttk.Label(dialog, text="Select version to install:").pack(pady=10, padx=10)
         
-        # create listbox for versions
+        # create listbox for versions :3
         version_listbox = tk.Listbox(dialog, width=40, height=15)
         version_listbox.pack(pady=5, padx=10, fill=tk.BOTH, expand=True)
         
-        # add versions to listbox
+        # add versions to listbox :3
         current_version = selected_mod.get('version', 'Unknown')
         for version in versions:
             version_number = version['version_number']
@@ -5175,13 +5175,13 @@ Special Thanks:
                 dialog.destroy()
                 self.install_specific_version(selected_mod, selected_version)
         
-        # add buttons
+        # add buttons :3
         button_frame = ttk.Frame(dialog)
         button_frame.pack(pady=10, padx=10, fill=tk.X)
         ttk.Button(button_frame, text="Install", command=on_select).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
 
-    # shows a prompt to join the discord community
+    # shows a prompt to join the discord community :3
     def show_discord_prompt(self):
         if not self.settings.get('discord_prompt_shown', False):
             if response := messagebox.askyesno(
@@ -5212,7 +5212,7 @@ Special Thanks:
             self.settings['analytics_prompt_shown'] = True
             self.save_settings()
 
-    # saves the status of a mod to its mod_info.json file
+    # saves the status of a mod to its mod_info.json file :3
     def save_mod_status(self, mod):
         if mod.get('third_party', False):
             mod_folder = os.path.join(self.mods_dir, "3rd_party", mod['id'])
@@ -5236,28 +5236,28 @@ Special Thanks:
         self.save_mod_cache()
 
     def update_installed_filter_options(self):
-        # start with status filters
+        # start with status filters :3
         filter_options = ["All", "Enabled", "Disabled"]
         
-        # get unique categories from installed mods
+        # get unique categories from installed mods :3
         categories = set()
         for mod in self.installed_mods:
             categories.update(mod.get('categories', []))
         
-        # add categories to filter options
+        # add categories to filter options :3
         filter_options.extend(sorted(categories))
         
-        # update combobox values
+        # update combobox values :3
         current_value = self.installed_category.get()
         self.installed_category['values'] = filter_options
         
-        # try to preserve current selection
+        # try to preserve current selection :3
         if current_value in filter_options:
             self.installed_category.set(current_value)
         else:
             self.installed_category.set("All")
 
-    # loads the mod cache from file
+    # loads the mod cache from file :3
     def load_mod_cache(self):
         try:
             if os.path.exists(self.mod_cache_file):
@@ -5268,9 +5268,9 @@ Special Thanks:
         except Exception as e:
             error_message = f"Failed to load mod cache: {str(e)}"
             self.set_status(error_message)
-            self.mod_cache = {}  # set to empty dict in case of error
+            self.mod_cache = {}  # set to empty dict in case of error :3
             
-    # updates the mod details display when a mod is selected
+    # updates the mod details display when a mod is selected :3
     def update_mod_details(self, event):
         try:
             listbox = event.widget
@@ -5279,37 +5279,37 @@ Special Thanks:
                 return
                 
             selected_title = listbox.get(selection[0])
-            selected_title = re.sub(r'^[✅❌]\s*(?:\[3rd\]\s*)?', '', selected_title) # remove status indicators
+            selected_title = re.sub(r'^[✅❌]\s*(?:\[3rd\]\s*)?', '', selected_title) # remove status indicators :3
             
-            # skip category headers
+            # skip category headers :3
             if selected_title.startswith('--'):
                 self._show_category_details(selected_title)
                 return
                 
-            # convert display title to backend format before searching
+            # convert display title to backend format before searching :3
             backend_title = self.get_backend_name(selected_title)
             mod = self.find_mod_by_title(backend_title)
             
-            # clear previous details and widgets
+            # clear previous details and widgets :3
             self.mod_details.config(state='normal')
             self.mod_details.delete('1.0', tk.END)
             
-            # remove any existing buttons
+            # remove any existing buttons :3
             for widget in self.mod_details_frame.winfo_children():
                 if isinstance(widget, ttk.Button):
                     widget.destroy()
 
-            # check if this is an installed mod
+            # check if this is an installed mod :3
             is_installed = listbox == self.installed_listbox
 
-            # title section with status indicators
+            # title section with status indicators :3
             title_text = f"{self.get_display_name(mod['title'])} v{mod.get('version', '?')}\n"
             title_text += f"by {mod.get('author', 'Unknown')}\n\n"
             self.mod_details.insert(tk.END, title_text, "header")
             self.mod_details.tag_config("header", font=("TkDefaultFont", 10, "bold"))
 
             if is_installed:
-                # installed mod view
+                # installed mod view :3
                 if 'updated_on' in mod:
                     updated = datetime.fromtimestamp(mod['updated_on'])
                     time_diff = datetime.now() - updated
@@ -5321,7 +5321,7 @@ Special Thanks:
                         time_str = f"{time_diff.seconds // 60} minutes ago"
                     self.mod_details.insert(tk.END, f"📅 Installed {time_str}\n")
 
-                # categories section
+                # categories section :3
                 if categories := mod.get('categories', []):
                     category_display = []
                     category_emojis = {
@@ -5337,17 +5337,17 @@ Special Thanks:
                         'Maps': '🗺'
                     }
                     for category in categories:
-                        emoji = category_emojis.get(category, '📦')  # default emoji if category not found
+                        emoji = category_emojis.get(category, '📦')  # default emoji if category not found :3
                         category_display.append(f"{emoji} {category}")
                     self.mod_details.insert(tk.END, " • ".join(category_display) + "\n")
 
-                # description
+                # description :3
                 if mod.get('description'):
                     self.mod_details.insert(tk.END, "\n📝 Description\n", "subheader")
                     desc = strip_tags(mod['description']) or mod['description']
                     self.mod_details.insert(tk.END, f"{desc}\n")
 
-                # links section for installed mods
+                # links section for installed mods :3
                 if mod.get('thunderstore_id'):
                     self.mod_details.insert(tk.END, "\n🔗 Links\n", "subheader")
                     creator, mod_name = mod['thunderstore_id'].split('-', 1)
@@ -5360,7 +5360,7 @@ Special Thanks:
                     self.mod_details.tag_bind("link", "<Button-1>", lambda e: webbrowser.open(thunderstore_url))
 
             else:
-                # stats section
+                # stats section :3
                 stats = []
                 if 'last_updated' in mod:
                     updated = self._format_timestamp(mod['last_updated'])
@@ -5373,7 +5373,7 @@ Special Thanks:
                 if stats:
                     self.mod_details.insert(tk.END, " • ".join(stats) + "\n")
 
-                # categories section (use single character emojis or it breaks)
+                # categories section (use single character emojis or it breaks) :3
                 if categories := mod.get('categories', []):
                     category_display = []
                     category_emojis = {
@@ -5389,11 +5389,11 @@ Special Thanks:
                         'Maps': '🗺'
                     }
                     for category in categories:
-                        emoji = category_emojis.get(category, '📦')  # default emoji if category not found
+                        emoji = category_emojis.get(category, '📦')  # default emoji if category not found :3
                         category_display.append(f"{emoji} {category}")
                     self.mod_details.insert(tk.END, " • ".join(category_display) + "\n")
 
-                # content warnings section
+                # content warnings section :3
                 warnings = []
                 if mod.get('has_nsfw_content', False):
                     warnings.append("🔞 NSFW")
@@ -5406,7 +5406,7 @@ Special Thanks:
                 elif stats or categories:
                     self.mod_details.insert(tk.END, "\n")
 
-                # description
+                # description :3
                 if mod.get('third_party', False):
                     self.mod_details.insert(tk.END, "📝 Description\n", "subheader")
                     if mod.get('description'):
@@ -5418,15 +5418,15 @@ Special Thanks:
                     self.mod_details.insert(tk.END, "📝 Description\n", "subheader")
                     self.mod_details.insert(tk.END, f"{desc}\n\n")
 
-                # dependencies section
+                # dependencies section :3
                 if deps := mod.get('dependencies', []):
-                    # filter out gdweave because it's pointless because ppl have it installed lmao
+                    # filter out gdweave because it's pointless because ppl have it installed lmao :3
                     visible_deps = [dep for dep in deps if not dep.startswith('NotNet-GDWeave')]
                     if visible_deps:
                         self.mod_details.insert(tk.END, "⚡ Dependencies\n", "subheader")
                         self.mod_details.tag_config("subheader", font=("TkDefaultFont", 9, "bold"))
                         for dep in visible_deps:
-                            # parse creator-title-version format
+                            # parse creator-title-version format :3
                             parts = dep.split('-') if dep else []
                             if len(parts) == 3:
                                 creator, title, version = parts
@@ -5436,7 +5436,7 @@ Special Thanks:
                                 self.mod_details.insert(tk.END, f"• {dep}\n")
                         self.mod_details.insert(tk.END, "\n")
 
-                # links section for available mods
+                # links section for available mods :3
                 self.mod_details.insert(tk.END, "🔗 Links\n", "subheader")
                 if mod.get('thunderstore_id'):
                     creator, mod_name = mod['thunderstore_id'].split('-', 1)
@@ -5465,22 +5465,22 @@ Special Thanks:
 
         self.mod_details.config(state='disabled')
 
-    # checks if a thunderstore mod is installed and enabled
+    # checks if a thunderstore mod is installed and enabled :3
     def is_thunderstore_mod_enabled(self, thunderstore_id):
         try:
-            # check installed mods list first
+            # check installed mods list first :3
             for mod in self.installed_mods:
-                # skip third party mods
+                # skip third party mods :3
                 if mod.get('third_party', False):
                     continue
                     
-                # check if thunderstore_id matches and mod is enabled
+                # check if thunderstore_id matches and mod is enabled :3
                 if mod.get('thunderstore_id') == thunderstore_id and mod.get('enabled', False):
                     return True
                     
-            # check mods directory as backup
+            # check mods directory as backup :3
             for mod_folder in os.listdir(self.mods_dir):
-                # skip 3rd party folder
+                # skip 3rd party folder :3
                 if mod_folder == '3rd_party':
                     continue
                     
@@ -5488,7 +5488,7 @@ Special Thanks:
                 if os.path.exists(mod_info_path):
                     with open(mod_info_path, 'r') as f:
                         mod_info = json.load(f)
-                        # check if thunderstore_id matches and mod is enabled
+                        # check if thunderstore_id matches and mod is enabled :3
                         if mod_info.get('thunderstore_id') == thunderstore_id and mod_info.get('enabled', False):
                             return True
                             
@@ -5519,7 +5519,7 @@ Special Thanks:
             'installed_sort_by': 'Recently Installed'
         }
 
-    # verifies the game installation path
+    # verifies the game installation path :3
     def verify_installation(self):
         try:
             game_path = self.game_path_entry.get()
@@ -5533,7 +5533,7 @@ Special Thanks:
             error_message = f"Error verifying game installation: {str(e)}"
             self.set_status(error_message)
 
-    # loads user settings from json file
+    # loads user settings from json file :3
     def load_settings(self):
         settings_path = os.path.join(self.app_data_dir, 'settings.json')
         if os.path.exists(settings_path):
@@ -5547,7 +5547,7 @@ Special Thanks:
             self.settings = self.get_default_settings()
             logging.info("No settings file found, using default settings")
         
-        # update settings with any missing defaults
+        # update settings with any missing defaults :3
         defaults = self.get_default_settings()
         for key, value in defaults.items():
             if key not in self.settings:
@@ -5555,7 +5555,7 @@ Special Thanks:
         
         self.print_settings()
 
-    # saves current user settings to json file
+    # saves current user settings to json file :3
     def save_settings(self):
         self.settings.update({
             "auto_update": self.auto_update.get(),
@@ -5576,13 +5576,13 @@ Special Thanks:
         self.set_status("Settings saved successfully!")
         logging.info("Settings saved:", self.settings)
         
-    # updates the ui lists of available and installed mods
+    # updates the ui lists of available and installed mods :3
     def refresh_mod_lists(self):
         if hasattr(self, 'available_listbox'):
-            # preserve the current items in the listbox
+            # preserve the current items in the listbox :3
             current_items = list(self.available_listbox.get(0, tk.END))
             
-            # only update if the list is empty (first load)
+            # only update if the list is empty (first load) :3
             if not current_items:
                 self.load_available_mods()
 
@@ -5597,18 +5597,18 @@ Special Thanks:
                 display_text = f"{status} {third_party}{display_title}".strip()
                 self.installed_listbox.insert(tk.END, display_text)
 
-            # update installed mods count
+            # update installed mods count :3
             if hasattr(self, 'installed_frame'):
                 self.installed_frame.configure(text=f"Installed Mods ({len(self.installed_mods)})")
 
-        # update the mod cache
+        # update the mod cache :3
         self.save_mod_cache()
         
-        # refresh the lists with current filters
+        # refresh the lists with current filters :3
         self.filter_available_mods()
         self.filter_installed_mods()
 
-        # update available mods count after filtering
+        # update available mods count after filtering :3
         if hasattr(self, 'available_frame'):
             visible_mods = self.available_listbox.size()
             total_mods = len(self.available_mods)
@@ -5617,7 +5617,7 @@ Special Thanks:
             else:
                 self.available_frame.configure(text=f"Available Mods ({total_mods})")
 
-    # removes non-existent mods from the cache
+    # removes non-existent mods from the cache :3
     def clean_mod_cache(self):
         updated_cache = {
             mod_id: mod_info
@@ -5629,11 +5629,11 @@ Special Thanks:
         self.mod_cache = updated_cache
         self.save_mod_cache()
 
-    # retrieves list of installed mods from the mods directory
+    # retrieves list of installed mods from the mods directory :3
     def get_installed_mods(self):
         installed_mods = []
         
-        # check official mods
+        # check official mods :3
         for mod_folder in os.listdir(self.mods_dir):
             if mod_folder != "3rd_party":
                 mod_info_path = os.path.join(self.mods_dir, mod_folder, 'mod_info.json')
@@ -5642,7 +5642,7 @@ Special Thanks:
                         mod_info = json.load(f)
                         installed_mods.append(mod_info)
 
-        # check third-party mods
+        # check third-party mods :3
         third_party_mods_dir = os.path.join(self.mods_dir, "3rd_party")
         if os.path.exists(third_party_mods_dir):
             for mod_folder in os.listdir(third_party_mods_dir):
@@ -5655,9 +5655,9 @@ Special Thanks:
 
         return installed_mods
 
-    # downloads and installs a mod
+    # downloads and installs a mod :3
     def download_and_install_mod(self, mod, install=True):
-        # create thy thread to handle the download and installation
+        # create thy thread to handle the download and installation :3
         thread = threading.Thread(
             target=self._download_and_install_mod_thread,
             args=(mod, install)
@@ -5671,17 +5671,17 @@ Special Thanks:
             self.mod_downloading = True
             self.set_status_safe(f"Downloading {mod['title']}...")
             
-            # create temp directory
+            # create temp directory :3
             temp_dir = os.path.join(self.app_data_dir, 'temp')
             os.makedirs(temp_dir, exist_ok=True)
             
-            # create unique temp directory with uuid
+            # create unique temp directory with uuid :3
             download_temp_dir = os.path.join(temp_dir, f"download_{uuid.uuid4().hex}")
             os.makedirs(download_temp_dir)
             
-            # download the mod file with error handling and size check
+            # download the mod file with error handling and size check :3
             try:
-                # first try head request to check file size
+                # first try head request to check file size :3
                 max_retries = 3
                 retry_count = 0
                 while True:
@@ -5689,7 +5689,7 @@ Special Thanks:
                         response = requests.head(mod['download'], timeout=30)
                         file_size = int(response.headers.get('content-length', 0))
 
-                        # if head request returns 0 size, try get request with stream=true
+                        # if head request returns 0 size, try get request with stream=true :3
                         if file_size == 0:
                             response = requests.get(mod['download'], stream=True, timeout=30)
                             file_size = int(response.headers.get('content-length', 0))
@@ -5712,11 +5712,11 @@ Special Thanks:
                                 self.root.after(0, lambda: messagebox.showerror("Download Error", 
                                     "Thunderstore appears to be having issues. Please try again in a few minutes."))
                                 raise ValueError("Thunderstore connection issues - please try again later")
-                            time.sleep(1)  # wait a second before retrying
+                            time.sleep(1)  # wait a second before retrying :3
                             continue
-                        raise  # re-raise if it's a different error
+                        raise  # re-raise if it's a different error :3
 
-                # log the mod size
+                # log the mod size :3
                 logging.info(f"Downloading mod {mod['title']} ({file_size / 1024 / 1024:.1f}MB)")
                 self.send_ga_event('mod_download_start', {
                     'mod_id': mod['id'],
@@ -5724,8 +5724,8 @@ Special Thanks:
                     'file_size_mb': round(file_size / 1024 / 1024, 1)
                 })
 
-                # check if file is over 50mb (50 * 1024 * 1024 bytes)
-                if file_size > 52428800:  # 50MB in bytes
+                # check if file is over 50mb (50 * 1024 * 1024 bytes) :3
+                if file_size > 52428800:  # 50MB in bytes :3
                     warning_msg = (
                         f"WARNING: {mod['title']} is {file_size / 1024 / 1024:.1f}MB which exceeds the recommended 50MB limit.\n\n"
                         "This is unusually large for a mod. Large mods are not recommended as they may:\n\n"
@@ -5743,7 +5743,7 @@ Special Thanks:
                         })
                         raise ValueError("Download cancelled - file too large")
 
-                # proceed with download
+                # proceed with download :3
                 retry_count = 0
                 while True:
                     try:
@@ -5768,9 +5768,9 @@ Special Thanks:
                                 self.root.after(0, lambda: messagebox.showerror("Download Error", 
                                     "Thunderstore appears to be having issues. Please try again in a few minutes."))
                                 raise ValueError("Thunderstore connection issues - please try again later")
-                            time.sleep(1)  # wait a second before retrying
+                            time.sleep(1)  # wait a second before retrying :3
                             continue
-                        raise  # re-raise if it's a different error
+                        raise  # re-raise if it's a different error :3
 
             except requests.Timeout:
                 self.send_ga_event('mod_download_error', {
@@ -5796,7 +5796,7 @@ Special Thanks:
                 })
                 raise ValueError(f"Failed to save downloaded file: {str(e)}")
                 
-            # extract the zip
+            # extract the zip :3
             extract_dir = os.path.join(download_temp_dir, 'extracted')
             os.makedirs(extract_dir)
             
@@ -5816,7 +5816,7 @@ Special Thanks:
                 })
                 raise ValueError(f"Failed to extract zip file: {str(e)}")
                 
-            # find manifest.json with valid id field
+            # find manifest.json with valid id field :3
             manifest_path = None
             manifest = None
             for root, dirs, files in os.walk(extract_dir):
@@ -5840,7 +5840,7 @@ Special Thanks:
                 })
                 raise ValueError(f"{mod['title']} is likely not an installable mod!")
                 
-            # get the mod id from manifest
+            # get the mod id from manifest :3
             mod_id = manifest.get('Id')
             if not mod_id:
                 self.send_ga_event('mod_install_error', {
@@ -5849,7 +5849,7 @@ Special Thanks:
                 })
                 raise ValueError(f"{mod['title']} is likely not an installable mod!")
                 
-            # create the final mod directory
+            # create the final mod directory :3
             mod_dir = os.path.join(self.mods_dir, mod_id)
             if os.path.exists(mod_dir):
                 try:
@@ -5861,7 +5861,7 @@ Special Thanks:
                     })
                     raise ValueError(f"Failed to remove existing mod directory: {str(e)}")
                 
-            # move the mod files
+            # move the mod files :3
             try:
                 manifest_parent = os.path.dirname(manifest_path)
                 if manifest_parent != extract_dir:
@@ -5875,7 +5875,7 @@ Special Thanks:
                 })
                 raise ValueError(f"Failed to move mod files: {str(e)}")
                 
-            # create mod_info.json
+            # create mod_info.json :3
             mod_info = {
                 'id': mod_id,
                 'title': manifest.get('Name', mod['title']),
@@ -5906,10 +5906,10 @@ Special Thanks:
                 })
                 raise ValueError(f"Failed to create mod_info.json: {str(e)}")
                 
-            # add to installed mods
+            # add to installed mods :3
             self.installed_mods.append(mod_info)
             
-            # copy to game if enabled
+            # copy to game if enabled :3
             if mod_info['enabled']:
                 try:
                     self.copy_mod_to_game(mod_info)
@@ -5943,14 +5943,14 @@ Special Thanks:
                 raise ValueError(error_message)
         finally:
             self.mod_downloading = False
-            # clean up temp directory
+            # clean up temp directory :3
             if download_temp_dir and os.path.exists(download_temp_dir):
                 try:
                     shutil.rmtree(download_temp_dir)
                 except Exception as e:
                     logging.error(f"Failed to clean up temp directory: {str(e)}")
 
-    # called when mod installation is complete
+    # called when mod installation is complete :3
     def installation_complete(self, mod_info):
         self.set_status_safe(f"Mod {mod_info['title']} version {mod_info['version']} installed successfully!")
         self.refresh_mod_lists()
@@ -5961,7 +5961,7 @@ Special Thanks:
             response = requests.get(url, stream=True)
             response.raise_for_status()
             
-            # get file size if available
+            # get file size if available :3
             total_size = int(response.headers.get('content-length', 0))
             
             return True
@@ -5970,26 +5970,26 @@ Special Thanks:
             logging.error(error_message)
             raise ValueError(error_message)
 
-    # installs a previously downloaded mod
+    # installs a previously downloaded mod :3
     def install_downloaded_mod(self, mod_info):
-        # move the downloaded mod to the mods directory
+        # move the downloaded mod to the mods directory :3
         mod_path = os.path.join(self.mods_dir, mod_info['id'])
         os.makedirs(mod_path, exist_ok=True)
         
-        # save mod_info.json
+        # save mod_info.json :3
         with open(os.path.join(mod_path, 'mod_info.json'), 'w') as f:
             json.dump(mod_info, f, indent=2)
         
-        # copy mod files to game directory
+        # copy mod files to game directory :3
         self.copy_mod_to_game(mod_info)
         
-        # add to installed mods list
+        # add to installed mods list :3
         self.installed_mods.append(mod_info)
         
         self.set_status(f"Installed mod: {mod_info['title']}")
         self.installation_complete(mod_info)
 
-    # verifies the contents of the app data mods directory
+    # verifies the contents of the app data mods directory :3
     def verify_appdata_mods(self):
         logging.info("Verifying contents of app data mods directory")
         for mod_id in os.listdir(self.mods_dir):
@@ -6000,29 +6000,29 @@ Special Thanks:
                     for file in files:
                         logging.info(f"  - {os.path.join(os.path.relpath(root, mod_path), file)}")
                         
-    # called when mod installation is complete
+    # called when mod installation is complete :3
     def installation_complete(self, mod_info):
         self.set_status(f"Mod {mod_info['title']} version {mod_info['version']} installed successfully!")
         self.refresh_mod_lists()
         self.verify_appdata_mods() 
         self.copy_mod_to_game(mod_info)
 
-    # called when mod installation fails
+    # called when mod installation fails :3
     def installation_failed(self, error_message):
         self.set_status_safe(f"Failed to install mod: {error_message}")
 
-    # retrieves the version information for a mod
+    # retrieves the version information for a mod :3
     def get_mod_version(self, mod):
         try:
             url = mod['download']
             parsed_url = urlparse(url)
 
             if 'github.com' in parsed_url.netloc:
-                # github url
+                # github url :3
                 repo_owner, repo_name = parsed_url.path.split('/')[1:3]
                 api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
             else:
-                # assume gitea url
+                # assume gitea url :3
                 base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
                 path_parts = parsed_url.path.split('/')
                 repo_owner, repo_name = path_parts[1:3]
@@ -6032,7 +6032,7 @@ Special Thanks:
             response.raise_for_status()
             data = response.json()
 
-            # extract version from tag_name
+            # extract version from tag_name :3
             version = re.search(r'v?(\d+\.\d+\.\d+)', data['tag_name'])
             version = version[1] if version else data['tag_name']
 
@@ -6047,10 +6047,10 @@ Special Thanks:
                 'published_at': None
             }
         
-    # checks for updates to the program mods and gdweave
+    # checks for updates to the program mods and gdweave :3
     def check_for_updates(self, silent=False):
         try:
-            # check for program update first
+            # check for program update first :3
             response = requests.get("https://hooklinesinker.lol/download/version.json")
             version_data = response.json()
             remote_version = version_data['version']
@@ -6078,14 +6078,14 @@ Special Thanks:
                         "to_version": remote_version
                     })
 
-            # check for mod updates
+            # check for mod updates :3
             self.set_status_safe("Checking for mod and GDWeave updates...")
             updates_available = False
 
             if not self.installed_mods:
                 self.set_status_safe("No mods installed. Skipping mod update check.")
             else:
-                # first pass - collect all mods that need updates
+                # first pass - collect all mods that need updates :3
                 mods_to_update = []
                 for installed_mod in self.installed_mods:
                     for available_mod in self.available_mods:
@@ -6102,7 +6102,7 @@ Special Thanks:
                                 self.set_status_safe(error_message)
                             break
 
-                # if updates are available, show single prompt
+                # if updates are available, show single prompt :3
                 if mods_to_update:
                     update_message = "Updates available for the following mods:\n\n"
                     for mod in mods_to_update:
@@ -6124,7 +6124,7 @@ Special Thanks:
                             "mod_count": len(mods_to_update)
                         })
 
-            # check for gdweave update
+            # check for gdweave update :3
             gdweave_version = self.get_gdweave_version()
             if gdweave_version != self.settings.get('gdweave_version', 'Unknown'):
                 updates_available = True
@@ -6154,12 +6154,12 @@ Special Thanks:
     def is_update_available(self, installed_mod, available_mod):
         """Check if an update is available for a mod"""
         try:
-            # get the mod's thunderstore id
+            # get the mod's thunderstore id :3
             mod_id = installed_mod.get('thunderstore_id')
             if not mod_id:
                 return False
                 
-            # check if the available version is blacklisted
+            # check if the available version is blacklisted :3
             blacklisted = self.settings.get('blacklisted_versions', {}).get(mod_id, [])
             if available_mod.get('version') in blacklisted:
                 logging.info(f"Skipping blacklisted version {available_mod.get('version')} "
@@ -6168,12 +6168,12 @@ Special Thanks:
             
             logging.info(f"Checking for updates - installed mod: {installed_mod.get('title')}, available mod: {available_mod.get('title')}")
             
-            # get base thunderstore id by removing version component
+            # get base thunderstore id by removing version component :3
             def get_base_id(thunderstore_id):
                 if not thunderstore_id:
                     logging.debug(f"No thunderstore_id provided")
                     return ''
-                # match version pattern at end of string
+                # match version pattern at end of string :3
                 version_pattern = r'-\d+\.\d+\.\d+$'
                 base_id = re.sub(version_pattern, '', thunderstore_id)
                 logging.debug(f"Converting thunderstore_id '{thunderstore_id}' to base_id '{base_id}'")
@@ -6184,14 +6184,14 @@ Special Thanks:
             
             logging.info(f"Comparing base IDs - Installed: {installed_base_id}, Available: {available_base_id}")
             
-            # if no thunderstore ids or different mods, no update needed
+            # if no thunderstore ids or different mods, no update needed :3
             if not installed_base_id or not available_base_id or installed_base_id != available_base_id:
                 logging.info("No update needed - Different or missing thunderstore IDs")
                 return False
                 
             def parse_version(version_str):
                 logging.debug(f"Parsing version string: {version_str}")
-                # extract version numbers, defaulting to 0.0.0
+                # extract version numbers, defaulting to 0.0.0 :3
                 match = re.search(r'(\d+)\.(\d+)\.(\d+)', version_str or '0.0.0')
                 if not match:
                     logging.debug("No version match found, using default [0,0,0]")
@@ -6205,7 +6205,7 @@ Special Thanks:
             
             logging.info(f"Comparing versions - Installed: {installed_version}, Available: {available_version}")
             
-            # compare version components
+            # compare version components :3
             for i in range(3):
                 if available_version[i] > installed_version[i]:
                     logging.info(f"Update available - Component {i} is newer ({available_version[i]} > {installed_version[i]})")
@@ -6223,7 +6223,7 @@ Special Thanks:
             logging.error(f"Full traceback: {traceback.format_exc()}")
             return False
 
-    # saves the current state of installed mods to a cache file
+    # saves the current state of installed mods to a cache file :3
     def save_mod_cache(self):
         try:
             mod_cache = {
@@ -6243,7 +6243,7 @@ Special Thanks:
             self.set_status(error_message)
             logging.info(error_message)
             
-    # copies a mod from the app data directory to the game directory
+    # copies a mod from the app data directory to the game directory :3
     def copy_mod_to_game(self, mod_info):
         mod_id = mod_info['id']
         is_third_party = mod_info.get('third_party', False)
@@ -6290,7 +6290,7 @@ Special Thanks:
             logging.error(f"Error copying mod '{mod_info['title']}' (ID: {mod_id}) to game directory: {str(e)}")
             logging.error(traceback.format_exc())
 
-    # removes a mod from the game directory
+    # removes a mod from the game directory :3
     def remove_mod_from_game(self, mod):
         gdweave_mods_path = os.path.join(self.settings['game_path'], 'GDWeave', 'Mods')
         mod_path_in_game = os.path.join(gdweave_mods_path, mod['id'])
@@ -6302,10 +6302,10 @@ Special Thanks:
         else:
             logging.info(f"Mod '{mod['title']}' (ID: {mod['id']}) not found in game directory.")
 
-    # periodically checks for updates in the background
+    # periodically checks for updates in the background :3
     def periodic_update_check(self):
         while True:
-            time.sleep(1800)  # check every 30 minutes
+            time.sleep(1800)  # check every 30 minutes :3
             if self.settings.get('auto_update', False):
                 try:
                     self.check_for_updates(silent=True)
@@ -6314,10 +6314,10 @@ Special Thanks:
                     self.set_status(f"Error checking for mod updates: {str(e)}")
 
     def print_settings(self):
-        # create a copy of settings to avoid modifying the original
+        # create a copy of settings to avoid modifying the original :3
         settings_to_print = self.settings.copy()
         
-        # censor the UUID if it exists
+        # censor the UUID if it exists :3
         if 'user_id' in settings_to_print:
             settings_to_print['user_id'] = '********-****-****-****-************'
         
@@ -6325,14 +6325,14 @@ Special Thanks:
         for key, value in settings_to_print.items():
             logging.info(f"  {key}: {value}")
 
-    # opens a file dialog to select the game directory
+    # opens a file dialog to select the game directory :3
     def browse_game_directory(self):
         if directory := filedialog.askdirectory():
             self.game_path_entry.delete(0, tk.END)
             self.game_path_entry.insert(0, directory)
             self.save_game_path()
 
-    # saves the selected game path to settings
+    # saves the selected game path to settings :3
     def save_game_path(self):
         new_path = self.game_path_entry.get()
         if os.path.exists(new_path):
@@ -6352,66 +6352,66 @@ Special Thanks:
         return display_title.replace(' ', '_')
 
     def handle_filter_toggle(self, filter_type):
-        # save settings first
+        # save settings first :3
         self.save_settings()
         
-        # store current category selection
+        # store current category selection :3
         current_category = self.available_category.get()
         
-        # clear the available mods list to force full refresh
+        # clear the available mods list to force full refresh :3
         self.available_mods = []
         
-        # reload available mods with new filter settings
+        # reload available mods with new filter settings :3
         self.load_available_mods()
         
-        # update category filters
-        categories = {"All"}  # always include "All" as an option
+        # update category filters :3
+        categories = {"All"}  # always include "All" as an option :3
         for mod in self.available_mods:
             categories.update(mod.get('categories', []))
         
-        # update combobox values while preserving selection if possible
+        # update combobox values while preserving selection if possible :3
         self.available_category['values'] = sorted(list(categories))
         
-        # check if any mods in the current category exist after filtering
+        # check if any mods in the current category exist after filtering :3
         mods_in_category = any(
             current_category in mod.get('categories', [])
             for mod in self.available_mods
         ) if current_category != "All" else True
         
-        # keep current category if it exists and has mods, otherwise default to "All"
+        # keep current category if it exists and has mods, otherwise default to "All" :3
         if current_category in categories and mods_in_category:
             self.available_category.set(current_category)
         else:
             self.available_category.set("All")
         
-        # apply filters
+        # apply filters :3
         self.filter_available_mods()
 
-    # loads and displays available mods categorized
+    # loads and displays available mods categorized :3
     def load_available_mods(self):
         try:
-            # fetch mods from thunderstore api
+            # fetch mods from thunderstore api :3
             response = requests.get("https://thunderstore.io/c/webfishing/api/v1/package/")
             thunderstore_mods = response.json()
             
-            # track mods by name to detect duplicates
+            # track mods by name to detect duplicates :3
             mod_map = {}
             
             for mod in thunderstore_mods:
                 is_deprecated = mod.get('is_deprecated', False)
                 is_nsfw = mod.get('has_nsfw_content', False)
                 
-                # skip if mod should be filtered based on current settings
+                # skip if mod should be filtered based on current settings :3
                 if (is_deprecated and not self.show_deprecated.get()) or (is_nsfw and not self.show_nsfw.get()):
                     continue
                 
-                # get latest version info
+                # get latest version info :3
                 if not mod['versions']:
                     continue
                     
                 latest_version = mod['versions'][0]
                 
-                # create mod info structure
+                # create mod info structure :3
                 mod_info = {
                     'title': mod['name'],
                     'thunderstore_id': f"{mod['owner']}-{mod['name']}", 
@@ -6431,58 +6431,58 @@ Special Thanks:
                     'date_updated': mod['date_updated']
                 }
                 
-                # handle duplicates
+                # handle duplicates :3
                 if mod['name'] in mod_map:
                     existing = mod_map[mod['name']]
                     
-                    # keep non-deprecated version if available
+                    # keep non-deprecated version if available :3
                     if existing['is_deprecated'] and not is_deprecated:
                         mod_map[mod['name']] = mod_info
-                    # if both non-deprecated or both deprecated, keep most recently updated
+                    # if both non-deprecated or both deprecated, keep most recently updated :3
                     elif existing['is_deprecated'] == is_deprecated:
                         if mod['date_updated'] > existing['date_updated']:
                             mod_map[mod['name']] = mod_info
                 else:
                     mod_map[mod['name']] = mod_info
 
-            # convert map to list
+            # convert map to list :3
             self.available_mods = list(mod_map.values())
             
-            # collect unique categories
+            # collect unique categories :3
             categories = set()
             for mod in self.available_mods:
                 categories.update(mod.get('categories', []))
             
-            # update category dropdown
+            # update category dropdown :3
             self.available_category['values'] = ["All"] + sorted(list(categories))
             self.available_category.set("All")
                 
-            # update the listbox with categorized mods
+            # update the listbox with categorized mods :3
             self.update_available_mods_list()
             
         except requests.RequestException as e:
             self.set_status(f"Failed to load mods: {str(e)}")
 
-    # checks if a mod id exists in the mods directory
+    # checks if a mod id exists in the mods directory :3
     def mod_id_exists(self, mod_id):
-        # check in the mods directory
+        # check in the mods directory :3
         if os.path.exists(os.path.join(self.mods_dir, mod_id)):
             return True
 
-        # check in the 3rd party mods directory
+        # check in the 3rd party mods directory :3
         if os.path.exists(os.path.join(self.mods_dir, "3rd_party", mod_id)):
             return True
 
         return any(mod.get('id') == mod_id for mod in self.installed_mods)
 
-    # checks if a mod exists in the mods directory
+    # checks if a mod exists in the mods directory :3
     def mod_exists(self, mod):
         if mod.get('id') == 'separator':
             return True
         
-        # if the mod doesn't have an 'id' we can't check if it exists
+        # if the mod doesn't have an 'id' we can't check if it exists :3
         if 'id' not in mod:
-            return True  # assume it exists if we can't check
+            return True  # assume it exists if we can't check :3
         
         if mod.get('third_party', False):
             mod_path = os.path.join(self.mods_dir, "3rd_party", mod['id'])
@@ -6490,7 +6490,7 @@ Special Thanks:
             mod_path = os.path.join(self.mods_dir, mod['id'])
         return os.path.exists(mod_path)
 
-    # loads third-party mods from the mods directory
+    # loads third-party mods from the mods directory :3
     def load_third_party_mods(self):
         third_party_mods_dir = os.path.join(self.mods_dir, "3rd_party")
         if not os.path.exists(third_party_mods_dir):

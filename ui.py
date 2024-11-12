@@ -33,7 +33,7 @@ import requests
 import tkinter as tk
 from dotenv import load_dotenv
 from PIL import Image, ImageTk
-from tkinter import ttk, filedialog, messagebox, simpledialog
+from tkinter import ttk, filedialog, messagebox, simpledialog, font
 import pywinstyles
 # import firebase_admin :3
 # from firebase_admin import credentials, auth, firestore :3
@@ -163,7 +163,7 @@ class HookLineSinkerUI:
         print(f"Current version: {version}")
 
         print("Setting up window title and state...")
-        self.root.title(f"Hook, Line, & Sinker v{version} - WEBFISHING Mod Manager")
+        self.root.title(f"Hook, Line, & Sinker v{version} (Thunderstore) - WEBFISHING Mod Manager")
         if not self.settings.get('windowed_mode', True):
             print("Fullscreen mode enabled")
             self.root.state('zoomed')
@@ -1185,7 +1185,7 @@ class HookLineSinkerUI:
         mod_manager_frame.grid_rowconfigure(1, weight=1)
 
         # create left panel for available mods :3
-        available_frame = ttk.LabelFrame(mod_manager_frame, text="Available Mods (0)")
+        available_frame = ttk.LabelFrame(mod_manager_frame, text="Thunderstore Mods (0)")
         self.available_frame = available_frame
         available_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         available_frame.grid_columnconfigure(0, weight=1)
@@ -5613,9 +5613,9 @@ Special Thanks:
             visible_mods = self.available_listbox.size()
             total_mods = len(self.available_mods)
             if visible_mods != total_mods:
-                self.available_frame.configure(text=f"Available Mods ({visible_mods}/{total_mods})")
+                self.available_frame.configure(text=f"Thunderstore Mods ({visible_mods}/{total_mods})")
             else:
-                self.available_frame.configure(text=f"Available Mods ({total_mods})")
+                self.available_frame.configure(text=f"Thunderstore Mods ({total_mods})")
 
     # removes non-existent mods from the cache :3
     def clean_mod_cache(self):

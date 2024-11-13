@@ -48,6 +48,14 @@ import winsound
 
 load_dotenv()
 
+def get_resource_path(filename):
+    if getattr(sys, 'frozen', False):
+        # Running as cx_Freeze executable
+        return os.path.join(os.path.dirname(sys.executable), filename)
+    else:
+        # Running in normal Python environment
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+
 # class to redirect logging output to a custom writer :3
 class LoggerWriter:
     def __init__(self, level):
@@ -85,12 +93,12 @@ def strip_tags(html):
 def get_version():
         if getattr(sys, 'frozen', False):
             # running as compiled executable :3
-            bundle_dir = sys._MEIPASS
+            app_dir = os.path.dirname(sys.executable)
         else:
             # running in a normal python environment :3
-            bundle_dir = os.path.dirname(os.path.abspath(__file__))
+            app_dir = os.path.dirname(os.path.abspath(__file__))
         
-        version_file = os.path.join(bundle_dir, 'version.json')
+        version_file = os.path.join(app_dir, 'version.json')
         
         try:
             with open(version_file, 'r') as f:
@@ -163,7 +171,7 @@ class HookLineSinkerUI:
         print(f"Current version: {version}")
 
         print("Setting up window title and state...")
-        self.root.title(f"Hook, Line, & Sinker v{version} (Thunderstore) - WEBFISHING Mod Manager")
+        self.root.title(f"Hook, Line, & Sinker v{version} | WEBFISHING Mod Manager | Thunderstore")
         if not self.settings.get('windowed_mode', True):
             print("Fullscreen mode enabled")
             self.root.state('zoomed')
@@ -193,8 +201,8 @@ class HookLineSinkerUI:
         self.root.minsize(800, 640)
 
         print("Loading application icon...")
-        icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
-        print(f"Icon path: {icon_path}")
+        icon_path = get_resource_path('icon.ico')
+        print(f"Looking for icon at: {icon_path}")
         if os.path.exists(icon_path):
             print("Icon file found")
             if platform.system() == 'Windows':
@@ -550,7 +558,7 @@ class HookLineSinkerUI:
         dialog.grab_set()
         
         # set icon :3
-        icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+        icon_path = get_resource_path('icon.ico')
         if os.path.exists(icon_path):
             dialog.iconbitmap(icon_path)
         
@@ -676,14 +684,7 @@ class HookLineSinkerUI:
             def send_request():
                 try:
                     # get path to secrets file :3
-                    if getattr(sys, 'frozen', False):
-                        # running as compiled executable :3
-                        bundle_dir = sys._MEIPASS
-                    else:
-                        # running in normal python environment :3
-                        bundle_dir = os.path.dirname(os.path.abspath(__file__))
-                        
-                    secrets_path = os.path.join(bundle_dir, 'GASecret.txt')
+                    secrets_path = get_resource_path('GASecret.txt')
                     
                     with open(secrets_path, 'r') as f:
                         ga_config = json.load(f)
@@ -730,22 +731,11 @@ class HookLineSinkerUI:
 
     def play_meow(self):
         try:
-            if os.path.exists('meow.wav'):  # changed to .wav since winsound works better with WAV files :3
-                winsound.PlaySound('meow.wav', winsound.SND_FILENAME | winsound.SND_ASYNC)
+            meow_path = get_resource_path('meow.wav')
+            if os.path.exists(meow_path):
+                winsound.PlaySound(meow_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
             else:
-                # get the directory where the script/executable is located :3
-                if getattr(sys, 'frozen', False):
-                    # if running as exe :3
-                    base_dir = sys._MEIPASS
-                else:
-                    # if running as script :3
-                    base_dir = os.path.dirname(os.path.abspath(__file__))
-                
-                meow_path = os.path.join(base_dir, 'meow.wav')
-                if os.path.exists(meow_path):
-                    winsound.PlaySound(meow_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
-                else:
-                    messagebox.showinfo("Meow!", "😺")
+                messagebox.showinfo("Meow!", "😺")
         except Exception as e:
             logging.error(f"Failed to play meow sound: {e}")
             messagebox.showinfo("Meow!", "😺")
@@ -946,7 +936,7 @@ class HookLineSinkerUI:
             log_window.geometry("800x600")
             
             # set the window icon :3
-            icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+            icon_path = get_resource_path('icon.ico')
             if os.path.exists(icon_path):
                 log_window.iconbitmap(icon_path)
 
@@ -997,7 +987,7 @@ class HookLineSinkerUI:
             log_window.geometry("800x600")
             
             # set the window icon :3
-            icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+            icon_path = get_resource_path('icon.ico')
             if os.path.exists(icon_path):
                 log_window.iconbitmap(icon_path)
 
@@ -1375,15 +1365,15 @@ class HookLineSinkerUI:
         
     def create_modpacks_tab(self):
         modpacks_frame = ttk.Frame(self.notebook)
-        self.notebook.add(modpacks_frame, text="Modpacks")
+        self.notebook.add(modpacks_frame, text="Mod Profiles")
 
         modpacks_frame.grid_columnconfigure(0, weight=1)
         modpacks_frame.grid_rowconfigure(2, weight=1)
 
-        title_label = ttk.Label(modpacks_frame, text="Modpacks", font=("Helvetica", 16, "bold"))
+        title_label = ttk.Label(modpacks_frame, text="Mod Profiles", font=("Helvetica", 16, "bold"))
         title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
 
-        subtitle_label = ttk.Label(modpacks_frame, text="Create, import, and manage mod collections", font=("Helvetica", 10, "italic"))
+        subtitle_label = ttk.Label(modpacks_frame, text="Create, import, and manage mod profiles", font=("Helvetica", 10, "italic"))
         subtitle_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
         panels_container = ttk.Frame(modpacks_frame)
@@ -1392,7 +1382,7 @@ class HookLineSinkerUI:
         panels_container.grid_columnconfigure(1, weight=1)
         panels_container.grid_rowconfigure(0, weight=1)
 
-        left_frame = ttk.LabelFrame(panels_container, text="Available Modpacks")
+        left_frame = ttk.LabelFrame(panels_container, text="Available Mod Profiles")
         left_frame.grid(row=0, column=0, sticky="nsew", padx=(5,2.5))
         left_frame.grid_columnconfigure(0, weight=1)
         left_frame.grid_rowconfigure(1, weight=1)
@@ -1417,7 +1407,7 @@ class HookLineSinkerUI:
         ttk.Button(buttons_frame, text="Apply", command=self.apply_modpack).grid(row=1, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(buttons_frame, text="Delete", command=self.remove_modpack).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
 
-        right_frame = ttk.LabelFrame(panels_container, text="Modpack Details")
+        right_frame = ttk.LabelFrame(panels_container, text="Mod Profile Details")
         right_frame.grid(row=0, column=1, sticky="nsew", padx=(2.5,5))
         right_frame.grid_columnconfigure(0, weight=1)
         right_frame.grid_rowconfigure(0, weight=1)
@@ -1438,11 +1428,11 @@ class HookLineSinkerUI:
     def create_modpack_window(self):
         # create new window :3
         modpack_window = tk.Toplevel(self.root)
-        modpack_window.title("Create Modpack")
+        modpack_window.title("Create Mod Profile")
         modpack_window.geometry("800x600")
         
         # set window icon :3
-        icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+        icon_path = get_resource_path('icon.ico')
         if os.path.exists(icon_path):
             modpack_window.iconbitmap(icon_path)
 
@@ -1452,7 +1442,7 @@ class HookLineSinkerUI:
         modpack_window.grid_rowconfigure(1, weight=1)
 
         # create info frame :3
-        info_frame = ttk.LabelFrame(modpack_window, text="Modpack Information")
+        info_frame = ttk.LabelFrame(modpack_window, text="Mod Profile Information")
         info_frame.grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
         # add info fields :3
@@ -1476,7 +1466,7 @@ class HookLineSinkerUI:
         installed_listbox.pack(fill="both", expand=True, padx=5, pady=5)
 
         # create modpack mods frame :3
-        modpack_frame = ttk.LabelFrame(modpack_window, text="Modpack Mods")
+        modpack_frame = ttk.LabelFrame(modpack_window, text="Profile Mods")
         modpack_frame.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
 
         modpack_listbox = tk.Listbox(modpack_frame)
@@ -1505,12 +1495,12 @@ class HookLineSinkerUI:
             description = description_text.get("1.0", tk.END).strip()
 
             if not name:
-                messagebox.showerror("Error", "Please enter a modpack name")
+                messagebox.showerror("Error", "Please enter a mod profile name")
                 return
 
             modpack_mods = list(modpack_listbox.get(0, tk.END))
             if not modpack_mods:
-                messagebox.showerror("Error", "Please add at least one mod to the modpack")
+                messagebox.showerror("Error", "Please add at least one mod to the mod profile")
                 return
 
             # create modpack info dictionary :3
@@ -1539,8 +1529,8 @@ class HookLineSinkerUI:
                 # check if modpack already exists and get existing paste_id if it does :3
                 existing_paste_id = None
                 if os.path.exists(modpack_path):
-                    if not messagebox.askyesno("Modpack Exists", 
-                        "A modpack with this name already exists. Do you want to overwrite it?"):
+                    if not messagebox.askyesno("Mod Profile Exists", 
+                        "A mod profile with this name already exists. Do you want to overwrite it?"):
                         return
                     try:
                         with open(modpack_path, 'r') as f:
@@ -1558,7 +1548,7 @@ class HookLineSinkerUI:
                     'api_dev_key': api_dev_key,
                     'api_option': 'paste',
                     'api_paste_code': json_data,
-                    'api_paste_name': f'HLS Modpack - {name}',
+                    'api_paste_name': f'HLS Mod Profile - {name}',
                     'api_paste_format': 'json',
                     'api_paste_private': '0',
                     'api_paste_expire_date': 'N'
@@ -1575,12 +1565,12 @@ class HookLineSinkerUI:
 
                     # show success message :3
                     if existing_paste_id:
-                        message = (f"Modpack updated successfully!\n"
+                        message = (f"Mod profile updated successfully!\n"
                                   f"Previous share code: {existing_paste_id}\n"
                                   f"New share code: {paste_id}\n"
                                   f"The new code has been copied to your clipboard.")
                     else:
-                        message = (f"Modpack created successfully!\n"
+                        message = (f"Mod profile created successfully!\n"
                                   f"Share this code with others: {paste_id}\n"
                                   f"It has also been copied to your clipboard.")
                     
@@ -1606,7 +1596,7 @@ class HookLineSinkerUI:
                     raise Exception(f"Failed to create paste: {response.text}")
 
             except Exception as e:
-                error_message = f"Failed to create modpack: {str(e)}"
+                error_message = f"Failed to create mod profile: {str(e)}"
                 messagebox.showerror("Error", error_message)
 
         # create buttons frame :3
@@ -1615,12 +1605,12 @@ class HookLineSinkerUI:
 
         ttk.Button(buttons_frame, text="Add Selected", command=add_to_modpack).pack(side="left", padx=5)
         ttk.Button(buttons_frame, text="Remove Selected", command=remove_from_modpack).pack(side="left", padx=5)
-        ttk.Button(buttons_frame, text="Save Modpack", command=save_modpack).pack(side="left", padx=5)
+        ttk.Button(buttons_frame, text="Save Profile", command=save_modpack).pack(side="left", padx=5)
         ttk.Button(buttons_frame, text="Cancel", command=modpack_window.destroy).pack(side="left", padx=5)
 
     def import_modpack(self):
         # ask for Pastebin ID :3
-        paste_id = simpledialog.askstring("Import Modpack", "Enter the modpack code:")
+        paste_id = simpledialog.askstring("Import Mod Profile", "Enter the mod profile code:")
         if not paste_id:
             return
 
@@ -1628,7 +1618,7 @@ class HookLineSinkerUI:
             # fetch paste content :3
             response = requests.get(f'https://pastebin.com/raw/{paste_id}')
             if response.status_code != 200:
-                raise Exception("Failed to fetch modpack data")
+                raise Exception("Failed to fetch mod profile data")
 
             # parse modpack info :3
             modpack_info = json.loads(response.text)
@@ -1636,7 +1626,7 @@ class HookLineSinkerUI:
             # verify required fields :3
             required_fields = ['name', 'author', 'description', 'mods']
             if not all(field in modpack_info for field in required_fields):
-                raise Exception("Invalid modpack format")
+                raise Exception("Invalid mod profile format")
 
             # add the paste_id to the modpack info :3
             modpack_info['paste_id'] = paste_id
@@ -1647,8 +1637,8 @@ class HookLineSinkerUI:
             
             # check if modpack already exists :3
             if os.path.exists(modpack_path):
-                if not messagebox.askyesno("Modpack Exists", 
-                    "A modpack with this name already exists. Do you want to overwrite it?"):
+                if not messagebox.askyesno("Mod Profile Exists", 
+                    "A mod profile with this name already exists. Do you want to overwrite it?"):
                     return
             
             # save the modpack file :3
@@ -1669,11 +1659,11 @@ class HookLineSinkerUI:
                     break
 
             if messagebox.askyesno("Import Success", 
-                "Modpack imported successfully! Would you like to apply it now?"):
+                "Mod profile imported successfully! Would you like to apply it now?"):
                 self.apply_modpack()
 
         except Exception as e:
-            error_message = f"Failed to import modpack: {str(e)}"
+            error_message = f"Failed to import mod profile: {str(e)}"
             messagebox.showerror("Error", error_message)
             self.set_status(error_message)
 
@@ -1716,19 +1706,19 @@ class HookLineSinkerUI:
             self.modpack_details.config(state='disabled')
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load modpack details: {str(e)}")
+            messagebox.showerror("Error", f"Failed to load mod profile details: {str(e)}")
                 
     def apply_modpack(self):
         selected = self.modpacks_listbox.curselection()
         if not selected:
-            messagebox.showerror("Error", "Please select a modpack to apply.")
+            messagebox.showerror("Error", "Please select a mod profile to apply.")
             return
 
         modpack_name = self.modpacks_listbox.get(selected[0])
         modpack_path = os.path.join(self.modpacks_dir, f"{modpack_name}.json")
 
         if messagebox.askyesno("Confirm Apply", 
-            "Applying this modpack will disable all current mods and enable only the mods in the modpack. Continue?"):
+            "Applying this mod profile will disable all current mods and enable only the mods in the mod profile. Continue?"):
             try:
                 # read modpack info :3
                 with open(modpack_path) as f:
@@ -1785,11 +1775,11 @@ class HookLineSinkerUI:
 
                 # refresh UI :3
                 self.refresh_mod_lists()
-                messagebox.showinfo("Success", f"Modpack '{modpack_name}' applied successfully!")
-                self.set_status(f"Applied modpack: {modpack_name}")
+                messagebox.showinfo("Success", f"Mod profile '{modpack_name}' applied successfully!")
+                self.set_status(f"Applied mod profile: {modpack_name}")
 
             except Exception as e:
-                error_message = f"Failed to apply modpack: {str(e)}"
+                error_message = f"Failed to apply mod profile: {str(e)}"
                 messagebox.showerror("Error", error_message)
                 self.set_status(error_message)
 
@@ -1820,13 +1810,13 @@ class HookLineSinkerUI:
     def remove_modpack(self):
         selected = self.modpacks_listbox.curselection()
         if not selected:
-            messagebox.showerror("Error", "Please select a modpack to remove.")
+            messagebox.showerror("Error", "Please select a mod profile to remove.")
             return
 
         modpack_name = self.modpacks_listbox.get(selected[0])
         modpack_path = os.path.join(self.modpacks_dir, f"{modpack_name}.json")
 
-        if messagebox.askyesno("Confirm Remove", "Do you want to remove this modpack?"):
+        if messagebox.askyesno("Confirm Remove", "Do you want to remove this mod profile?"):
             try:
                 # delete the modpack file :3
                 os.remove(modpack_path)
@@ -1834,10 +1824,10 @@ class HookLineSinkerUI:
                 # refresh UI :3
                 self.refresh_mod_lists()
                 self.refresh_modpacks_list()
-                self.set_status(f"Removed modpack: {modpack_name}")
+                self.set_status(f"Removed mod profile: {modpack_name}")
 
             except Exception as e:
-                error_message = f"Failed to remove modpack: {str(e)}"
+                error_message = f"Failed to remove mod profile: {str(e)}"
                 messagebox.showerror("Error", error_message)
                 self.set_status(error_message)
 
@@ -2532,17 +2522,9 @@ class HookLineSinkerUI:
             dialog.grab_set()
 
             # load and display icon :3
-            try:
-                if getattr(sys, 'frozen', False):
-                    bundle_dir = sys._MEIPASS
-                else:
-                    bundle_dir = os.path.dirname(os.path.abspath(__file__))
-                
-                icon_path = os.path.join(bundle_dir, 'icon.ico')
-                if os.path.exists(icon_path):
-                    dialog.iconbitmap(icon_path)
-            except Exception as e:
-                logging.error(f"Error loading icon: {e}")
+            icon_path = get_resource_path('icon.ico')
+            if os.path.exists(icon_path):
+                dialog.iconbitmap(icon_path)
 
             # center the dialog :3
             dialog.update_idletasks()
@@ -2684,14 +2666,14 @@ class HookLineSinkerUI:
         self.notebook.add(setup_frame, text="HLS Setup")
 
         setup_frame.grid_columnconfigure(0, weight=1)
-        setup_frame.grid_rowconfigure(8, weight=1)  # increased to accommodate new button :3
+        setup_frame.grid_rowconfigure(8, weight=1)
 
         # title :3
-        title_label = ttk.Label(setup_frame, text="Game Setup Guide", font=("Helvetica", 16, "bold"))
+        title_label = ttk.Label(setup_frame, text="HLS Setup", font=("Helvetica", 16, "bold"))
         title_label.grid(row=0, column=0, pady=(20, 5), padx=20, sticky="w")
 
         # new label for instructions :3
-        instruction_label = ttk.Label(setup_frame, text="You must complete all steps below to use Hook, Line, & Sinker", font=("Helvetica", 10, "italic"))
+        instruction_label = ttk.Label(setup_frame, text="Complete the steps below to start using Hook, Line, & Sinker", font=("Helvetica", 10, "italic"))
         instruction_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
         # step 1: set game path :3
@@ -2699,7 +2681,7 @@ class HookLineSinkerUI:
         step1_frame.grid(row=2, column=0, pady=10, padx=20, sticky="ew")
         step1_frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(step1_frame, text="Path:").grid(row=0, column=0, pady=5, padx=5, sticky="w")
+        ttk.Label(step1_frame, text="Game Path:").grid(row=0, column=0, pady=5, padx=5, sticky="w")
         self.game_path_entry = ttk.Entry(step1_frame, width=40)
         self.game_path_entry.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
         self.game_path_entry.insert(0, self.settings.get('game_path', ''))
@@ -2716,50 +2698,40 @@ class HookLineSinkerUI:
         step2_frame.grid_columnconfigure(1, weight=1)
 
         ttk.Button(step2_frame, text="Verify Installation", command=self.verify_installation).grid(row=0, column=0, pady=5, padx=5)
-        ttk.Label(step2_frame, text="Checks if the game files are present in the specified path.").grid(row=0, column=1, pady=5, padx=5, sticky="w")
+        ttk.Label(step2_frame, text="Verify that all required game files are present").grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
         self.step2_status = ttk.Label(step2_frame, text="Unverified", foreground="red", font=("Helvetica", 10, "bold"))
         self.step2_status.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
-        # step 3: install net :3
-        step3_frame = ttk.LabelFrame(setup_frame, text="Step 3: Install .NET")
-        step3_frame.grid(row=4, column=0, pady=10, padx=20, sticky="ew")
-        step3_frame.grid_columnconfigure(1, weight=1)
-
-        ttk.Button(step3_frame, text="Download .NET 8.0 SDK", command=lambda: webbrowser.open("https://dotnet.microsoft.com/en-us/download")).grid(row=0, column=0, pady=5, padx=5)
-        ttk.Label(step3_frame, text="Install the .NET 8.0 SDK appropriate for your system (x64/x86)").grid(row=0, column=1, pady=5, padx=5, sticky="w")
-
-        self.step3_status = ttk.Label(step3_frame, text="Unable to verify this step", foreground="green", font=("Helvetica", 10, "bold"))
-        self.step3_status.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
 
         # step 4: install/update gdweave :3
-        step4_frame = ttk.LabelFrame(setup_frame, text="Step 4: Install/Update GDWeave")
-        step4_frame.grid(row=5, column=0, pady=10, padx=20, sticky="ew")
+        step4_frame = ttk.LabelFrame(setup_frame, text="Step 3: Install Mod Loader")
+        step4_frame.grid(row=4, column=0, pady=10, padx=20, sticky="ew")
         step4_frame.grid_columnconfigure(1, weight=1)
 
         self.gdweave_button = ttk.Button(step4_frame, text="Install GDWeave", command=self.install_gdweave)
         self.gdweave_button.grid(row=0, column=0, pady=5, padx=5)
-        self.gdweave_label = ttk.Label(step4_frame, text="Installs or updates GDWeave mod loader. Your mods should transfer over, backup just in case.")
+        self.gdweave_label = ttk.Label(step4_frame, text="Install or update the GDWeave mod loader to enable mod support")
         self.gdweave_label.grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
         self.step4_status = ttk.Label(step4_frame, text="Uninstalled", foreground="red", font=("Helvetica", 10, "bold"))
         self.step4_status.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="w")
         
         # step 5: backup save :3
-        step5_frame = ttk.LabelFrame(setup_frame, text="Step 5: Back Up Your Save")
-        step5_frame.grid(row=6, column=0, pady=10, padx=20, sticky="ew")
+        step5_frame = ttk.LabelFrame(setup_frame, text="Step 4: Back Up Your Save Data")
+        step5_frame.grid(row=5, column=0, pady=10, padx=20, sticky="ew")
         step5_frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(step5_frame, text="Click 'Save Manager' at the top to back up your save before modding. Do this. Don't be that guy.", foreground="red").grid(row=0, column=1, pady=5, padx=5, sticky="w")
+        ttk.Label(step5_frame, text="Important: Use the Save Manager tab to create a backup of your save data before modding", foreground="red").grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
         # setup status :3
         self.setup_status = ttk.Label(setup_frame, text="", font=("Helvetica", 12))
-        self.setup_status.grid(row=7, column=0, pady=(20, 10), padx=20, sticky="w")
+        self.setup_status.grid(row=6, column=0, pady=(20, 10), padx=20, sticky="w")
         self.update_setup_status()
 
     # creates the settings tab for hook line & sinker :3
     def create_settings_tab(self):
         settings_frame = ttk.Frame(self.notebook)
-        self.notebook.add(settings_frame, text="Settings")
+        self.notebook.add(settings_frame, text="HLS Settings")
         user_id = self.get_user_id()
 
         settings_frame.grid_columnconfigure(0, weight=1)
@@ -2771,7 +2743,7 @@ class HookLineSinkerUI:
         title_frame.grid_columnconfigure(1, weight=1)
 
         # title on left :3
-        title_label = ttk.Label(title_frame, text="Application Settings", font=("Helvetica", 16, "bold"))
+        title_label = ttk.Label(title_frame, text="HLS Settings", font=("Helvetica", 16, "bold"))
         title_label.grid(row=0, column=0, sticky="w")
 
         # user ID on right :3
@@ -2821,7 +2793,7 @@ class HookLineSinkerUI:
                        command=self.save_windowed_mode).grid(row=1, column=0, pady=2, sticky="w")
         
         self.dark_mode = tk.BooleanVar(value=self.settings.get('dark_mode', False))
-        ttk.Checkbutton(left_frame, text="Dark Mode (experimental)",
+        ttk.Checkbutton(left_frame, text="Dark mode",
                        variable=self.dark_mode,
                        command=self.toggle_dark_mode).grid(row=2, column=0, pady=2, sticky="w")
 
@@ -2830,7 +2802,7 @@ class HookLineSinkerUI:
         right_frame.grid(row=0, column=1, sticky="w", padx=5)
         
         self.auto_backup = tk.BooleanVar(value=self.settings.get('auto_backup', True))
-        ttk.Checkbutton(right_frame, text="Auto-backup saves on launch (max 10)",
+        ttk.Checkbutton(right_frame, text="Auto-backup saves on launch",
                        variable=self.auto_backup,
                        command=self.save_settings).grid(row=0, column=0, pady=2, sticky="w")
         
@@ -2840,7 +2812,7 @@ class HookLineSinkerUI:
                        command=self.save_settings).grid(row=1, column=0, pady=2, sticky="w")
 
         self.analytics_enabled = tk.BooleanVar(value=self.settings.get('analytics_enabled', True))
-        ttk.Checkbutton(right_frame, text="Enable Analytics",
+        ttk.Checkbutton(right_frame, text="Enable analytics",
                        variable=self.analytics_enabled,
                        command=self.save_settings).grid(row=2, column=0, pady=2, sticky="w")
 
@@ -3016,7 +2988,7 @@ Special Thanks:
         try:
             if getattr(sys, 'frozen', False):
                 # running as compiled executable :3
-                bundle_dir = sys._MEIPASS
+                bundle_dir = os.path.dirname(sys.executable)
             else:
                 # running in a normal python environment :3
                 bundle_dir = os.path.dirname(os.path.abspath(__file__))
@@ -3833,10 +3805,10 @@ Special Thanks:
         # update GDWeave button text :3
         if self.is_gdweave_installed():
             self.gdweave_button.config(text="Update GDWeave")
-            self.gdweave_label.config(text="Updates GDWeave mod loader to the latest version. Will preserve your mods.")
+            self.gdweave_label.config(text="Updates GDWeave mod loader to the latest version and preserves your mods")
         else:
             self.gdweave_button.config(text="Install GDWeave")
-            self.gdweave_label.config(text="Installs GDWeave mod loader. Required for mod functionality.")
+            self.gdweave_label.config(text="Installs GDWeave mod loader which is required for mod functionality")
             
     # checks if GDWeave is currently enabled :3
     def is_gdweave_enabled(self):
@@ -4045,7 +4017,7 @@ Special Thanks:
             log_window.geometry("800x600")
 
             # set the window icon :3
-            icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+            icon_path = get_resource_path('icon.ico')
             if os.path.exists(icon_path):
                 log_window.iconbitmap(icon_path)
 
@@ -4271,18 +4243,9 @@ Special Thanks:
         progress_window = tk.Toplevel(self.root)
         progress_window.title("Installing Update")
         
-        # set icon path based on whether running as exe or python :3
-        if getattr(sys, 'frozen', False):
-            # running as compiled executable :3
-            icon_path = os.path.join(sys._MEIPASS, 'icon.ico')
-            logging.info("Using MEIPASS icon path for compiled exe")
-        else:
-            # running in normal Python environment :3
-            icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icon.ico')
-            logging.info("Using local icon path for Python environment")
-            
+        # set window icon :3
+        icon_path = get_resource_path('icon.ico')
         if os.path.exists(icon_path):
-            logging.info(f"Setting window icon from {icon_path}")
             progress_window.iconbitmap(icon_path)
             
         progress_window.geometry("300x100")
@@ -4487,7 +4450,7 @@ Special Thanks:
         editor_window.title(f"Edit Config: {mod_name}")
         editor_window.geometry("310x500")
 
-        icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+        icon_path = get_resource_path('icon.ico')
         if os.path.exists(icon_path):
             editor_window.iconbitmap(icon_path)
 
@@ -5130,20 +5093,10 @@ Special Thanks:
         dialog.grab_set()
 
         # load and display icon :3
-        try:
-            if getattr(sys, 'frozen', False):
-                # running as compiled executable :3
-                bundle_dir = sys._MEIPASS
-            else:
-                # running in a normal python environment :3
-                bundle_dir = os.path.dirname(os.path.abspath(__file__))
-            
-            icon_path = os.path.join(bundle_dir, 'icon.ico')
-            if os.path.exists(icon_path):
-                dialog.iconbitmap(icon_path)
-        except Exception as e:
-            logging.error(f"Error loading icon: {e}")
-        
+        icon_path = get_resource_path('icon.ico')
+        if os.path.exists(icon_path):
+            dialog.iconbitmap(icon_path)
+
         # center the dialog :3
         dialog.update_idletasks()
         width = dialog.winfo_width()

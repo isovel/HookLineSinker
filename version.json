@@ -1,11 +1,13 @@
 {
     "version": "1.3.2", 
-    "message": "The No More IRC UpdateTM\n\nThis update removes the IRC chat system, fixes various bugs with installed mods, modpacks, and save backups.",
+    "message": "The Auto Update UpdateTM\n\nThis update adds automatic in-app updates, new launch buttons for vanilla and modded, UI improvements, bug fixes and more behind-the-scenes changes.",
     "changelog": [
-        "Removed temporary IRC chat system",
-        "Fixed bugs with installed mod management",
-        "Fixed issues with modpack importing and sharing",
-        "Fixed save backup system to work with new webfishing",
-        "Various bug fixes and stability improvements"
+        "Added automatic in-app program updates",
+        "Added separate launch buttons for vanilla and modded game", 
+        "Improved UI elements and styling",
+        "Fixed various bugs and crashes",
+        "Added background improvements and optimizations",
+        "General stability enhancements",
+        "Fixed false positive antivirus detections"
     ]
 }

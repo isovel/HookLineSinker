@@ -1975,6 +1975,7 @@ class HookLineSinkerUI:
                     self.mod_details.insert(tk.END, f"• {mod['title']} v{mod.get('version', '?')} by {mod.get('author', 'Unknown')}\n")
         
         self.mod_details.config(state='disabled')
+        
     def filter_available_mods(self, event=None):
         search_text = self.search_var.get().lower()
         selected_category = self.available_category.get()
@@ -1990,6 +1991,10 @@ class HookLineSinkerUI:
         for mod in self.available_mods:
             # skip if mod is already installed :3
             if mod['title'] in installed_mod_titles:
+                continue
+                
+            # only show modpacks in the Modpacks category :3
+            if "Modpacks" in mod.get('categories', []) and selected_category != "Modpacks":
                 continue
                 
             # check if mod matches search criteria :3
@@ -6384,6 +6389,10 @@ Special Thanks:
                     'date_updated': mod['date_updated']
                 }
                 
+                # check if mod has more than 5 dependencies and add Modpacks category :3
+                if len(latest_version['dependencies']) > 5:
+                    mod_info['categories'].append('Modpacks')
+
                 # handle duplicates :3
                 if mod['name'] in mod_map:
                     existing = mod_map[mod['name']]

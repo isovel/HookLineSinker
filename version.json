@@ -1,13 +1,14 @@
 {
-    "version": "1.3.2", 
-    "message": "The Auto Update UpdateTM\n\nThis update adds automatic in-app updates, new launch buttons for vanilla and modded, UI improvements, bug fixes and more behind-the-scenes changes.",
+    "version": "1.4.0",
+    "message": "The Server Browser UpdateTM\n\nThis update adds a brand new server browser that lets you easily find and join modded servers! See what mods each server requires and install them automatically.",
     "changelog": [
-        "Added automatic in-app program updates",
-        "Added separate launch buttons for vanilla and modded game", 
+        "Added server browser to find and join modded servers",
+        "Added automatic mod installation when joining servers",
+        "Added server list with player counts and required mods",
+        "Added server filtering and sorting options",
+        "Added automatic mod enabling/disabling for servers",
         "Improved UI elements and styling",
         "Fixed various bugs and crashes",
-        "Added background improvements and optimizations",
-        "General stability enhancements",
-        "Fixed false positive antivirus detections"
+        "Added background improvements and optimizations"
     ]
 }

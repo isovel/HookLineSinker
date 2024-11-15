@@ -1153,6 +1153,9 @@ class HookLineSinkerUI:
         self.create_mod_manager_tab()
         self.create_modpacks_tab()
         self.create_game_manager_tab()
+        self.server_browser_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.server_browser_frame, text="Server Browser")
+        self.setup_server_browser()
         self.create_hls_setup_tab()
         # self.create_profile_tab() :3
         self.create_settings_tab()
@@ -1267,14 +1270,13 @@ class HookLineSinkerUI:
         ttk.Button(self.mod_management_frame, text="Edit Config", command=self.edit_mod_config).grid(row=2, column=0, pady=2, padx=2, sticky="ew")
         ttk.Button(self.mod_management_frame, text="Version", command=self.show_version_selection).grid(row=2, column=1, pady=2, padx=2, sticky="ew")        # change version logic is very buggy :3
 
-        # create 3rd party mods section :3
-        third_party_frame = ttk.LabelFrame(action_frame, text="3rd Party Mods")
-        third_party_frame.grid(row=3, column=0, pady=5, padx=5, sticky="ew")
-        third_party_frame.grid_columnconfigure(0, weight=1)
-        third_party_frame.grid_columnconfigure(1, weight=1)
-        ttk.Button(third_party_frame, text="Import ZIP", command=self.import_zip_mod).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
-        ttk.Button(third_party_frame, text="Refresh Mods", command=self.refresh_all_mods).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
-        ttk.Button(third_party_frame, text="View Deprecated Mods List", command=self.view_deprecated_mods_list).grid(row=1, column=0, columnspan=2, padx=2, pady=2, sticky="ew")
+        # create misc section :3
+        misc_frame = ttk.LabelFrame(action_frame, text="Misc Management")
+        misc_frame.grid(row=3, column=0, pady=5, padx=5, sticky="ew")
+        misc_frame.grid_columnconfigure(0, weight=1)
+        ttk.Button(misc_frame, text="Import ZIP Mod", command=self.import_zip_mod).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
+        ttk.Button(misc_frame, text="Refresh Mods", command=self.refresh_all_mods).grid(row=1, column=0, pady=2, padx=2, sticky="ew")
+        ttk.Button(misc_frame, text="Check for Updates", command=self.check_for_updates).grid(row=2, column=0, pady=2, padx=2, sticky="ew")
 
         # create helpful links section :3
         help_frame = ttk.LabelFrame(action_frame, text="Helpful Links")
@@ -1283,8 +1285,6 @@ class HookLineSinkerUI:
         help_frame.grid_columnconfigure(1, weight=1)
         ttk.Button(help_frame, text="Join Discord", command=lambda: webbrowser.open("https://discord.gg/HzhCPxeCKY")).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(help_frame, text="Visit Website", command=lambda: webbrowser.open("https://hooklinesinker.lol")).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
-        ttk.Button(help_frame, text="Support HLS", command=lambda: webbrowser.open("https://ko-fi.com/pyoid")).grid(row=1, column=0, padx=2, pady=2, sticky="ew")
-        ttk.Button(help_frame, text="Dev Guide", command=lambda: webbrowser.open("https://github.com/BlueberryWolf/WEBFISHINGModdingGuide/blob/main/README.md")).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
 
         # create right panel for installed mods :3
         installed_frame = ttk.LabelFrame(mod_manager_frame, text="Installed Mods (0)")
@@ -2733,6 +2733,414 @@ class HookLineSinkerUI:
         self.setup_status.grid(row=6, column=0, pady=(20, 10), padx=20, sticky="w")
         self.update_setup_status()
 
+    def setup_server_browser(self):
+        # create main frame
+        main_frame = ttk.Frame(self.server_browser_frame)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # add title and subtitle
+        title_label = ttk.Label(main_frame, text="Server Browser (Beta)", font=("Helvetica", 16, "bold"))
+        title_label.pack(pady=(20, 5), padx=20, anchor="w")
+
+        subtitle_label = ttk.Label(main_frame, text="Browse and join modded multiplayer servers", 
+                                 font=("Helvetica", 10, "italic"))
+        subtitle_label.pack(pady=(0, 10), padx=20, anchor="w")
+
+        # create top frame for search and filters
+        filter_frame = ttk.Frame(main_frame)
+        filter_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        # add search
+        search_frame = ttk.Frame(filter_frame)
+        search_frame.pack(fill=tk.X, expand=True)
+        search_frame.grid_columnconfigure(1, weight=1)
+
+        ttk.Label(search_frame, text="Search:").grid(row=0, column=0, padx=5)
+        self.server_search_var = tk.StringVar()
+        self.server_search_var.trace('w', lambda name, index, mode: self.filter_servers())
+        search_entry = ttk.Entry(search_frame, textvariable=self.server_search_var)
+        search_entry.grid(row=0, column=1, sticky="ew", padx=5)
+
+        # add refresh button
+        refresh_btn = ttk.Button(search_frame, text="Refresh", command=self.refresh_servers)
+        refresh_btn.grid(row=0, column=2, padx=5)
+
+        # add sort options
+        sort_frame = ttk.Frame(main_frame)
+        sort_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        ttk.Label(sort_frame, text="Sort by:").pack(side=tk.LEFT, padx=5)
+        
+        self.sort_var = tk.StringVar(value="name")
+        sort_options = [
+            ("Name", "name"),
+            ("Region", "region"), 
+            ("Map", "map"),
+            ("Player Cap", "player_cap"),
+            ("Available Slots", "slots"),
+            ("Version", "version")
+        ]
+        
+        for text, value in sort_options:
+            ttk.Radiobutton(sort_frame, text=text, value=value, 
+                          variable=self.sort_var,
+                          command=self.filter_servers).pack(side=tk.LEFT, padx=5)
+
+        # Add 18+ filter checkbox
+        self.show_18plus = tk.BooleanVar(value=False)
+        show_18plus_cb = ttk.Checkbutton(sort_frame, text="Show 18+", 
+                                        variable=self.show_18plus,
+                                        command=self.filter_servers)
+        show_18plus_cb.pack(side=tk.LEFT, padx=5)
+
+        # create main content frame with server list and details
+        content_frame = ttk.Frame(main_frame)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_rowconfigure(0, weight=3)
+        content_frame.grid_rowconfigure(1, weight=1)
+
+        # create server listbox with scrollbar
+        list_frame = ttk.LabelFrame(content_frame, text="Available Servers (0)")
+        list_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 5))
+        list_frame.grid_columnconfigure(0, weight=1)
+        list_frame.grid_rowconfigure(0, weight=1)
+
+        self.server_listbox = tk.Listbox(list_frame, selectmode=tk.SINGLE)
+        self.server_listbox.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.server_listbox.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns", pady=5)
+        self.server_listbox.config(yscrollcommand=scrollbar.set)
+
+        # create details frame
+        details_frame = ttk.LabelFrame(content_frame, text="Server Details")
+        details_frame.grid(row=1, column=0, sticky="nsew")
+        details_frame.grid_columnconfigure(0, weight=1)
+        details_frame.grid_rowconfigure(0, weight=1)
+
+        self.server_details = tk.Text(details_frame, wrap=tk.WORD, height=10)
+        self.server_details.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.server_details.config(state='disabled')
+
+        # add join button at bottom
+        join_btn = ttk.Button(main_frame, text="Join Selected Server", command=self.join_selected_server)
+        join_btn.pack(pady=10, padx=10)
+
+        # bind selection event
+        self.server_listbox.bind('<<ListboxSelect>>', self.on_server_select)
+
+        # store servers data
+        self.servers = []
+        
+        # initial server load
+        self.refresh_servers()
+
+    def check_companion_mod(self):
+        companion_id = "Pyoid-Hook_Line_and_Sinker_Companion"
+        for mod in self.installed_mods:
+            if mod.get('thunderstore_id') == companion_id:
+                return mod.get('enabled', True)
+        return False
+
+    def refresh_servers(self):
+        try:
+            response = requests.get("https://hooklinesinker.lol/servers")
+            servers = response.json()
+            self.update_server_list(servers)
+            self.set_status(f"Loaded {len(servers)} servers successfully")
+        except Exception as e:
+            error_msg = f"Failed to load servers: {str(e)}"
+            self.set_status(error_msg)
+
+    def update_server_list(self, servers):
+        # Group servers by host and keep only most recently updated
+        host_servers = {}
+        for server in servers:
+            host = server.get('host')
+            last_updated = server.get('last_updated')
+            if host not in host_servers or last_updated > host_servers[host]['last_updated']:
+                host_servers[host] = server
+                
+        self.servers = list(host_servers.values())
+        self.filter_servers()
+
+    def on_server_select(self, event):
+        selection = self.server_listbox.curselection()
+        if not selection:
+            return
+            
+        # Use the index map to get the correct server
+        original_index = self.server_index_map[selection[0]]
+        server = self.servers[original_index]
+        
+        self.server_details.config(state='normal')
+        self.server_details.delete('1.0', tk.END)
+        
+        # Configure tags for styling
+        self.server_details.tag_configure("header", font=("Helvetica", 12, "bold"))
+        self.server_details.tag_configure("subheader", font=("Helvetica", 10, "bold"))
+        self.server_details.tag_configure("link", foreground="blue", underline=1)
+        
+        # Title and host
+        self.server_details.insert(tk.END, f"{server.get('title', 'Unnamed Server')}\n", "header")
+        self.server_details.insert(tk.END, f"🏠 Hosted by {server.get('host', 'Unknown')}\n\n")
+        
+        # Server stats section
+        stats = []
+        stats.append(f"👥 {server.get('current_players', '?')}/{server.get('player_cap', '?')} players")
+        stats.append(f"🎮 v{server.get('version', 'Unknown')}")
+        stats.append(f"🌍 {server.get('country', 'Unknown')}")
+        self.server_details.insert(tk.END, " • ".join(stats) + "\n")
+        
+        # Game details section
+        self.server_details.insert(tk.END, "\n🎯 Game Details\n", "subheader")
+        details = []
+        details.append(f"🗺 Map: {server.get('map', 'Unknown').title()}")
+        details.append(f"🎲 Type: {server.get('lobby_type', 'Unknown')}")
+        details.append(f"🔑 Code: {server.get('lobby_code', 'Unknown')}")
+        
+        for detail in details:
+            self.server_details.insert(tk.END, f"{detail}\n")
+        
+        # Required mods section
+        if mods := server.get('mods', []):
+            self.server_details.insert(tk.END, "\n📦 Required Mods\n", "subheader")
+            for mod in mods:
+                self.server_details.insert(tk.END, f"• {mod}\n")
+        
+        # this is unused but i may use it later :3
+        if description := server.get('description'):
+            self.server_details.insert(tk.END, "\n📝 Description\n", "subheader")
+            self.server_details.insert(tk.END, f"{description}\n")
+        
+        self.server_details.config(state='disabled')
+
+    def join_selected_server(self):
+        # Check game path first
+        game_path = self.settings.get('game_path')
+        if not game_path:
+            messagebox.showerror("Error", "Game path not set. Please set it in Settings.")
+            return
+            
+        if not self.check_companion_mod():
+            companion_id = "Pyoid-Hook_Line_and_Sinker_Companion"
+            
+            # Find companion mod in available mods
+            companion_mod = next((mod for mod in self.available_mods 
+                                if mod['thunderstore_id'] == companion_id), None)
+            
+            if companion_mod:
+                message = ("The Server Browser requires the Hook, Line, & Sinker Companion mod.\n\n"
+                          "Would you like to install it now?")
+                
+                if messagebox.askyesno("Companion Mod Required", message):
+                    self.download_and_install_mod(companion_mod)
+                    messagebox.showinfo("Installation Complete", 
+                        "Companion mod installed successfully. Wait a few seconds and then press 'Join Selected Server' again.")
+                return
+            else:
+                messagebox.showerror("Error", 
+                    "Could not find the HLS Companion mod. Please try refreshing the mod list.")
+                return
+
+        selection = self.server_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("No Server Selected", "Please select a server to join.")
+            return
+            
+        # Use the index map to get the correct server
+        original_index = self.server_index_map[selection[0]]
+        server = self.servers[original_index]
+        
+        lobby_code = server.get('lobby_code')
+        required_mods = server.get('mods', [])
+        
+        if not lobby_code:
+            messagebox.showerror("Error", "No lobby code available for this server.")
+            return
+            
+        try:
+            # Check and install required mods
+            if required_mods and not self.check_and_install_server_mods(required_mods):
+                return
+
+            if not messagebox.askyesno("Join Server", "Ready to join the server? Wait until all mods are installed and enabled before joining (check the bottom left of the screen, when this stops changing you're ready to go!)"):
+                return
+
+            exe_name = 'webfishing.exe'
+            exe_path = os.path.join(game_path, exe_name)
+            
+            subprocess.Popen([exe_path, f'--join-code={lobby_code}'])
+            self.set_status(f"Launching game to join server: {server.get('title')}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to launch game: {str(e)}")
+
+    def filter_servers(self):
+        search_text = self.server_search_var.get().lower()
+        sort_by = self.sort_var.get()
+        show_18plus = self.show_18plus.get()
+        
+        # Store filtered servers with their original indices
+        filtered_servers_with_index = []
+        for i, server in enumerate(self.servers):
+            title = server.get('title', 'Unnamed Server').lower()
+            map_name = server.get('map', '').lower()
+            current_players = server.get('current_players', 0)
+            age_restricted = server.get('age_restricted', False)
+            
+            # Skip 18+ servers if checkbox is unchecked
+            if age_restricted and not show_18plus:
+                continue
+                
+            # Only include servers with at least 1 player
+            if current_players > 0 and (search_text in title or search_text in map_name):
+                filtered_servers_with_index.append((i, server))
+        
+        # Sort servers based on selected criteria while preserving original index
+        if sort_by == "name":
+            filtered_servers_with_index.sort(key=lambda x: x[1].get('title', 'Unnamed Server').lower())
+        elif sort_by == "region":
+            filtered_servers_with_index.sort(key=lambda x: x[1].get('country', 'Unknown'))
+        elif sort_by == "map":
+            filtered_servers_with_index.sort(key=lambda x: x[1].get('map', 'Unknown').lower())
+        elif sort_by == "player_cap":
+            filtered_servers_with_index.sort(key=lambda x: x[1].get('player_cap', 0), reverse=True)
+        elif sort_by == "slots":
+            filtered_servers_with_index.sort(key=lambda x: x[1].get('player_cap', 0) - x[1].get('current_players', 0), reverse=True)
+        elif sort_by == "version":
+            filtered_servers_with_index.sort(key=lambda x: x[1].get('version', '0.0.0'))
+        
+        # Clear and repopulate listbox
+        self.server_listbox.delete(0, tk.END)
+        
+        # Store mapping of listbox index to original server index
+        self.server_index_map = []
+        
+        for original_index, server in filtered_servers_with_index:
+            title = server.get('title', 'Unnamed Server')
+            map_name = server.get('map', 'Unknown Map')
+            current_players = server.get('current_players', '?')
+            player_cap = server.get('player_cap', '?')
+            display_text = f"{title} - {map_name.title()} ({current_players}/{player_cap})"
+            self.server_listbox.insert(tk.END, display_text)
+            self.server_index_map.append(original_index)
+        
+        # Update server count in frame title
+        self.server_listbox.master.configure(text=f"Available Servers ({len(filtered_servers_with_index)})")
+
+    def check_and_install_server_mods(self, required_mods):
+        """Check for required mods and offer to install missing ones"""
+        missing_mods = []
+        disabled_mods = []
+        
+        # Get list of installed mod IDs
+        installed_mod_ids = {mod.get('thunderstore_id') for mod in self.installed_mods}
+        
+        # Check which mods are missing or disabled
+        for mod_id in required_mods:
+            if mod_id not in installed_mod_ids:
+                missing_mods.append(mod_id)
+            else:
+                # Check if mod is disabled
+                mod = next((m for m in self.installed_mods if m.get('thunderstore_id') == mod_id), None)
+                if mod and not mod.get('enabled', True):
+                    disabled_mods.append(mod_id)
+
+        if not missing_mods and not disabled_mods:
+            return True
+
+        # Prepare message for user
+        message = "This server requires the following mods:\n\n"
+        
+        if missing_mods:
+            message += "Missing Mods (will be downloaded):\n"
+            for i, mod_id in enumerate(missing_mods[:5]):
+                message += f"• {mod_id}\n"
+            if len(missing_mods) > 5:
+                message += f"...and {len(missing_mods) - 5} more\n"
+            message += "\n"
+            
+        if disabled_mods:
+            message += "Disabled Mods (will be enabled):\n"
+            for i, mod_id in enumerate(disabled_mods[:5]):
+                message += f"• {mod_id}\n"
+            if len(disabled_mods) > 5:
+                message += f"...and {len(disabled_mods) - 5} more\n"
+            message += "\n"
+            
+        message += "Would you like to proceed with the installation/enabling of these mods?"
+        
+        if not messagebox.askyesno("Mods Required", message):
+            return False
+
+        # Create progress dialog
+        progress_dialog = tk.Toplevel(self.root)
+        progress_dialog.title("Installing Mods")
+        progress_dialog.geometry("300x150")
+        progress_dialog.transient(self.root)
+        progress_dialog.grab_set()
+        
+        # Center the dialog
+        progress_dialog.update_idletasks()
+        x = (progress_dialog.winfo_screenwidth() // 2) - (300 // 2)
+        y = (progress_dialog.winfo_screenheight() // 2) - (150 // 2)
+        progress_dialog.geometry(f'300x150+{x}+{y}')
+
+        label = ttk.Label(progress_dialog, text="Installing required mods...")
+        label.pack(pady=20)
+        progress = ttk.Progressbar(progress_dialog, mode='determinate')
+        progress.pack(pady=10, padx=20, fill=tk.X)
+
+        def install_mods():
+            try:
+                total_steps = len(missing_mods) + len(disabled_mods)
+                current_step = 0
+
+                # Install missing mods
+                for mod_id in missing_mods:
+                    # Find mod in available mods
+                    available_mod = next((mod for mod in self.available_mods 
+                                    if mod['thunderstore_id'] == mod_id), None)
+                    if available_mod:
+                        self.download_and_install_mod(available_mod)
+                    current_step += 1
+                    progress['value'] = (current_step / total_steps) * 100
+                    progress_dialog.update()
+
+                # Enable disabled mods using our enable_mod method
+                for mod_id in disabled_mods:
+                    mod = next((m for m in self.installed_mods if m.get('thunderstore_id') == mod_id), None)
+                    if mod:
+                        # Find index in filtered_installed_mods
+                        try:
+                            index = self.filtered_installed_mods.index(mod)
+                            # Temporarily set selection and call enable_mod
+                            self.installed_listbox.selection_clear(0, tk.END)
+                            self.installed_listbox.selection_set(index)
+                            self.enable_mod()
+                        except ValueError:
+                            # If not found in filtered list, enable manually
+                            mod['enabled'] = True
+                            self.save_mod_status(mod)
+                            self.copy_mod_to_game(mod)
+                    current_step += 1
+                    progress['value'] = (current_step / total_steps) * 100
+                    progress_dialog.update()
+
+                progress_dialog.destroy()
+                self.refresh_mod_lists()
+                return True
+
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to install mods: {str(e)}")
+                progress_dialog.destroy()
+                return False
+
+        # Run installation in a separate thread
+        result = install_mods()
+        return result
+
     # creates the settings tab for hook line & sinker :3
     def create_settings_tab(self):
         settings_frame = ttk.Frame(self.notebook)
@@ -3500,7 +3908,7 @@ Special Thanks:
         logging.debug(f"Selected titles: {selected_titles}")
         
         # check for protected mods :3
-        protected_mods = ['GDWeave', 'Hook_Line_and_Sinker']
+        protected_mods = ['GDWeave', 'Hook_Line_and_Sinker', 'r2modman', 'Hatchery']
         for title in selected_titles:
             # clean the title and convert display name to backend name :3
             clean_title = title.replace('✅', '').replace('❌', '').replace('[3rd]', '').strip()
@@ -3510,8 +3918,7 @@ Special Thanks:
                 logging.debug(f"{backend_title} is protected, showing error")
                 messagebox.showerror(
                     "Protected Mod",
-                    f"{clean_title} is a core component and cannot be installed via Thunderstore. " 
-                    "It will be managed automatically by Hook, Line, & Sinker."
+                    f"{clean_title} cannot be installed via the Mod Manager tab." 
                 )
                 return
 
@@ -3548,7 +3955,7 @@ Special Thanks:
                             thunderstore_id = f"{parts[0]}-{parts[1]}"
                             logging.debug(f"Checking dependency: {thunderstore_id}")
                             # skip gdweave and hls dependencies :3
-                            if thunderstore_id.startswith(('NotNet-GDWeave', 'Pyoid-Hook_Line_and_Sinker')):
+                            if thunderstore_id.startswith(('NotNet-GDWeave', 'Pyoid-Hook_Line_and_Sinker', 'ekbr-r2modman')):
                                 logging.debug(f"Skipping core dependency: {thunderstore_id}")
                                 continue
                             # check if dependency is installed using thunderstore_id :3
@@ -3561,25 +3968,30 @@ Special Thanks:
                                 else:
                                     logging.debug(f"Dependency {thunderstore_id} not found in available mods")
                                     missing_dependencies.append(dep)
-
             # if there are dependencies, prompt user :3
             if all_dependencies or missing_dependencies:
                 logging.debug(f"Found dependencies to handle - to install: {len(all_dependencies)}, missing: {len(missing_dependencies)}")
                 message = ""
                 if all_dependencies:
                     message += "The following dependencies will be installed:\n"
-                    message += "\n".join([f"• {dep['title']}" for dep in all_dependencies])
-                    message += "\n\n"
+                    for i, dep in enumerate(all_dependencies[:5]):
+                        message += f"• {dep['title']}\n"
+                    if len(all_dependencies) > 5:
+                        message += f"...and {len(all_dependencies) - 5} more\n"
+                    message += "\n"
 
                 if missing_dependencies:
                     message += "The following dependencies could not be found:\n"
-                    message += "\n".join([f"• {dep}" for dep in missing_dependencies])
-                    message += "\n\nThe mod may not work correctly without these dependencies."
+                    for i, dep in enumerate(missing_dependencies[:5]):
+                        message += f"• {dep}\n"
+                    if len(missing_dependencies) > 5:
+                        message += f"...and {len(missing_dependencies) - 5} more\n"
+                    message += "\nThe mod may not work correctly without these dependencies.\n"
 
-                message += "\n\nWould you like to continue?"
+                message += "Would you like to continue?"
 
                 if not messagebox.askyesno("Dependencies Required", message):
-                    logging.debug("User cancelled dependency installation")
+                    logging.debug("User cancelled dependency installation") 
                     return
 
                 # install available dependencies first :3
@@ -3632,7 +4044,7 @@ Special Thanks:
             if len(parts) >= 2:
                 thunderstore_id = f"{parts[0]}-{parts[1]}"
                 # skip gdweave and hls dependencies :3
-                if thunderstore_id.startswith(('NotNet-GDWeave', 'Pyoid-Hook_Line_and_Sinker')):
+                if thunderstore_id.startswith(('NotNet-GDWeave', 'Pyoid-Hook_Line_and_Sinker', 'ekbr-r2modman')):
                     continue
                 # check if dependency is installed using thunderstore_id :3
                 if not any(m.get('thunderstore_id') == thunderstore_id for m in self.installed_mods):
@@ -5832,6 +6244,13 @@ Special Thanks:
                     'error': f'move_files_failed: {str(e)}'
                 })
                 raise ValueError(f"Failed to move mod files: {str(e)}")
+
+            # first check if there's an existing mod and get its enabled state :3
+            existing_enabled = True  # default to enabled
+            for installed_mod in self.installed_mods:
+                if installed_mod.get('id') == mod_id:
+                    existing_enabled = installed_mod.get('enabled', True)
+                    break
                 
             # create mod_info.json :3
             mod_info = {
@@ -5840,7 +6259,7 @@ Special Thanks:
                 'author': manifest.get('Author', mod['author']),
                 'description': manifest.get('Description', mod['description']),
                 'version': manifest.get('Version', mod['version']),
-                'enabled': True,
+                'enabled': existing_enabled,
                 'thunderstore_id': mod['thunderstore_id'],
                 'categories': mod.get('categories', []),
                 'downloads': mod.get('downloads', 0),

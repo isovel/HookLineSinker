@@ -6482,12 +6482,19 @@ Special Thanks:
                 # if updates are available, show single prompt :3
                 if mods_to_update:
                     update_message = "Updates available for the following mods:\n\n"
-                    for mod in mods_to_update:
+                    # Show first 3 mods
+                    for mod in mods_to_update[:3]:
                         installed = mod['installed']
                         available = mod['available']
                         update_message += f"• {installed['title']}\n"
                         update_message += f"  Current version: {installed.get('version', 'Unknown')}\n"
                         update_message += f"  New version: {available.get('version', 'Unknown')}\n\n"
+                    
+                    # Add message about remaining mods if any
+                    remaining_mods = len(mods_to_update) - 3
+                    if remaining_mods > 0:
+                        update_message += f"...and {remaining_mods} more mod{'s' if remaining_mods > 1 else ''}\n\n"
+                    
                     update_message += "Would you like to install all updates?"
 
                     if silent or messagebox.askyesno("Updates Available", update_message):

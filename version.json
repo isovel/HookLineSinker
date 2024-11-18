@@ -1,14 +1,8 @@
 {
-    "version": "1.4.0",
-    "message": "The Server Browser UpdateTM\n\nThis update adds a brand new server browser that lets you easily find and join modded servers! See what mods each server requires and install them automatically.",
+    "version": "1.4.1",
+    "message": "Minor UpdateTM\n\nThis update fixes a few issues and updates the Discord invite link.",
     "changelog": [
-        "Added server browser to find and join modded servers",
-        "Added automatic mod installation when joining servers",
-        "Added server list with player counts and required mods",
-        "Added server filtering and sorting options",
-        "Added automatic mod enabling/disabling for servers",
-        "Improved UI elements and styling",
-        "Fixed various bugs and crashes",
-        "Added background improvements and optimizations"
+        "Updated Discord server invite link",
+        "Fixed 'Check for Updates' showing too many mods in the update list"
     ]
 }

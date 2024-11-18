@@ -880,7 +880,7 @@ class HookLineSinkerUI:
             print("Writing error log header...")
             f.write("=" * 80 + "\n")
             f.write("Hook, Line, & Sinker Error Log\n")
-            f.write("If you need support, join discord.gg/webfishingmods\n")
+            f.write("If you need support, join discord.gg/zAdYquPx3U\n")
             f.write("This log only contains errors and important messages\n")
             f.write("=" * 80 + "\n\n")
         print("Error log header written")
@@ -898,7 +898,7 @@ class HookLineSinkerUI:
             print("Writing full log header...")
             f.write("=" * 80 + "\n")
             f.write("Hook, Line, & Sinker Full Debug Log\n")
-            f.write("If you need support, join discord.gg/webfishingmods\n")
+            f.write("If you need support, join discord.gg/zAdYquPx3U\n")
             f.write("This log contains all debug messages and program activity\n")
             f.write("=" * 80 + "\n\n")
         print("Full log header written")
@@ -1283,7 +1283,7 @@ class HookLineSinkerUI:
         help_frame.grid(row=4, column=0, pady=5, padx=5, sticky="ew")
         help_frame.grid_columnconfigure(0, weight=1)
         help_frame.grid_columnconfigure(1, weight=1)
-        ttk.Button(help_frame, text="Join Discord", command=lambda: webbrowser.open("https://discord.gg/HzhCPxeCKY")).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
+        ttk.Button(help_frame, text="Join Discord", command=lambda: webbrowser.open("https://discord.gg/zAdYquPx3U")).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(help_frame, text="Visit Website", command=lambda: webbrowser.open("https://hooklinesinker.lol")).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
 
         # create right panel for installed mods :3
@@ -5553,21 +5553,21 @@ Special Thanks:
 
     # shows a prompt to join the discord community :3
     def show_discord_prompt(self):
-        if not self.settings.get('discord_prompt_shown', False):
+        if not self.settings.get('discord_prompt_shown2', False):
             if response := messagebox.askyesno(
                 "Join Our Discord Community",
                 "Welcome to Hook, Line, & Sinker!\n\n"
-                "We highly recommend joining our Discord community for:\n"
+                "We have a new Discord server! Even if you were in the old one, you'll want to join this new community for:\n"
                 "• Troubleshooting assistance (only place I can help!)\n"
                 "• Latest updates and announcements\n"
                 "• Mod discussions and sharing\n"
                 "• Direct support from the developer\n\n"
-                "Would you like to join our Discord now?",
+                "Would you like to join our new Discord now?",
                 icon='info',
             ):
-                webbrowser.open("https://discord.gg/HzhCPxeCKY")
+                webbrowser.open("https://discord.gg/zAdYquPx3U")
 
-            self.settings['discord_prompt_shown'] = True
+            self.settings['discord_prompt_shown2'] = True
             self.save_settings()
 
     def show_analytics_prompt(self):
@@ -5878,6 +5878,7 @@ Special Thanks:
             'show_nsfw': False,
             'show_deprecated': False,
             'discord_prompt_shown': False,
+            'discord_prompt_shown2': False,
             'analytics_prompt_shown': False,
             'analytics_enabled': True,
             'no_logging': False,

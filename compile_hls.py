@@ -3,7 +3,7 @@ import json
 import sys
 from cx_Freeze import setup, Executable
 
-project_dir = r"C:\Users\Pyoid\Desktop\HLSRewritten"
+project_dir = os.path.dirname(os.path.abspath(__file__))
 
 icon_path = os.path.join(project_dir, "icon.ico")
 
@@ -17,8 +17,7 @@ output_name = "HookLineSinker"
 # Include files that need to be bundled
 include_files = [
     ('icon.ico', 'icon.ico'),
-    ('version.json', 'version.json'), 
-    ('meow.wav', 'meow.wav'),
+    ('version.json', 'version.json'),
     ('GASecret.txt', 'GASecret.txt')
 ]
 
@@ -29,13 +28,18 @@ build_options = {
     'include_files': include_files
 }
 
+# Dist options
+dist_options = {
+    'bundle_name': output_name,
+    'include_resources': include_files
+}
+
 # Create the executable
-base = 'Win32GUI' if sys.platform == 'win32' else None
+base = 'Win32GUI' if sys.platform == 'win32' else 'gui'
 exe = Executable(
-    script='ui.py',
+    "ui.py",
     base=base,
-    icon=icon_path,
-    target_name=f'{output_name}.exe'
+    icon=icon_path
 )
 
 # Run the setup
@@ -43,8 +47,11 @@ setup(
     name=output_name,
     version=version,
     description='Hook, Line, & Sinker Mod Manager',
-    options={'build_exe': build_options},
+    options={
+      'build_exe': build_options,
+      'bdist_mac': dist_options
+    },
     executables=[exe]
 )
 
-print(f"Compilation complete. Executable created: {output_name}.exe")
+print(f"Compilation complete. Executable created: {output_name}")

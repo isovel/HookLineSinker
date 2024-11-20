@@ -2,3 +2,5 @@
 *.env
 .env*
 GASecret.txt
+/build
+.DS_Store

@@ -1,8 +1,5 @@
 # standard library imports :3
-import ctypes
 import html.parser
-import inspect
-import io
 import json
 import os
 import stat
@@ -12,7 +9,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 import traceback
@@ -21,26 +17,18 @@ import zipfile
 from urllib.parse import urlparse
 import argparse
 from packaging import version
-import psutil
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import logging
 import random
 import uuid
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox, simpledialog
 
 # third-party imports :3
 import appdirs
 import requests
-import tkinter as tk
+import psutil
 from dotenv import load_dotenv
-from PIL import Image, ImageTk
-from tkinter import ttk, filedialog, messagebox, simpledialog, font
-import pywinstyles
-# import firebase_admin :3
-# from firebase_admin import credentials, auth, firestore :3
-import winsound
-
-# import ctypes :3
-# from ctypes import wintypes :3
 
 # created by pyoid for more information visit the github repository :3
 # small portions of this code were developed with assistance from anthropic's claude 3.5 sonnet :3
@@ -81,7 +69,10 @@ class MLStripper(html.parser.HTMLParser):
         self.text.append(d)
     
     def get_data(self):
-        return ''.join(self.text)
+        if self.text is not None:
+            return ''.join(self.text)
+        else:
+            return ''
 
 # removes html tags from a string :3
 def strip_tags(html):
@@ -185,8 +176,8 @@ class HookLineSinkerUI:
             print(f"Screen dimensions: {screen_width}x{screen_height}")
             
             # set window dimensions :3
-            window_width = 800
-            window_height = 640
+            window_width = 1152
+            window_height = 689
             print(f"Window dimensions: {window_width}x{window_height}")
             
             # calculate center position :3
@@ -198,7 +189,7 @@ class HookLineSinkerUI:
             self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
         print("Setting minimum window size...")
-        self.root.minsize(800, 640)
+        self.root.minsize(1152, 689)
 
         print("Loading application icon...")
         icon_path = get_resource_path('icon.ico')
@@ -716,11 +707,8 @@ class HookLineSinkerUI:
         # store current key info :3
         self.last_key_time = current_time
         
-        # check for H + M combination :3
-        if self.last_key == 'h' and event.char.lower() == 'm':
-            self.play_meow()
         # check for H + B combination   :3
-        elif self.last_key == 'h' and event.char.lower() == 'b':
+        if self.last_key == 'h' and event.char.lower() == 'b':
             self.toggle_mod_limit()
             
         self.last_key = event.char.lower()
@@ -728,17 +716,6 @@ class HookLineSinkerUI:
     def handle_keyrelease(self, event):
         # reset key tracking after release :3
         self.last_key = None
-
-    def play_meow(self):
-        try:
-            meow_path = get_resource_path('meow.wav')
-            if os.path.exists(meow_path):
-                winsound.PlaySound(meow_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
-            else:
-                messagebox.showinfo("Meow!", "😺")
-        except Exception as e:
-            logging.error(f"Failed to play meow sound: {e}")
-            messagebox.showinfo("Meow!", "😺")
 
     def toggle_mod_limit(self):
         self.mod_limit_disabled = not self.mod_limit_disabled
@@ -750,18 +727,6 @@ class HookLineSinkerUI:
     def toggle_dark_mode(self, show_restart_prompt=True):
         is_dark = self.dark_mode.get()
         style = ttk.Style()
-
-        # set Windows title bar color based on dark mode :3
-        version = sys.getwindowsversion()
-        if version.major == 10 and version.build >= 22000:
-            # set the title bar color to match theme on Windows 11 :3
-            pywinstyles.change_header_color(self.root, "#1c1c1c" if is_dark else "#fafafa")
-        elif version.major == 10:
-            # set title bar style on Windows 10 :3
-            pywinstyles.apply_style(self.root, "dark" if is_dark else "normal")
-            # force refresh title bar color :3
-            self.root.wm_attributes("-alpha", 0.99)
-            self.root.wm_attributes("-alpha", 1)
         
         if is_dark:
             style.theme_use('default')
@@ -775,6 +740,18 @@ class HookLineSinkerUI:
                       background=[('disabled', '#555555'),
                                   ('active', self.dark_mode_colors['highlight_bg'])],
                       foreground=[('disabled', '#999999')])
+            style.configure('TCheckbutton',
+                            background=self.dark_mode_colors['button_bg'],
+                            foreground=self.dark_mode_colors['button_fg'],
+                            indicatorbackground=self.dark_mode_colors['bg'],
+                            indicatorforeground=self.dark_mode_colors['highlight_bg'])
+            style.map('TCheckbutton',
+                      background=[('active', self.dark_mode_colors['highlight_bg'])])
+            style.configure('TRadiobutton',
+                            background=self.dark_mode_colors['button_bg'],
+                            foreground=self.dark_mode_colors['button_fg'])
+            style.map('TRadiobutton',
+                      background=[('active', self.dark_mode_colors['highlight_bg'])])
             style.configure('TEntry', fieldbackground=self.dark_mode_colors['entry_bg'],
                             foreground=self.dark_mode_colors['entry_fg'])
             style.configure('TLabelframe', background=self.dark_mode_colors['bg'])
@@ -820,6 +797,10 @@ class HookLineSinkerUI:
             style.configure('TLabel', background='', foreground='')
             style.configure('TButton', background='', foreground='')
             style.map('TButton', background=[], foreground=[])
+            style.configure('TCheckbutton', background='', foreground='', indicatorbackground='', indicatorforeground='')
+            style.map('TCheckbutton', background=[])
+            style.configure('TRadiobutton', background='', foreground='')
+            style.map('TRadiobutton', background=[])
             style.configure('TEntry', fieldbackground='', foreground='')
             style.configure('TLabelframe', background='')
             style.configure('TLabelframe.Label', background='', foreground='')
@@ -1226,12 +1207,12 @@ class HookLineSinkerUI:
         toggle_frame = ttk.Frame(self.filter_frame)
         toggle_frame.pack(fill="x", padx=5, pady=2)
         ttk.Checkbutton(toggle_frame, text="Show NSFW", 
-                       variable=self.show_nsfw,
-                       command=lambda: self.handle_filter_toggle('nsfw')
+                    variable=self.show_nsfw,
+                    command=lambda: self.handle_filter_toggle('nsfw')
         ).pack(side="left", padx=5)
         ttk.Checkbutton(toggle_frame, text="Show Deprecated",
-                       variable=self.show_deprecated,
-                       command=lambda: self.handle_filter_toggle('deprecated')
+                    variable=self.show_deprecated,
+                    command=lambda: self.handle_filter_toggle('deprecated')
         ).pack(side="left", padx=5)
 
         # create listbox for available mods with scrollbar :3
@@ -1565,14 +1546,14 @@ class HookLineSinkerUI:
 
                     # show success message :3
                     if existing_paste_id:
-                        message = (f"Mod profile updated successfully!\n"
-                                  f"Previous share code: {existing_paste_id}\n"
-                                  f"New share code: {paste_id}\n"
-                                  f"The new code has been copied to your clipboard.")
+                        message = ( f"Mod profile updated successfully!\n"
+                                    f"Previous share code: {existing_paste_id}\n"
+                                    f"New share code: {paste_id}\n"
+                                    f"The new code has been copied to your clipboard." )
                     else:
-                        message = (f"Mod profile created successfully!\n"
-                                  f"Share this code with others: {paste_id}\n"
-                                  f"It has also been copied to your clipboard.")
+                        message = ( f"Mod profile created successfully!\n"
+                                    f"Share this code with others: {paste_id}\n"
+                                    f"It has also been copied to your clipboard." )
                     
                     messagebox.showinfo("Success", message)
                     
@@ -2263,7 +2244,7 @@ class HookLineSinkerUI:
         subtitle_label.grid(row=1, column=0, pady=(0, 10), padx=20, sticky="w")
 
         # display save file location :3
-        save_path = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+        save_path = os.path.join(os.getenv('APPDATA') if sys.platform == 'win32' else '~', 'Godot', 'app_userdata', 'webfishing_2_newver')
         
         # create frame for save location :3
         save_location_frame = ttk.Frame(game_manager_frame)
@@ -2397,7 +2378,7 @@ class HookLineSinkerUI:
         selected_slot = self.backup_slot_var.get()
         
         # check if save file exists for selected slot :3
-        save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+        save_dir = os.path.join(os.getenv('APPDATA') if sys.platform == 'win32' else '~', 'Godot', 'app_userdata', 'webfishing_2_newver')
         save_path = os.path.join(save_dir, f'webfishing_save_slot_{selected_slot - 1}.sav')
         
         if not os.path.exists(save_path):
@@ -2504,7 +2485,7 @@ class HookLineSinkerUI:
                 f"This will restore to Slot {slot_num}. Continue?"):
                 return
                 
-            save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+            save_dir = os.path.join(os.getenv('APPDATA') if sys.platform == 'win32' else '~', 'Godot', 'app_userdata', 'webfishing_2_newver')
             backup_path = os.path.join(backup_dir, backup_filename)
             save_path = os.path.join(save_dir, f'webfishing_save_slot_{slot_num-1}.sav')
             
@@ -2568,7 +2549,7 @@ class HookLineSinkerUI:
                     return
                 dialog.destroy()
                 
-                save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+                save_dir = os.path.join(os.getenv('APPDATA') if sys.platform == 'win32' else '~', 'Godot', 'app_userdata', 'webfishing_2_newver')
                 
                 # delete all existing save files (slots 1-4 are _0 to _3) :3
                 for slot in range(4):
@@ -2624,7 +2605,7 @@ class HookLineSinkerUI:
             dialog.wait_window()
 
     def get_available_save_slots(self):
-        save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+        save_dir = os.path.join(os.getenv('APPDATA') if sys.platform == 'win32' else '~', 'Godot', 'app_userdata', 'webfishing_2_newver')
         available_slots = []
         for slot in range(1, 5):  # slots 1-4 :3
             save_path = os.path.join(save_dir, f'webfishing_save_slot_{slot - 1}.sav')
@@ -2742,8 +2723,7 @@ class HookLineSinkerUI:
         title_label = ttk.Label(main_frame, text="Server Browser (Beta)", font=("Helvetica", 16, "bold"))
         title_label.pack(pady=(20, 5), padx=20, anchor="w")
 
-        subtitle_label = ttk.Label(main_frame, text="Browse and join modded multiplayer servers", 
-                                 font=("Helvetica", 10, "italic"))
+        subtitle_label = ttk.Label(main_frame, text="Browse and join modded multiplayer servers", font=("Helvetica", 10, "italic"))
         subtitle_label.pack(pady=(0, 10), padx=20, anchor="w")
 
         # create top frame for search and filters
@@ -2782,9 +2762,7 @@ class HookLineSinkerUI:
         ]
         
         for text, value in sort_options:
-            ttk.Radiobutton(sort_frame, text=text, value=value, 
-                          variable=self.sort_var,
-                          command=self.filter_servers).pack(side=tk.LEFT, padx=5)
+            ttk.Radiobutton(sort_frame, text=text, value=value, variable=self.sort_var, command=self.filter_servers).pack(side=tk.LEFT, padx=5)
 
         # Add 18+ filter checkbox
         self.show_18plus = tk.BooleanVar(value=False)
@@ -2931,8 +2909,7 @@ class HookLineSinkerUI:
                                 if mod['thunderstore_id'] == companion_id), None)
             
             if companion_mod:
-                message = ("The Server Browser requires the Hook, Line, & Sinker Companion mod.\n\n"
-                          "Would you like to install it now?")
+                message = ("The Server Browser requires the Hook, Line, & Sinker Companion mod.\n\nWould you like to install it now?")
                 
                 if messagebox.askyesno("Companion Mod Required", message):
                     self.download_and_install_mod(companion_mod)
@@ -3196,38 +3173,26 @@ class HookLineSinkerUI:
         left_frame.grid(row=0, column=0, sticky="w", padx=5)
         
         self.auto_update = tk.BooleanVar(value=self.settings.get('auto_update', True))
-        ttk.Checkbutton(left_frame, text="Auto-update mods", 
-                       variable=self.auto_update, 
-                       command=self.save_settings).grid(row=0, column=0, pady=2, sticky="w")
+        ttk.Checkbutton(left_frame, text="Auto-update mods", variable=self.auto_update, command=self.save_settings).grid(row=0, column=0, pady=2, sticky="w")
         
         self.windowed_mode = tk.BooleanVar(value=self.settings.get('windowed_mode', False))
-        ttk.Checkbutton(left_frame, text="Launch in windowed mode",
-                       variable=self.windowed_mode,
-                       command=self.save_windowed_mode).grid(row=1, column=0, pady=2, sticky="w")
+        ttk.Checkbutton(left_frame, text="Launch in windowed mode", variable=self.windowed_mode, command=self.save_windowed_mode).grid(row=1, column=0, pady=2, sticky="w")
         
         self.dark_mode = tk.BooleanVar(value=self.settings.get('dark_mode', False))
-        ttk.Checkbutton(left_frame, text="Dark mode",
-                       variable=self.dark_mode,
-                       command=self.toggle_dark_mode).grid(row=2, column=0, pady=2, sticky="w")
+        ttk.Checkbutton(left_frame, text="Dark mode", variable=self.dark_mode, command=self.toggle_dark_mode).grid(row=2, column=0, pady=2, sticky="w")
 
         # right column   :3
         right_frame = ttk.Frame(general_frame)
         right_frame.grid(row=0, column=1, sticky="w", padx=5)
         
         self.auto_backup = tk.BooleanVar(value=self.settings.get('auto_backup', True))
-        ttk.Checkbutton(right_frame, text="Auto-backup saves on launch",
-                       variable=self.auto_backup,
-                       command=self.save_settings).grid(row=0, column=0, pady=2, sticky="w")
+        ttk.Checkbutton(right_frame, text="Auto-backup saves on launch", variable=self.auto_backup, command=self.save_settings).grid(row=0, column=0, pady=2, sticky="w")
         
         self.suppress_mod_warning = tk.BooleanVar(value=self.settings.get('suppress_mod_warning', False))
-        ttk.Checkbutton(right_frame, text="Suppress mod count warning",
-                       variable=self.suppress_mod_warning,
-                       command=self.save_settings).grid(row=1, column=0, pady=2, sticky="w")
+        ttk.Checkbutton(right_frame, text="Suppress mod count warning", variable=self.suppress_mod_warning, command=self.save_settings).grid(row=1, column=0, pady=2, sticky="w")
 
         self.analytics_enabled = tk.BooleanVar(value=self.settings.get('analytics_enabled', True))
-        ttk.Checkbutton(right_frame, text="Enable analytics",
-                       variable=self.analytics_enabled,
-                       command=self.save_settings).grid(row=2, column=0, pady=2, sticky="w")
+        ttk.Checkbutton(right_frame, text="Enable analytics", variable=self.analytics_enabled, command=self.save_settings).grid(row=2, column=0, pady=2, sticky="w")
 
         update_frame = ttk.Frame(general_frame)
         update_frame.grid(row=4, column=0, columnspan=2, pady=5, padx=5, sticky="w")
@@ -3265,9 +3230,7 @@ class HookLineSinkerUI:
         quick_support_frame.grid(row=0, column=0, columnspan=3, pady=(5,10), padx=5, sticky="ew")
         quick_support_frame.grid_columnconfigure(0, weight=1)
 
-        support_button = ttk.Button(quick_support_frame, 
-                                  text="Quick Support - Copy all Debug Info", 
-                                  command=self.copy_support_info)
+        support_button = ttk.Button(quick_support_frame, text="Quick Support - Copy all Debug Info", command=self.copy_support_info)
         support_button.grid(row=0, column=0, sticky="ew")
 
         ttk.Separator(troubleshoot_frame, orient="horizontal").grid(
@@ -3444,8 +3407,7 @@ Special Thanks:
         os.makedirs(backup_dir, exist_ok=True)
 
         # find and sort auto-backup files :3
-        auto_backups = [f for f in os.listdir(backup_dir) 
-                       if f.startswith('Auto_Backup') and f.endswith('.save')]
+        auto_backups = [f for f in os.listdir(backup_dir) if f.startswith('Auto_Backup') and f.endswith('.save')]
         auto_backups.sort(key=lambda x: float(x.split('_')[-1].replace('.save', '')))
 
         # calculate max backups per slot to stay under 10 total :3
@@ -3482,7 +3444,7 @@ Special Thanks:
         timestamp = int(time.time())
         
         # create backups for each available slot :3
-        save_dir = os.path.join(os.getenv('APPDATA'), 'Godot', 'app_userdata', 'webfishing_2_newver')
+        save_dir = os.path.join(os.getenv('APPDATA') if sys.platform == 'win32' else '~', 'Godot', 'app_userdata', 'webfishing_2_newver')
         logging.info(f"Creating automatic backups in directory: {save_dir}")
         
         for slot in available_slots:
@@ -3587,7 +3549,7 @@ Special Thanks:
 
     # deletes temporary files and folders :3
     def delete_temp_files(self):
-        temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
+        temp_dir = os.path.join(self.app_data_dir, 'temp')
         if os.path.exists(temp_dir):
             try:
                 # use os.walk to iterate through all directories and files :3
@@ -3639,7 +3601,7 @@ Special Thanks:
         def download_and_install():
             try:
                 # create temp directory in appdata :3
-                temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
+                temp_dir = os.path.join(self.app_data_dir, 'temp')
                 os.makedirs(temp_dir, exist_ok=True)
                 
                 # download the installer :3
@@ -4100,7 +4062,7 @@ Special Thanks:
 
         try:
             # create a temporary directory for backup in appdata :3
-            temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
+            temp_dir = os.path.join(self.app_data_dir, 'temp')
             os.makedirs(temp_dir, exist_ok=True)
             temp_backup_dir = os.path.join(temp_dir, f'gdweave_backup_{int(time.time())}')
             os.makedirs(temp_backup_dir, exist_ok=True)
@@ -4247,8 +4209,10 @@ Special Thanks:
     # updates the status of step 2 in the setup process :3
     def update_step2_status(self):
         if self.settings.get('game_path'):
-            exe_path = os.path.join(self.settings['game_path'], 'webfishing.exe' if sys.platform.startswith('win') else 'webfishing.x86_64')
-            if os.path.isfile(exe_path):
+            game_path = self.settings['game_path']
+            exe_path_win = os.path.join(game_path, 'webfishing.exe')
+            exe_path_any = os.path.join(game_path, 'webfishing')
+            if os.path.isfile(exe_path_win) or os.path.isfile(exe_path_any):
                 self.step2_status.config(text="Verified", foreground="green")
             else:
                 self.step2_status.config(text="Unverified", foreground="red")
@@ -4408,6 +4372,8 @@ Special Thanks:
             os.startfile(self.app_data_dir)
         elif sys.platform.startswith('linux'):
             subprocess.Popen(['xdg-open', self.app_data_dir])
+        elif sys.platform.startswith('darwin'):
+            subprocess.Popen(['open', self.app_data_dir])
         else:
             messagebox.showerror("Error", "Unsupported operating system")
 
@@ -4417,6 +4383,10 @@ Special Thanks:
         if os.path.exists(gdweave_path):
             if sys.platform.startswith('win'):
                 os.startfile(gdweave_path)
+            elif sys.platform.startswith('linux'):
+                subprocess.Popen(['xdg-open', gdweave_path])
+            elif sys.platform.startswith('darwin'):
+                subprocess.Popen(['open', gdweave_path])
             else:
                 messagebox.showerror("Error", "Unsupported operating system")
         else:
@@ -4592,7 +4562,7 @@ Special Thanks:
                 logging.info("Updating status label to downloading")
                 
                 # create temp directory :3
-                temp_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'PyoidTM', 'Hook_Line_Sinker', 'temp')
+                temp_dir = os.path.join(self.app_data_dir, 'temp')
                 logging.info(f"Creating temp directory at {temp_dir}")
                 os.makedirs(temp_dir, exist_ok=True)
                 
@@ -4753,7 +4723,7 @@ Special Thanks:
                 response = requests.get(url, stream=True, allow_redirects=True)
                 response.raise_for_status()
 
-                temp_dir = os.path.join(os.getenv('APPDATA'), 'HookLineSinker', 'temp')
+                temp_dir = os.path.join(self.app_data_dir, 'temp')
                 os.makedirs(temp_dir, exist_ok=True)
                 installer_path = os.path.join(temp_dir, f"HookLineSinker-Setup-{new_version}.exe")
                 
@@ -4792,7 +4762,7 @@ Special Thanks:
 
     # creates and configures the status bar :3
     def create_status_bar(self):
-        self.status_bar = ttk.Label(self.root, text="Ready", relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar = ttk.Label(self.root, text="Ready", anchor=tk.W, padding=(8, 4))
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
     # updates the status bar with a new message :3
@@ -4992,12 +4962,10 @@ Special Thanks:
                 messagebox.showerror("Error", f"Failed to save configuration: {str(e)}")
 
         def restore_defaults():
-            if messagebox.askyesno("Restore Defaults", 
-                                 "Are you sure you want to restore defaults? This is irreversible!"):
+            if messagebox.askyesno("Restore Defaults", "Are you sure you want to restore defaults? This is irreversible!"):
                 try:
                     os.remove(config_path)
-                    messagebox.showinfo("Success", 
-                                      "Configuration has been reset. Please restart your game for the defaults to take effect.")
+                    messagebox.showinfo("Success", "Configuration has been reset. Please restart your game for the defaults to take effect.")
                     editor_window.destroy()
                 except Exception as e:
                     messagebox.showerror("Error", f"Failed to restore defaults: {str(e)}")
@@ -5023,8 +4991,7 @@ Special Thanks:
                 # get the actual mod from the filtered list :3
                 selected_title = listbox.get(index)
                 # find the corresponding mod in available_mods :3
-                mod = next((m for m in self.available_mods 
-                           if self.get_display_name(m['title']) == selected_title), None)
+                mod = next((m for m in self.available_mods if self.get_display_name(m['title']) == selected_title), None)
                 
                 if mod:
                     menu.add_command(label="Install", command=self.install_mod)
@@ -5035,8 +5002,7 @@ Special Thanks:
                 # remove status indicators (✅/❌) and [3rd] tag :3
                 clean_title = re.sub(r'^[✅❌]\s*(?:\[3rd\]\s*)?', '', selected_text)
                 # find the corresponding mod in installed_mods :3
-                mod = next((m for m in self.installed_mods 
-                           if self.get_display_name(m['title']) == clean_title), None)
+                mod = next((m for m in self.installed_mods if self.get_display_name(m['title']) == clean_title), None)
                 
                 if mod:
                     # basic mod management options :3
@@ -5048,10 +5014,8 @@ Special Thanks:
                     # version management submenu :3
                     version_menu = tk.Menu(menu, tearoff=0)
                     menu.add_cascade(label="Version Management", menu=version_menu)
-                    version_menu.add_command(label="Mark Current Version as Unwanted", 
-                                           command=lambda: self.blacklist_version(mod))
-                    version_menu.add_command(label="View Blacklisted Versions", 
-                                           command=lambda: self.show_blacklisted_versions(mod))
+                    version_menu.add_command(label="Mark Current Version as Unwanted", command=lambda: self.blacklist_version(mod))
+                    version_menu.add_command(label="View Blacklisted Versions", command=lambda: self.show_blacklisted_versions(mod))
                     menu.add_separator()
                     
                     # mod state controls :3
@@ -5067,8 +5031,7 @@ Special Thanks:
                     # third-party mod options :3
                     if mod.get('third_party', False):
                         menu.add_separator()
-                        menu.add_command(label="Export as ZIP", 
-                                       command=lambda: self.export_mod_as_zip(mod))
+                        menu.add_command(label="Export as ZIP", command=lambda: self.export_mod_as_zip(mod))
 
             menu.tk_popup(event.x_root, event.y_root)
 
@@ -5894,12 +5857,12 @@ Special Thanks:
     def verify_installation(self):
         try:
             game_path = self.game_path_entry.get()
-            exe_name = 'webfishing.exe' if platform.system() == 'Windows' else 'webfishing'
-            exe_path = os.path.join(game_path, exe_name)
-            if os.path.exists(game_path) and os.path.isfile(exe_path):
+            exe_path_win = os.path.join(game_path, 'webfishing.exe')
+            exe_path_any = os.path.join(game_path, 'webfishing')
+            if os.path.exists(game_path) and (os.path.isfile(exe_path_win) or os.path.isfile(exe_path_any)):
                 self.set_status("Game installation verified successfully!")
             else:
-                self.set_status(f"Invalid game installation path or {exe_name} not found!")
+                self.set_status(f"Invalid game installation path or executable not found!")
         except Exception as e:
             error_message = f"Error verifying game installation: {str(e)}"
             self.set_status(error_message)

@@ -2,6 +2,8 @@
 
 Hook, Line, & Sinker is a mod manager designed for WEBFISHING using GDWeave.
 
+Originally created by [pyoid](https://github.com/pyoidzzz) for Windows, this fork is tailored for macOS.
+
 ## Features
 - Easy mod installation and management
 - Automatic updates for mods and the GDWeave mod loader
@@ -14,7 +16,7 @@ Hook, Line, & Sinker is a mod manager designed for WEBFISHING using GDWeave.
 
 ## Installation
 
-Download [the latest release EXE](https://github.com/pyoidzzz/HLSRewritten/releases) and run it, simple as that! You'll need to go through the setup process once. Do not download the source code unless you know what you're doing.
+Download [the latest release EXE](https://github.com/isovel/HookLineSinker/releases) and run it, simple as that! You'll need to go through the setup process once. Do not download the source code unless you know what you're doing.
 
 ## Troubleshooting/tips
 

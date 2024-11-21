@@ -13,7 +13,8 @@ with open(version_file, 'r', encoding='utf-8') as f:
     version_data = json.load(f)
     version = version_data.get('version', 'Unknown')
 
-output_name = "HookLineSinker"
+raw_name = "HookLineSinker"
+pretty_name = "Hook, Line, & Sinker"
 
 # Include files that need to be bundled
 include_files = [
@@ -32,7 +33,7 @@ build_options = {
 # Dist options
 dist_options = {
     'iconfile': icon_path_mac,
-    'bundle_name': output_name,
+    'bundle_name': pretty_name,
     'include_resources': include_files
 }
 
@@ -45,7 +46,7 @@ exe = Executable(
 
 # Run the setup
 setup(
-    name=output_name,
+    name=raw_name,
     version=version,
     description='Hook, Line, & Sinker Mod Manager',
     options={
@@ -55,4 +56,4 @@ setup(
     executables=[exe]
 )
 
-print(f"Compilation complete. Executable created: {output_name}")
+print(f"Compilation complete. Executable created: {pretty_name}")

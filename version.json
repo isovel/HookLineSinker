@@ -1,8 +1,8 @@
 {
-    "version": "1.4.1",
-    "message": "Minor UpdateTM\n\nThis update fixes a few issues and updates the Discord invite link.",
-    "changelog": [
-        "Updated Discord server invite link",
-        "Fixed 'Check for Updates' showing too many mods in the update list"
-    ]
+  "version": "1.4.2",
+  "message": "Minor update\n\nMake it work on all platforms",
+  "changelog": [
+    "Removed platform specific code",
+    "Removed Google Analytics tracking"
+  ]
 }

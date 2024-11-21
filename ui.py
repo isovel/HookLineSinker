@@ -4102,7 +4102,7 @@ Special Thanks:
     # checks for program updates and prompts user to update if available :3
     def check_for_program_updates(self, silent=False):
         try:
-            response = requests.get("https://hooklinesinker.lol/download/version.json")
+            response = requests.get("https://raw.githubusercontent.com/isovel/HookLineSinker/main/version.json")
             version_data = response.json()
             remote_version = version_data['version']
             update_message = version_data.get('message', '')

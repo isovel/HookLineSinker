@@ -5,7 +5,8 @@ from cx_Freeze import setup, Executable
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
 
-icon_path = os.path.join(project_dir, "icon.ico")
+icon_path_win = os.path.join(project_dir, "icon.ico")
+icon_path_mac = os.path.join(project_dir, "icon.icns")
 
 version_file = os.path.join(project_dir, "version.json")
 with open(version_file, 'r', encoding='utf-8') as f:
@@ -17,8 +18,8 @@ output_name = "HookLineSinker"
 # Include files that need to be bundled
 include_files = [
     ('icon.ico', 'icon.ico'),
-    ('version.json', 'version.json'),
-    ('GASecret.txt', 'GASecret.txt')
+    ('icon.icns', 'icon.icns'),
+    ('version.json', 'version.json')
 ]
 
 # Build options
@@ -30,16 +31,16 @@ build_options = {
 
 # Dist options
 dist_options = {
+    'iconfile': icon_path_mac,
     'bundle_name': output_name,
     'include_resources': include_files
 }
 
 # Create the executable
-base = 'Win32GUI' if sys.platform == 'win32' else 'gui'
 exe = Executable(
     "ui.py",
-    base=base,
-    icon=icon_path
+    base='Win32GUI' if sys.platform == 'win32' else 'gui',
+    icon=icon_path_win if sys.platform == 'win32' else icon_path_mac
 )
 
 # Run the setup
